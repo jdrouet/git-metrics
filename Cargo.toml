@@ -1,0 +1,11 @@
+[package]
+name = "git-metrics"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+git2 = "0.18.3"
+indexmap = { version = "2.2.6", features = ["serde"] }
+serde = { version = "1.0.200", features = ["derive"] }
+serde_json = { version = "1.0.116" }
