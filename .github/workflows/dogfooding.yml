@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 env:
   RUSTFLAGS: "-Dwarnings"
 
@@ -36,9 +39,9 @@ jobs:
 
       - name: write binary size metric
         run: |
+          git config --global user.name 'Git Metrics Bot'
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
           BINARY_SIZE=$(ls -la target/release/git-metrics | cut -d ' ' -f 5)
-          UNAME=$(uname)
-          target/release/git-metrics add binary-size --tag "uname: $UNAME" $BINARY_SIZE
-
-      - name: push the metrics
-        run: git push origin refs/notes/metrics
+          RUSTC_VERSION=$(rustc --version)
+          target/release/git-metrics add binary-size --tag "platform.arch: $RUNNER_ARCH" --tag "platform.os: $RUNNER_OS" --tag "rust.version: $RUSTC_VERSION" $BINARY_SIZE
+          git push origin refs/notes/metrics
