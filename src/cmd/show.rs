@@ -41,7 +41,7 @@ mod tests {
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
 
-        crate::Args::parse_from(&["_", "show"])
+        crate::Args::parse_from(["_", "show"])
             .command
             .execute(repo, &mut stdout, &mut stderr)
             .unwrap();
@@ -75,7 +75,7 @@ mod tests {
                 ])
             });
 
-        crate::Args::parse_from(&["_", "show", "--target", sha])
+        crate::Args::parse_from(["_", "show", "--target", sha])
             .command
             .execute(repo, &mut stdout, &mut stderr)
             .unwrap();

@@ -67,7 +67,7 @@ mod tests {
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(&["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
+        crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
             .execute(repo, &mut stdout, &mut stderr)
             .unwrap();
@@ -97,7 +97,7 @@ mod tests {
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(&[
+        crate::Args::parse_from([
             "_",
             "add",
             "my-metric",

@@ -49,7 +49,7 @@ mod tests {
             )
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(&["_", "remove", "0"])
+        crate::Args::parse_from(["_", "remove", "0"])
             .command
             .execute(repo, &mut stdout, &mut stderr)
             .unwrap();
