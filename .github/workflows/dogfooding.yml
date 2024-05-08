@@ -1,0 +1,44 @@
+name: dogfooding
+
+on:
+  merge_group:
+    types: [checks_requested]
+  workflow_call:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  monitor-binary-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: build the binary
+        run: cargo build --release
+
+      - name: write binary size metric
+        run: |
+          BINARY_SIZE=$(ls -la target/release/git-metrics | cut -d ' ' -f 5)
+          UNAME=$(uname)
+          target/release/git-metrics add binary-size --tag "uname: $UNAME" $BINARY_SIZE
+
+      - name: push the metrics
+        run: git push origin refs/notes/metrics
