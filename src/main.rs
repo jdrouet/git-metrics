@@ -1,59 +1,39 @@
+mod cmd;
 mod metric;
+mod repository;
 
 use clap::Parser;
-use indexmap::IndexMap;
-use metric::Metric;
+use cmd::Executor;
 
 /// Git extension in order to attach metrics to commits
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Name of the metric
-    #[arg(short, long)]
-    name: String,
-
-    /// Information about the context
-    #[arg(short, long)]
-    context: Vec<String>,
-
-    /// Value of the metrics
-    #[arg(short, long)]
-    value: f64,
-}
-
-impl Args {
-    pub fn into_metric(self) -> Metric {
-        let context = self
-            .context
-            .into_iter()
-            .filter_map(|value| {
-                value
-                    .split_once(':')
-                    .map(|(key, value)| (key.trim().to_owned(), value.trim().to_owned()))
-            })
-            .collect::<IndexMap<String, String>>();
-
-        Metric {
-            name: self.name,
-            context,
-            value: self.value,
-        }
-    }
-}
-
-fn old_main() {
-    let args = Args::parse();
-    let metric = args.into_metric();
-    println!("ARGS: {metric:?}");
+    #[command(subcommand)]
+    command: cmd::Command,
 }
 
 fn main() {
-    let repo = git2::Repository::open_from_env().expect("unable to read git repository");
-    let head = repo.revparse("HEAD").expect("couldn't get HEAD");
-    let notes = repo
-        .notes(Some("refs/notes/metrics"))
-        .expect("couldn't get metrics");
-    for note in notes {
-        println!("{note:?}");
+    let args = Args::parse();
+    let repo = crate::repository::GitRepository::from_env().unwrap();
+    if let Err(err) = args
+        .command
+        .execute(repo, std::io::stdout(), std::io::stderr())
+    {
+        eprintln!("io error: {err:?}");
+        std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use crate::Args;
+
+    #[test]
+    fn args_should_parse_show() {
+        let args = Args::parse_from(&["this", "show"]);
+        assert!(matches!(args.command, crate::cmd::Command::Show(_)));
     }
 }

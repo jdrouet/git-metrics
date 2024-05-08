@@ -8,4 +8,4 @@ clap = { version = "4.5.4", features = ["derive"] }
 git2 = "0.18.3"
 indexmap = { version = "2.2.6", features = ["serde"] }
 serde = { version = "1.0.200", features = ["derive"] }
-serde_json = { version = "1.0.116" }
+toml = { version = "0.8.12", features = ["preserve_order"] }
