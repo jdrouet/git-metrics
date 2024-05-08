@@ -1,4 +1,5 @@
 pub(crate) mod add;
+pub(crate) mod remove;
 pub(crate) mod show;
 
 pub(crate) trait Executor {
@@ -13,6 +14,7 @@ pub(crate) trait Executor {
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum Command {
     Add(add::CommandAdd),
+    Remove(remove::CommandRemove),
     Show(show::CommandShow),
 }
 
@@ -31,6 +33,7 @@ impl Executor for Command {
     ) -> std::io::Result<()> {
         match self {
             Self::Add(inner) => inner.execute(repo, stdout, stderr),
+            Self::Remove(inner) => inner.execute(repo, stdout, stderr),
             Self::Show(inner) => inner.execute(repo, stdout, stderr),
         }
     }
