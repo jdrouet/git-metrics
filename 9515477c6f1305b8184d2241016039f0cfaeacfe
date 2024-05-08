@@ -1,0 +1,8 @@
+[[metrics]]
+name = "binary-size"
+value = 2463296.0
+
+[metrics.tags]
+"platform.arch" = "X64"
+"platform.os" = "Linux"
+"rust.version" = "rustc 1.78.0 (9b00956e5 2024-04-29)"
