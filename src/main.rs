@@ -16,24 +16,12 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let repo = crate::repository::GitRepository::from_env().unwrap();
-    if let Err(err) = args
-        .command
-        .execute(repo, std::io::stdout(), std::io::stderr())
-    {
-        eprintln!("io error: {err:?}");
+
+    let mut stdout = std::io::stdout();
+    let mut stderr = std::io::stderr();
+
+    if let Err(err) = args.command.execute(repo, &mut stdout, &mut stderr) {
+        eprintln!("{err:?}");
         std::process::exit(1);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use clap::Parser;
-
-    use crate::Args;
-
-    #[test]
-    fn args_should_parse_show() {
-        let args = Args::parse_from(&["this", "show"]);
-        assert!(matches!(args.command, crate::cmd::Command::Show(_)));
     }
 }

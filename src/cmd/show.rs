@@ -1,26 +1,94 @@
+use crate::repository::Repository;
+use std::io::Write;
+
 /// Display the metrics related to the target
 #[derive(clap::Parser, Debug, Default)]
 pub(crate) struct CommandShow {
     /// Commit target, default to HEAD
-    target: Option<String>,
+    #[clap(long, short, default_value = "HEAD")]
+    target: String,
 }
 
 impl super::Executor for CommandShow {
-    fn execute<Repo: crate::repository::Repository, Out: std::io::Write, Err: std::io::Write>(
+    fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,
-        mut stdout: Out,
-        mut stderr: Err,
-    ) -> std::io::Result<()> {
-        let target = self.target.as_deref().unwrap_or("HEAD");
-        match repo.get_metrics(target) {
-            Ok(metrics) => {
-                for m in metrics.iter() {
-                    writeln!(stdout, "{m:?}")?;
-                }
-                Ok(())
-            }
-            Err(err) => stderr.write_all(err.as_bytes()),
+        stdout: &mut Out,
+        _stderr: &mut Err,
+    ) -> Result<(), super::Error> {
+        let metrics = repo.get_metrics(&self.target)?;
+        for m in metrics.iter() {
+            writeln!(stdout, "{m:?}")?;
         }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+    use indexmap::IndexMap;
+
+    use crate::{cmd::Executor, metric::Metric, repository::MockRepository};
+
+    #[test]
+    fn should_read_head_and_return_nothing() {
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+
+        let mut repo = MockRepository::new();
+        repo.expect_get_metrics()
+            .with(mockall::predicate::eq("HEAD"))
+            .return_once(|_| Ok(Vec::new()));
+
+        crate::Args::parse_from(&["_", "show"])
+            .command
+            .execute(repo, &mut stdout, &mut stderr)
+            .unwrap();
+
+        assert!(stdout.is_empty());
+        assert!(stderr.is_empty());
+    }
+
+    #[test]
+    fn should_read_hash_and_return_a_list() {
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+
+        let sha = "aaaaaaa";
+
+        let mut repo = MockRepository::new();
+        repo.expect_get_metrics()
+            .with(mockall::predicate::eq(sha))
+            .return_once(|_| {
+                Ok(vec![
+                    Metric {
+                        name: "foo".into(),
+                        tags: Default::default(),
+                        value: 1.0,
+                    },
+                    Metric {
+                        name: "foo".into(),
+                        tags: IndexMap::from_iter([(String::from("bar"), String::from("baz"))]),
+                        value: 1.0,
+                    },
+                ])
+            });
+
+        crate::Args::parse_from(&["_", "show", "--target", sha])
+            .command
+            .execute(repo, &mut stdout, &mut stderr)
+            .unwrap();
+
+        assert!(!stdout.is_empty());
+        assert!(stderr.is_empty());
+
+        let stdout = String::from_utf8_lossy(&stdout);
+        assert_eq!(
+            stdout,
+            r#"Metric { name: "foo", tags: {}, value: 1.0 }
+Metric { name: "foo", tags: {"bar": "baz"}, value: 1.0 }
+"#
+        );
     }
 }

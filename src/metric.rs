@@ -4,6 +4,6 @@ use indexmap::IndexMap;
 pub struct Metric {
     pub name: String,
     #[serde(default)]
-    pub context: IndexMap<String, String>,
+    pub tags: IndexMap<String, String>,
     pub value: f64,
 }
