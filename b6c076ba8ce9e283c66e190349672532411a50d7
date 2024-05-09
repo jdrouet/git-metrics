@@ -1,0 +1,8 @@
+[[metrics]]
+name = "binary-size"
+value = 1605984.0
+
+[metrics.tags]
+"platform.arch" = "arm64"
+"platform.os" = "Darwin"
+"rust.version" = "rustc 1.78.0 (9b00956e5 2024-04-29)"
