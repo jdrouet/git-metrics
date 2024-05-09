@@ -68,4 +68,4 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email "6329508+jdrouet@users.noreply.github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
-          target/release/git-metrics show
+          target/release/git-metrics show --target $GITHUB_SHA
