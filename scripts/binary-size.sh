@@ -14,5 +14,3 @@ target/release/git-metrics add binary-size \
     --tag "platform.os: $RUNNER_OS" \
     --tag "rust.version: $RUSTC_VERSION" \
     $BINARY_SIZE
-
-target/release/git-metrics show

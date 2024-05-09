@@ -41,3 +41,31 @@ jobs:
           git fetch origin refs/notes/metrics:refs/notes/metrics
           bash scripts/binary-size.sh
           git push origin refs/notes/metrics
+
+  monitor-binary-size-check:
+    runs-on: ubuntu-latest
+    needs:
+      - monitor-binary-size
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: build binary
+        run: cargo build --release
+      - name: check if has metrics
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email "6329508+jdrouet@users.noreply.github.com"
+          git fetch origin refs/notes/metrics:refs/notes/metrics
+          target/release/git-metrics show
