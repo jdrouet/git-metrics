@@ -34,14 +34,10 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: build the binary
-        run: cargo build --release
-
       - name: write binary size metric
         run: |
-          git config --global user.name 'Git Metrics Bot'
-          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          BINARY_SIZE=$(ls -la target/release/git-metrics | cut -d ' ' -f 5)
-          RUSTC_VERSION=$(rustc --version)
-          target/release/git-metrics add binary-size --tag "platform.arch: $RUNNER_ARCH" --tag "platform.os: $RUNNER_OS" --tag "rust.version: $RUSTC_VERSION" $BINARY_SIZE
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email "$GITHUB_ACTOR_ID+github-actions[bot]@users.noreply.github.com"
+          git fetch origin refs/notes/metrics:refs/notes/metrics
+          bash scripts/binary-size.sh
           git push origin refs/notes/metrics
