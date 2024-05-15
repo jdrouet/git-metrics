@@ -1,0 +1,38 @@
+name: dogfooding
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  monitor-binary-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: write binary size metric
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email "6329508+jdrouet@users.noreply.github.com"
+          git fetch origin refs/notes/metrics:refs/notes/metrics
+          bash scripts/binary-size.sh
+          git notes --ref metrics show HEAD
+          git push origin refs/notes/metrics
+
