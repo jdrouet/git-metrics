@@ -1,19 +1,12 @@
 name: dogfooding
 
 on:
-  merge_group:
-    types: [checks_requested]
-  workflow_call:
-  pull_request:
   push:
     branches:
       - main
 
 permissions:
   contents: write
-
-env:
-  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   monitor-binary-size:
@@ -39,39 +32,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email "6329508+jdrouet@users.noreply.github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
-          echo $GITHUB_SHA
-          git rev-parse HEAD
           bash scripts/binary-size.sh
           git notes --ref metrics show HEAD
           git push origin refs/notes/metrics
 
-  monitor-binary-size-check:
-    runs-on: ubuntu-latest
-    needs:
-      - monitor-binary-size
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: build binary
-        run: cargo build --release
-      - name: check if has metrics
-        run: |
-          git config --global user.name 'whatever'
-          git config --global user.email "whatever@github.com"
-          git fetch origin refs/notes/metrics:refs/notes/metrics
-          echo $GITHUB_SHA
-          git rev-parse HEAD
-          git notes --ref metrics show HEAD
-          target/release/git-metrics show
