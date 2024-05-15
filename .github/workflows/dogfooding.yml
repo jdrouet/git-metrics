@@ -40,6 +40,7 @@ jobs:
           git config --global user.email "6329508+jdrouet@users.noreply.github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
           bash scripts/binary-size.sh
+          git notes --ref metrics show HEAD
           git push origin refs/notes/metrics
 
   monitor-binary-size-check:
@@ -68,4 +69,5 @@ jobs:
           git config --global user.name 'whatever'
           git config --global user.email "whatever@github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
+          git notes --ref metrics show HEAD
           target/release/git-metrics show
