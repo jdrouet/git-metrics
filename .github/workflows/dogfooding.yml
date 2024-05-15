@@ -68,4 +68,4 @@ jobs:
           git config --global user.name 'whatever'
           git config --global user.email "whatever@github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
-          target/release/git-metrics
+          target/release/git-metrics show
