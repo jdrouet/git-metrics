@@ -39,6 +39,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email "6329508+jdrouet@users.noreply.github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
+          echo "using commit sha: $GITHUB_SHA"
           bash scripts/binary-size.sh
           git push origin refs/notes/metrics
 
@@ -68,4 +69,5 @@ jobs:
           git config --global user.name 'whatever'
           git config --global user.email "whatever@github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
+          echo "using commit sha: $GITHUB_SHA"
           target/release/git-metrics show --target $GITHUB_SHA
