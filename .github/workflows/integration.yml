@@ -1,6 +1,8 @@
-name: dogfooding
+name: integration testing
 
 on:
+  # note that HEAD for pull requests represents the merge commit
+  pull_request:
   push:
     branches:
       - main
@@ -30,11 +32,11 @@ jobs:
       - name: build binary
         run: cargo build --release
 
-      - name: prepare context
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email "6329508+jdrouet@users.noreply.github.com"
-          git fetch origin refs/notes/metrics:refs/notes/metrics
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: fetch remote metrics
+        run: git fetch origin refs/notes/metrics:refs/notes/metrics
 
       - name: create metrics
         run: |
@@ -44,7 +46,7 @@ jobs:
             --tag "platform.arch: $RUNNER_ARCH" \
             --tag "platform.os: $RUNNER_OS" \
             --tag "rust.version: $(rustc --version)" \
-            $(ls -la target/release/git-metrics | cut -d ' ' -f 5)
+            $(stat --printf="%s" target/release/git-metrics)
 
       - name: check metrics exist
         run: |
@@ -73,12 +75,16 @@ jobs:
         with:
           name: git-metrics-binary
           path: target/release
-      - name: prepare execution
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email "6329508+jdrouet@users.noreply.github.com"
-          git fetch origin refs/notes/metrics:refs/notes/metrics -f
-          chmod +x target/release/git-metrics
+
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: fetch remote metrics
+        run: git fetch origin refs/notes/metrics:refs/notes/metrics
+
+      - name: make git-metrics executable
+        run: chmod +x target/release/git-metrics
+
       - name: check metrics exist
         run: |
           if [ -z "$(./target/release/git-metrics show)" ]; then
