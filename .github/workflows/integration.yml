@@ -1,4 +1,4 @@
-name: dogfooding
+name: integration testing
 
 on:
   # note that HEAD for pull requests represents the merge commit
