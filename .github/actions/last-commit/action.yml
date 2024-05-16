@@ -7,6 +7,7 @@ runs:
       if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       run: |
+        git fetch ${{ github.event.pull_request.head.sha }}
         echo "LAST_COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> ${GITHUB_ENV}
     - name: Setup Environment (Push)
       if: ${{ github.event_name == 'push' }}
