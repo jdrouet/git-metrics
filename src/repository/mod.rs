@@ -12,12 +12,14 @@ struct Note {
 
 #[derive(Debug)]
 pub(crate) enum ErrorKind {
+    RemoteNotFound,
     TargetNotFound,
     SignatureNotFound,
     UnableToDecode,
     UnableToEncode,
     UnableToPersist,
     UnableToPush,
+    UnableToReadConfig,
 }
 
 #[derive(Debug)]
@@ -38,6 +40,11 @@ impl Error {
     #[inline]
     fn signature_not_found<E: std::error::Error + 'static>(err: E) -> Self {
         Self::new(ErrorKind::SignatureNotFound, err)
+    }
+
+    #[inline]
+    fn remote_not_found<E: std::error::Error + 'static>(err: E) -> Self {
+        Self::new(ErrorKind::RemoteNotFound, err)
     }
 
     #[inline]
@@ -69,12 +76,14 @@ impl Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self.kind {
+            ErrorKind::RemoteNotFound => "unable to find remote",
             ErrorKind::SignatureNotFound => "unable to get current signature",
             ErrorKind::TargetNotFound => "target not found",
             ErrorKind::UnableToDecode => "unable to decode metrics",
             ErrorKind::UnableToEncode => "unable to encode metrics",
             ErrorKind::UnableToPersist => "unable to persist metrics",
             ErrorKind::UnableToPush => "unable to push metrics",
+            ErrorKind::UnableToReadConfig => "unable to read git config",
         })
     }
 }
