@@ -1,6 +1,7 @@
 name: dogfooding
 
 on:
+  # note that HEAD for pull requests represents the merge commit
   pull_request:
   push:
     branches:
@@ -14,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/last-commit
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -40,7 +40,7 @@ jobs:
 
       - name: create metrics
         run: |
-          ./target/release/git-metrics add --target $LAST_COMMIT_SHA \
+          ./target/release/git-metrics add \
             binary-size \
             --tag "unit: byte" \
             --tag "platform.arch: $RUNNER_ARCH" \
@@ -50,7 +50,7 @@ jobs:
 
       - name: check metrics exist
         run: |
-          if [ -z "$(./target/release/git-metrics show --target $LAST_COMMIT_SHA)" ]; then
+          if [ -z "$(./target/release/git-metrics show)" ]; then
             echo "NO METRICS FOUND"
             exit 1;
           fi
@@ -70,7 +70,6 @@ jobs:
       - push-metrics
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/last-commit
       - name: fetch compiled binary
         uses: actions/download-artifact@master
         with:
@@ -84,7 +83,7 @@ jobs:
           chmod +x target/release/git-metrics
       - name: check metrics exist
         run: |
-          if [ -z "$(./target/release/git-metrics show --target $LAST_COMMIT_SHA)" ]; then
+          if [ -z "$(./target/release/git-metrics show)" ]; then
             echo "NO METRICS FOUND"
             exit 1;
           fi
