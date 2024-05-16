@@ -10,27 +10,34 @@ fn with_credentials(
 ) -> Result<git2::Cred, git2::Error> {
     let mut cred_helper = git2::CredentialHelper::new(url);
     cred_helper.config(config);
+
+    let mut res = Err(git2::Error::from_str("no authentication available"));
+
     if allowed_types.contains(git2::CredentialType::SSH_KEY) {
         let user = username
             .or(cred_helper.username.as_deref())
             .unwrap_or("git");
-        return git2::Cred::ssh_key_from_agent(user);
+        res = res.or(git2::Cred::ssh_key_from_agent(user));
     }
+
     if allowed_types.contains(git2::CredentialType::USERNAME) {
         if let Some(username) = username {
-            return git2::Cred::username(username);
+            res = res.or(git2::Cred::username(username));
         }
         if let Some(ref username) = cred_helper.username {
-            return git2::Cred::username(username);
+            res = res.or(git2::Cred::username(username));
         }
     }
+
     if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-        return git2::Cred::credential_helper(config, url, username);
+        res = res.or(git2::Cred::credential_helper(config, url, username));
     }
+
     if allowed_types.contains(git2::CredentialType::DEFAULT) {
-        return git2::Cred::default();
+        res = res.or(git2::Cred::default());
     }
-    Err(git2::Error::from_str("no authentication available"))
+
+    res
 }
 
 pub(crate) struct GitRepository {
