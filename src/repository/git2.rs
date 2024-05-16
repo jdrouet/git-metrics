@@ -14,14 +14,23 @@ fn with_credentials(
         let user = username
             .or(cred_helper.username.as_deref())
             .unwrap_or("git");
-        git2::Cred::ssh_key_from_agent(user)
-    } else if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-        git2::Cred::credential_helper(config, url, username)
-    } else if allowed_types.contains(git2::CredentialType::DEFAULT) {
-        git2::Cred::default()
-    } else {
-        Err(git2::Error::from_str("no authentication available"))
+        return git2::Cred::ssh_key_from_agent(user);
     }
+    if allowed_types.contains(git2::CredentialType::USERNAME) {
+        if let Some(username) = username {
+            return git2::Cred::username(username);
+        }
+        if let Some(ref username) = cred_helper.username {
+            return git2::Cred::username(username);
+        }
+    }
+    if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
+        return git2::Cred::credential_helper(config, url, username);
+    }
+    if allowed_types.contains(git2::CredentialType::DEFAULT) {
+        return git2::Cred::default();
+    }
+    Err(git2::Error::from_str("no authentication available"))
 }
 
 pub(crate) struct GitRepository {
