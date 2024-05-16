@@ -2,8 +2,6 @@
 
 set -xe
 
-cargo build --release
-
 export RUNNER_ARCH=$(uname -m)
 export RUNNER_OS=$(uname)
 export RUSTC_VERSION=$(rustc --version)

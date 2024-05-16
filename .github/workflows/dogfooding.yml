@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  monitor-binary-size:
+  push-metrics:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,12 +27,61 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: write binary size metric
+      - name: build binary
+        run: cargo build --release
+
+      - name: prepare context
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email "6329508+jdrouet@users.noreply.github.com"
           git fetch origin refs/notes/metrics:refs/notes/metrics
-          bash scripts/binary-size.sh
-          git notes --ref metrics show HEAD
-          git push origin refs/notes/metrics
 
+      - name: create metrics
+        run: |
+          ./target/release/git-metrics add \
+            binary-size \
+            --tag "unit: byte" \
+            --tag "platform.arch: $RUNNER_ARCH" \
+            --tag "platform.os: $RUNNER_OS" \
+            --tag "rust.version: $(rustc --version)" \
+            $(ls -la target/release/git-metrics | cut -d ' ' -f 5)
+
+      - name: check metrics exist
+        run: |
+          if [ -z "$(./target/release/git-metrics show)" ]; then
+            echo "NO METRICS FOUND"
+            exit 1;
+          fi
+
+      - name: push metrics
+        run: git push origin refs/notes/metrics
+
+      - name: save compiled binary
+        uses: actions/upload-artifact@master
+        with:
+          name: git-metrics-binary
+          path: target/release/git-metrics
+
+  check-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - push-metrics
+    steps:
+      - uses: actions/checkout@v3
+      - name: fetch compiled binary
+        uses: actions/download-artifact@master
+        with:
+          name: git-metrics-binary
+          path: target/release
+      - name: prepare execution
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email "6329508+jdrouet@users.noreply.github.com"
+          git fetch origin refs/notes/metrics:refs/notes/metrics -f
+          chmod +x target/release/git-metrics
+      - name: check metrics exist
+        run: |
+          if [ -z "$(./target/release/git-metrics show)" ]; then
+            echo "NO METRICS FOUND"
+            exit 1;
+          fi
