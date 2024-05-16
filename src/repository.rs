@@ -80,11 +80,13 @@ impl std::error::Error for Error {
 
 #[cfg_attr(test, mockall::automock)]
 pub(crate) trait Repository {
+    fn push(&self, remote: &str) -> Result<(), Error>;
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error>;
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error>;
 }
 
-const NOTES_REF: Option<&str> = Some("refs/notes/metrics");
+const NOTES_REF: &str = "refs/notes/metrics";
+const NOTES_REF_OPTS: Option<&str> = Some(NOTES_REF);
 
 pub(crate) struct GitRepository {
     repo: git2::Repository,
@@ -109,11 +111,43 @@ impl GitRepository {
     }
 }
 
+fn git_credentials(
+    _url: &str,
+    username_from_url: Option<&str>,
+    _allowed_types: git2::CredentialType,
+) -> Result<git2::Cred, git2::Error> {
+    let res = git2::Cred::default();
+    if let Some(username) = username_from_url {
+        let res = if let Some(id_rsa) = std::env::var("HOME")
+            .ok()
+            .map(|value| std::path::PathBuf::from(value).join(".ssh").join("id_rsa"))
+            .filter(|value| value.exists())
+        {
+            git2::Cred::ssh_key(username, None, &id_rsa, None).or(res)
+        } else {
+            res
+        };
+        git2::Cred::ssh_key_from_agent(username).or(res)
+    } else {
+        res
+    }
+}
+
 impl Repository for GitRepository {
+    fn push(&self, remote: &str) -> Result<(), Error> {
+        let mut remote_cb = git2::RemoteCallbacks::default();
+        remote_cb.credentials(git_credentials);
+        let mut push_opts = git2::PushOptions::default();
+        push_opts.remote_callbacks(remote_cb);
+        let mut remote = self.repo.find_remote(remote).unwrap();
+        remote.push(&[NOTES_REF], Some(&mut push_opts)).unwrap();
+        Ok(())
+    }
+
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
         let rev_id = self.revision_id(target)?;
 
-        let Ok(note) = self.repo.find_note(NOTES_REF, rev_id) else {
+        let Ok(note) = self.repo.find_note(NOTES_REF_OPTS, rev_id) else {
             return Ok(Default::default());
         };
 
@@ -129,7 +163,7 @@ impl Repository for GitRepository {
 
         let note = toml::to_string_pretty(&Note { metrics }).map_err(Error::unable_to_encode)?;
         self.repo
-            .note(&sig, &sig, NOTES_REF, head_id, &note, true)
+            .note(&sig, &sig, NOTES_REF_OPTS, head_id, &note, true)
             .map_err(Error::unable_to_persist)?;
 
         Ok(())
