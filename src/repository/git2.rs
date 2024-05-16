@@ -30,6 +30,9 @@ fn with_credentials(
     }
 
     if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
+        if let Ok(token) = std::env::var("GH_TOKEN") {
+            res = res.or(git2::Cred::userpass_plaintext(&token, ""))
+        }
         res = res.or(git2::Cred::credential_helper(config, url, username));
     }
 
