@@ -8,12 +8,6 @@ fn with_credentials(
     username: Option<&str>,
     allowed_types: git2::CredentialType,
 ) -> Result<git2::Cred, git2::Error> {
-    println!("GIT URL: {url:?}");
-    println!(
-        "ENV: {:?}",
-        std::env::vars().map(|(key, _)| key).collect::<Vec<_>>()
-    );
-
     let mut cred_helper = git2::CredentialHelper::new(url);
     cred_helper.config(config);
 
@@ -38,10 +32,8 @@ fn with_credentials(
     if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
         if let Ok(token) = std::env::var("GITHUB_TOKEN") {
             res = res.or(git2::Cred::userpass_plaintext(&token, ""));
-            println!("with github: {}", res.is_ok());
         }
         res = res.or(git2::Cred::credential_helper(config, url, username));
-        println!("with helper: {}", res.is_ok());
     }
 
     if allowed_types.contains(git2::CredentialType::DEFAULT) {
