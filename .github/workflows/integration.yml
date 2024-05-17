@@ -57,8 +57,6 @@ jobs:
 
       - name: push metrics
         run: ./target/release/git-metrics push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: save compiled binary
         uses: actions/upload-artifact@master
