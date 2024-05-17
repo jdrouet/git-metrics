@@ -68,23 +68,31 @@ impl GitRepository {
 
 impl Repository for GitRepository {
     fn push(&self, remote: &str) -> Result<(), Error> {
-        let config = self
-            .repo
-            .config()
-            .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
-        let mut remote = self
-            .repo
-            .find_remote(remote)
-            .map_err(Error::remote_not_found)?;
-        let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed_types| {
-            with_credentials(&config, url, username, allowed_types)
-        });
-        let mut push_opts = git2::PushOptions::new();
-        push_opts.remote_callbacks(remote_cb);
-        remote
-            .push(&[NOTES_REF], Some(&mut push_opts))
-            .map_err(Error::unable_to_push)
+        if std::env::var("CI").is_ok() {
+            std::process::Command::new("git")
+                .args(["push", remote, super::NOTES_REF])
+                .spawn()
+                .map_err(Error::unable_to_push)
+                .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_push))
+        } else {
+            let config = self
+                .repo
+                .config()
+                .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
+            let mut remote = self
+                .repo
+                .find_remote(remote)
+                .map_err(Error::remote_not_found)?;
+            let mut remote_cb = git2::RemoteCallbacks::new();
+            remote_cb.credentials(|url, username, allowed_types| {
+                with_credentials(&config, url, username, allowed_types)
+            });
+            let mut push_opts = git2::PushOptions::new();
+            push_opts.remote_callbacks(remote_cb);
+            remote
+                .push(&[NOTES_REF], Some(&mut push_opts))
+                .map_err(Error::unable_to_push)
+        }
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
