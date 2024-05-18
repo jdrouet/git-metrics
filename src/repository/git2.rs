@@ -14,30 +14,32 @@ fn with_credentials(
     let mut res = Err(git2::Error::from_str("no authentication available"));
 
     if allowed_types.contains(git2::CredentialType::SSH_KEY) {
-        let user = username
-            .or(cred_helper.username.as_deref())
-            .unwrap_or("git");
-        res = res.or(git2::Cred::ssh_key_from_agent(user));
+        res = res.or_else(|_| {
+            let user = username
+                .or(cred_helper.username.as_deref())
+                .unwrap_or("git");
+            git2::Cred::ssh_key_from_agent(user)
+        });
     }
 
     if allowed_types.contains(git2::CredentialType::USERNAME) {
         if let Some(username) = username {
-            res = res.or(git2::Cred::username(username));
+            res = res.or_else(|_| git2::Cred::username(username));
         }
         if let Some(ref username) = cred_helper.username {
-            res = res.or(git2::Cred::username(username));
+            res = res.or_else(|_| git2::Cred::username(username));
         }
     }
 
     if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
         if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-            res = res.or(git2::Cred::userpass_plaintext(&token, ""));
+            res = res.or_else(|_| git2::Cred::userpass_plaintext(&token, ""));
         }
-        res = res.or(git2::Cred::credential_helper(config, url, username));
+        res = res.or_else(|_| git2::Cred::credential_helper(config, url, username));
     }
 
     if allowed_types.contains(git2::CredentialType::DEFAULT) {
-        res = res.or(git2::Cred::default());
+        res = res.or_else(|_| git2::Cred::default());
     }
 
     res
@@ -45,13 +47,17 @@ fn with_credentials(
 
 pub(crate) struct GitRepository {
     repo: git2::Repository,
+    fallback_command: bool,
 }
 
 impl GitRepository {
     pub(crate) fn from_env() -> Result<Self, String> {
         let repo = git2::Repository::open_from_env()
             .map_err(|err| format!("unable to open repository: {err:?}"))?;
-        Ok(GitRepository { repo })
+        Ok(GitRepository {
+            repo,
+            fallback_command: true,
+        })
     }
 
     fn revision_id(&self, target: &str) -> Result<git2::Oid, Error> {
@@ -64,34 +70,43 @@ impl GitRepository {
     fn signature(&self) -> Result<git2::Signature, Error> {
         self.repo.signature().map_err(Error::signature_not_found)
     }
+
+    fn command_push(&self, remote: &str) -> Result<(), Error> {
+        std::process::Command::new("git")
+            .args(["push", remote, super::NOTES_REF])
+            .spawn()
+            .map_err(Error::unable_to_push)
+            .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_push))
+    }
+
+    fn manual_push(&self, remote: &str) -> Result<(), Error> {
+        let config = self
+            .repo
+            .config()
+            .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
+        let mut remote = self
+            .repo
+            .find_remote(remote)
+            .map_err(Error::remote_not_found)?;
+        let mut remote_cb = git2::RemoteCallbacks::new();
+        remote_cb.credentials(|url, username, allowed_types| {
+            with_credentials(&config, url, username, allowed_types)
+        });
+        let mut push_opts = git2::PushOptions::new();
+        push_opts.remote_callbacks(remote_cb);
+        remote
+            .push(&[NOTES_REF], Some(&mut push_opts))
+            .map_err(Error::unable_to_push)
+    }
 }
 
 impl Repository for GitRepository {
     fn push(&self, remote: &str) -> Result<(), Error> {
-        if std::env::var("CI").is_ok() {
-            std::process::Command::new("git")
-                .args(["push", remote, super::NOTES_REF])
-                .spawn()
-                .map_err(Error::unable_to_push)
-                .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_push))
+        let res = self.manual_push(remote);
+        if self.fallback_command {
+            res.or_else(|_| self.command_push(remote))
         } else {
-            let config = self
-                .repo
-                .config()
-                .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
-            let mut remote = self
-                .repo
-                .find_remote(remote)
-                .map_err(Error::remote_not_found)?;
-            let mut remote_cb = git2::RemoteCallbacks::new();
-            remote_cb.credentials(|url, username, allowed_types| {
-                with_credentials(&config, url, username, allowed_types)
-            });
-            let mut push_opts = git2::PushOptions::new();
-            push_opts.remote_callbacks(remote_cb);
-            remote
-                .push(&[NOTES_REF], Some(&mut push_opts))
-                .map_err(Error::unable_to_push)
+            res
         }
     }
 
