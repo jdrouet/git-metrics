@@ -60,6 +60,11 @@ impl GitRepository {
         })
     }
 
+    pub(crate) fn with_fallback_git(mut self, value: bool) -> Self {
+        self.fallback_command = value;
+        self
+    }
+
     fn revision_id(&self, target: &str) -> Result<git2::Oid, Error> {
         self.repo
             .revparse_single(target)

@@ -9,13 +9,18 @@ use cmd::Executor;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Allows to use git as an external fallback when command fails.
+    #[clap(long, default_value = "true")]
+    fallback_git: bool,
     #[command(subcommand)]
     command: cmd::Command,
 }
 
 fn main() {
     let args = Args::parse();
-    let repo = crate::repository::GitRepository::from_env().unwrap();
+    let repo = crate::repository::GitRepository::from_env()
+        .unwrap()
+        .with_fallback_git(args.fallback_git);
 
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
