@@ -87,7 +87,7 @@ impl GitRepository {
     fn command_push(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pushing metrics");
         std::process::Command::new("git")
-            .args(["push", remote, super::NOTES_REF])
+            .args(["push", remote, super::NOTES_REF, "--force"])
             .spawn()
             .map_err(|err| {
                 tracing::error!("unable to start pushing: {err:?}");
@@ -123,9 +123,47 @@ impl GitRepository {
                 Error::unable_to_push(err)
             })
     }
+
+    fn command_pull(&self, remote: &str) -> Result<(), Error> {
+        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
+        std::process::Command::new("git")
+            .args(["fetch", remote, refs.as_str()])
+            .spawn()
+            .map_err(Error::unable_to_pull)
+            .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_pull))
+    }
+
+    fn manual_pull(&self, remote: &str) -> Result<(), Error> {
+        let config = self
+            .repo
+            .config()
+            .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
+        let mut remote = self
+            .repo
+            .find_remote(remote)
+            .map_err(Error::remote_not_found)?;
+        let mut remote_cb = git2::RemoteCallbacks::new();
+        remote_cb.credentials(|url, username, allowed_types| {
+            with_credentials(&config, url, username, allowed_types)
+        });
+        let mut fetch_opts = git2::FetchOptions::new();
+        fetch_opts.remote_callbacks(remote_cb);
+        remote
+            .fetch(&[NOTES_REF], Some(&mut fetch_opts), None)
+            .map_err(Error::unable_to_pull)
+    }
 }
 
 impl Repository for GitRepository {
+    fn pull(&self, remote: &str) -> Result<(), Error> {
+        let res = self.manual_pull(remote);
+        if self.fallback_command {
+            res.or_else(|_| self.command_pull(remote))
+        } else {
+            res
+        }
+    }
+
     fn push(&self, remote: &str) -> Result<(), Error> {
         let res = self.manual_push(remote);
         if self.fallback_command {

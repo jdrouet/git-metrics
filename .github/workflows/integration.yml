@@ -36,7 +36,7 @@ jobs:
         uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
-        run: git fetch origin refs/notes/metrics:refs/notes/metrics
+        run: target/release/git-metrics pull
 
       - name: create metrics
         run: |
@@ -79,11 +79,11 @@ jobs:
       - name: set git user
         uses: ./.github/actions/git-user
 
-      - name: fetch remote metrics
-        run: git fetch origin refs/notes/metrics:refs/notes/metrics
-
       - name: make git-metrics executable
         run: chmod +x target/release/git-metrics
+
+      - name: fetch remote metrics
+        run: target/release/git-metrics pull
 
       - name: check metrics exist
         run: |
