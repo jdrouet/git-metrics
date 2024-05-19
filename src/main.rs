@@ -41,7 +41,7 @@ fn main() {
 
     let repo = crate::repository::GitRepository::from_env()
         .unwrap()
-        .with_fallback_git(args.fallback_git);
+        .with_fallback(args.fallback_git);
 
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();

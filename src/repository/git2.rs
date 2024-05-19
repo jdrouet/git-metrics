@@ -1,3 +1,4 @@
+use super::command::CommandRepository;
 use super::{Error, Repository, NOTES_REF};
 use crate::metric::Metric;
 
@@ -47,7 +48,7 @@ fn with_credentials(
 
 pub(crate) struct GitRepository {
     repo: git2::Repository,
-    fallback_command: bool,
+    fallback: Option<CommandRepository>,
 }
 
 impl GitRepository {
@@ -56,12 +57,16 @@ impl GitRepository {
             .map_err(|err| format!("unable to open repository: {err:?}"))?;
         Ok(GitRepository {
             repo,
-            fallback_command: true,
+            fallback: None,
         })
     }
 
-    pub(crate) fn with_fallback_git(mut self, value: bool) -> Self {
-        self.fallback_command = value;
+    pub(crate) fn with_fallback(mut self, enabled: bool) -> Self {
+        if enabled {
+            self.fallback = Some(CommandRepository::default());
+        } else {
+            self.fallback = None;
+        }
         self
     }
 
@@ -131,8 +136,8 @@ impl GitRepository {
 impl Repository for GitRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         let res = self.manual_pull(remote);
-        if self.fallback_command {
-            res.or_else(|_| super::command::pull(remote))
+        if let Some(ref fallback) = self.fallback {
+            res.or_else(|_| fallback.pull(remote))
         } else {
             res
         }
@@ -140,8 +145,8 @@ impl Repository for GitRepository {
 
     fn push(&self, remote: &str) -> Result<(), Error> {
         let res = self.manual_push(remote);
-        if self.fallback_command {
-            res.or_else(|_| super::command::push(remote))
+        if let Some(ref fallback) = self.fallback {
+            res.or_else(|_| fallback.push(remote))
         } else {
             res
         }
