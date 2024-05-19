@@ -1,6 +1,8 @@
 use super::{Error, Repository, NOTES_REF};
 use crate::metric::Metric;
 
+const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
+
 // see https://github.com/rust-lang/cargo/blob/bb28e71202260180ecff658cd0fa0c7ba86d0296/src/cargo/sources/git/utils.rs#L344-L391
 fn with_credentials(
     config: &git2::Config,
@@ -60,7 +62,7 @@ impl GitRepository {
             .map(|rev| rev.id())
             .map_err(|err| {
                 tracing::error!("unable to find revision id for target {target:?}: {err:?}");
-                Error::target_not_found(err)
+                Error::new("target not found", err)
             })
     }
 
@@ -68,7 +70,7 @@ impl GitRepository {
         tracing::trace!("fetching signature");
         self.repo.signature().map_err(|err| {
             tracing::error!("unable to get signature: {err:?}");
-            Error::signature_not_found(err)
+            Error::new("unable to get signature", err)
         })
     }
 }
@@ -77,11 +79,11 @@ impl Repository for GitRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         let config = self.repo.config().map_err(|err| {
             tracing::error!("unable to read config: {err:?}");
-            Error::new(super::ErrorKind::UnableToReadConfig, err)
+            Error::new("unable to read config", err)
         })?;
         let mut remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote: {err:?}");
-            Error::remote_not_found(err)
+            Error::new("unable to find remote", err)
         })?;
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(|url, username, allowed_types| {
@@ -93,18 +95,18 @@ impl Repository for GitRepository {
             .fetch(&[NOTES_REF], Some(&mut fetch_opts), None)
             .map_err(|err| {
                 tracing::error!("unable to pull metrics: {err:?}");
-                Error::unable_to_pull(err)
+                Error::new("unable to pull metrics", err)
             })
     }
 
     fn push(&self, remote: &str) -> Result<(), Error> {
         let config = self.repo.config().map_err(|err| {
             tracing::error!("unable to read config: {err:?}");
-            Error::new(super::ErrorKind::UnableToReadConfig, err)
+            Error::new("unable to read config", err)
         })?;
         let mut remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote {remote:?}: {err:?}");
-            Error::remote_not_found(err)
+            Error::new("unable to find remote", err)
         })?;
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(|url, username, allowed_types| {
@@ -116,7 +118,7 @@ impl Repository for GitRepository {
             .push(&[NOTES_REF], Some(&mut push_opts))
             .map_err(|err| {
                 tracing::error!("unable to push metrics: {err:?}");
-                Error::unable_to_push(err)
+                Error::new("unable to push metrics", err)
             })
     }
 
@@ -124,7 +126,7 @@ impl Repository for GitRepository {
         tracing::trace!("getting metrics for target {target:?}");
         let rev_id = self.revision_id(target)?;
 
-        let Ok(note) = self.repo.find_note(super::NOTES_REF_OPTS, rev_id) else {
+        let Ok(note) = self.repo.find_note(NOTES_REF_OPTS, rev_id) else {
             tracing::debug!("no note found for revision");
             return Ok(Default::default());
         };
@@ -134,7 +136,7 @@ impl Repository for GitRepository {
                 tracing::trace!("deserializing note content");
                 toml::from_str::<super::Note>(msg).map_err(|err| {
                     tracing::error!("unable to deserialize note: {err:?}");
-                    Error::unable_to_decode(err)
+                    Error::new("unable to deserialize note", err)
                 })
             })
             .unwrap_or_else(|| {
@@ -152,13 +154,13 @@ impl Repository for GitRepository {
         tracing::trace!("serializing metrics");
         let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
             tracing::error!("unable to serialize metrics: {err:?}");
-            Error::unable_to_encode(err)
+            Error::new("unable to serialize metrics", err)
         })?;
         self.repo
-            .note(&sig, &sig, super::NOTES_REF_OPTS, head_id, &note, true)
+            .note(&sig, &sig, NOTES_REF_OPTS, head_id, &note, true)
             .map_err(|err| {
                 tracing::error!("unable to persist metrics: {err:?}");
-                Error::unable_to_persist(err)
+                Error::new("unable to persist metrics", err)
             })?;
 
         Ok(())

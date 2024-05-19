@@ -1,7 +1,7 @@
 use crate::repository::Repository;
 use std::io::Write;
 
-/// Pushes the metrics
+/// Pulls the metrics
 #[derive(clap::Parser, Debug, Default)]
 pub(crate) struct CommandPull {
     /// Remote name, default to origin
