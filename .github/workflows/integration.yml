@@ -36,11 +36,11 @@ jobs:
         uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
-        run: target/release/git-metrics pull
+        run: target/release/git-metrics -vvvvv pull
 
       - name: create metrics
         run: |
-          ./target/release/git-metrics add \
+          ./target/release/git-metrics -vvvvv add \
             binary-size \
             --tag "unit: byte" \
             --tag "platform.arch: $RUNNER_ARCH" \
@@ -50,13 +50,13 @@ jobs:
 
       - name: check metrics exist
         run: |
-          if [ -z "$(./target/release/git-metrics show)" ]; then
+          if [ -z "$(./target/release/git-metrics -vvvvv show)" ]; then
             echo "NO METRICS FOUND"
             exit 1;
           fi
 
       - name: push metrics
-        run: ./target/release/git-metrics push
+        run: ./target/release/git-metrics -vvvvv push
 
       - name: save compiled binary
         uses: actions/upload-artifact@master
@@ -83,11 +83,11 @@ jobs:
         run: chmod +x target/release/git-metrics
 
       - name: fetch remote metrics
-        run: target/release/git-metrics pull
+        run: target/release/git-metrics -vvvvv pull
 
       - name: check metrics exist
         run: |
-          if [ -z "$(./target/release/git-metrics show)" ]; then
+          if [ -z "$(./target/release/git-metrics -vvvvv show)" ]; then
             echo "NO METRICS FOUND"
             exit 1;
           fi
