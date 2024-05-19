@@ -12,6 +12,7 @@ pub(crate) struct CommandRemove {
 }
 
 impl super::Executor for CommandRemove {
+    #[tracing::instrument(name = "remove", skip_all, fields(target = self.target.as_str(), index = self.index))]
     fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,

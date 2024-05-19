@@ -24,6 +24,7 @@ pub(crate) struct CommandAdd {
 }
 
 impl super::Executor for CommandAdd {
+    #[tracing::instrument(name = "add", skip_all, fields(target = self.target.as_str(), name = self.name.as_str()))]
     fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,

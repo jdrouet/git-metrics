@@ -10,6 +10,7 @@ pub(crate) struct CommandShow {
 }
 
 impl super::Executor for CommandShow {
+    #[tracing::instrument(name = "show", skip_all, fields(target = self.target.as_str()))]
     fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,
