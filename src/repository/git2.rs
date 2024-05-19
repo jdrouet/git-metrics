@@ -84,23 +84,6 @@ impl GitRepository {
         })
     }
 
-    fn command_push(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pushing metrics");
-        std::process::Command::new("git")
-            .args(["push", remote, super::NOTES_REF, "--force"])
-            .spawn()
-            .map_err(|err| {
-                tracing::error!("unable to start pushing: {err:?}");
-                Error::unable_to_push(err)
-            })
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pushing failed: {err:?}");
-                    Error::unable_to_push(err)
-                })
-            })
-    }
-
     fn manual_push(&self, remote: &str) -> Result<(), Error> {
         let config = self.repo.config().map_err(|err| {
             tracing::error!("unable to read config: {err:?}");
@@ -122,15 +105,6 @@ impl GitRepository {
                 tracing::error!("unable to push metrics: {err:?}");
                 Error::unable_to_push(err)
             })
-    }
-
-    fn command_pull(&self, remote: &str) -> Result<(), Error> {
-        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
-        std::process::Command::new("git")
-            .args(["fetch", remote, refs.as_str()])
-            .spawn()
-            .map_err(Error::unable_to_pull)
-            .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_pull))
     }
 
     fn manual_pull(&self, remote: &str) -> Result<(), Error> {
@@ -158,7 +132,7 @@ impl Repository for GitRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         let res = self.manual_pull(remote);
         if self.fallback_command {
-            res.or_else(|_| self.command_pull(remote))
+            res.or_else(|_| super::command::pull(remote))
         } else {
             res
         }
@@ -167,7 +141,7 @@ impl Repository for GitRepository {
     fn push(&self, remote: &str) -> Result<(), Error> {
         let res = self.manual_push(remote);
         if self.fallback_command {
-            res.or_else(|_| self.command_push(remote))
+            res.or_else(|_| super::command::push(remote))
         } else {
             res
         }

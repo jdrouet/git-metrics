@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+mod command;
 mod git2;
 
 use crate::metric::Metric;
