@@ -5,6 +5,12 @@ mod repository;
 use clap::Parser;
 use cmd::Executor;
 
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum Protocol {
+    Command,
+    Git2,
+}
+
 /// Git extension in order to attach metrics to commits
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -12,6 +18,8 @@ struct Args {
     /// Allows to use git as an external fallback when command fails.
     #[clap(long, default_value = "true")]
     fallback_git: bool,
+    #[clap(short, long, default_value = "git2", value_enum, env = "PROTOCOL")]
+    protocol: Protocol,
     /// Enables verbosity
     #[clap(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
@@ -30,6 +38,24 @@ impl Args {
             _ => Some(tracing::Level::TRACE),
         }
     }
+
+    fn execute<Out: std::io::Write, Err: std::io::Write>(
+        self,
+        stdout: &mut Out,
+        stderr: &mut Err,
+    ) -> Result<(), crate::cmd::Error> {
+        match self.protocol {
+            Protocol::Command => {
+                self.command
+                    .execute(crate::repository::CommandRepository, stdout, stderr)
+            }
+            Protocol::Git2 => self.command.execute(
+                crate::repository::GitRepository::from_env().unwrap(),
+                stdout,
+                stderr,
+            ),
+        }
+    }
 }
 
 fn main() {
@@ -39,14 +65,10 @@ fn main() {
         tracing_subscriber::fmt().with_max_level(level).init();
     }
 
-    let repo = crate::repository::GitRepository::from_env()
-        .unwrap()
-        .with_fallback_git(args.fallback_git);
-
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
 
-    if let Err(err) = args.command.execute(repo, &mut stdout, &mut stderr) {
+    if let Err(err) = args.execute(&mut stdout, &mut stderr) {
         eprintln!("{err:?}");
         std::process::exit(1);
     }

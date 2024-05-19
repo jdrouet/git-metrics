@@ -32,9 +32,6 @@ fn with_credentials(
     }
 
     if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-        if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-            res = res.or_else(|_| git2::Cred::userpass_plaintext(&token, ""));
-        }
         res = res.or_else(|_| git2::Cred::credential_helper(config, url, username));
     }
 
@@ -47,22 +44,13 @@ fn with_credentials(
 
 pub(crate) struct GitRepository {
     repo: git2::Repository,
-    fallback_command: bool,
 }
 
 impl GitRepository {
     pub(crate) fn from_env() -> Result<Self, String> {
         let repo = git2::Repository::open_from_env()
             .map_err(|err| format!("unable to open repository: {err:?}"))?;
-        Ok(GitRepository {
-            repo,
-            fallback_command: true,
-        })
-    }
-
-    pub(crate) fn with_fallback_git(mut self, value: bool) -> Self {
-        self.fallback_command = value;
-        self
+        Ok(GitRepository { repo })
     }
 
     fn revision_id(&self, target: &str) -> Result<git2::Oid, Error> {
@@ -83,25 +71,33 @@ impl GitRepository {
             Error::signature_not_found(err)
         })
     }
+}
 
-    fn command_push(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pushing metrics");
-        std::process::Command::new("git")
-            .args(["push", remote, super::NOTES_REF, "--force"])
-            .spawn()
+impl Repository for GitRepository {
+    fn pull(&self, remote: &str) -> Result<(), Error> {
+        let config = self.repo.config().map_err(|err| {
+            tracing::error!("unable to read config: {err:?}");
+            Error::new(super::ErrorKind::UnableToReadConfig, err)
+        })?;
+        let mut remote = self.repo.find_remote(remote).map_err(|err| {
+            tracing::error!("unable to find remote: {err:?}");
+            Error::remote_not_found(err)
+        })?;
+        let mut remote_cb = git2::RemoteCallbacks::new();
+        remote_cb.credentials(|url, username, allowed_types| {
+            with_credentials(&config, url, username, allowed_types)
+        });
+        let mut fetch_opts = git2::FetchOptions::new();
+        fetch_opts.remote_callbacks(remote_cb);
+        remote
+            .fetch(&[NOTES_REF], Some(&mut fetch_opts), None)
             .map_err(|err| {
-                tracing::error!("unable to start pushing: {err:?}");
-                Error::unable_to_push(err)
-            })
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pushing failed: {err:?}");
-                    Error::unable_to_push(err)
-                })
+                tracing::error!("unable to pull metrics: {err:?}");
+                Error::unable_to_pull(err)
             })
     }
 
-    fn manual_push(&self, remote: &str) -> Result<(), Error> {
+    fn push(&self, remote: &str) -> Result<(), Error> {
         let config = self.repo.config().map_err(|err| {
             tracing::error!("unable to read config: {err:?}");
             Error::new(super::ErrorKind::UnableToReadConfig, err)
@@ -122,55 +118,6 @@ impl GitRepository {
                 tracing::error!("unable to push metrics: {err:?}");
                 Error::unable_to_push(err)
             })
-    }
-
-    fn command_pull(&self, remote: &str) -> Result<(), Error> {
-        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
-        std::process::Command::new("git")
-            .args(["fetch", remote, refs.as_str()])
-            .spawn()
-            .map_err(Error::unable_to_pull)
-            .and_then(|mut cmd| cmd.wait().map(|_| ()).map_err(Error::unable_to_pull))
-    }
-
-    fn manual_pull(&self, remote: &str) -> Result<(), Error> {
-        let config = self
-            .repo
-            .config()
-            .map_err(|err| Error::new(super::ErrorKind::UnableToReadConfig, err))?;
-        let mut remote = self
-            .repo
-            .find_remote(remote)
-            .map_err(Error::remote_not_found)?;
-        let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed_types| {
-            with_credentials(&config, url, username, allowed_types)
-        });
-        let mut fetch_opts = git2::FetchOptions::new();
-        fetch_opts.remote_callbacks(remote_cb);
-        remote
-            .fetch(&[NOTES_REF], Some(&mut fetch_opts), None)
-            .map_err(Error::unable_to_pull)
-    }
-}
-
-impl Repository for GitRepository {
-    fn pull(&self, remote: &str) -> Result<(), Error> {
-        let res = self.manual_pull(remote);
-        if self.fallback_command {
-            res.or_else(|_| self.command_pull(remote))
-        } else {
-            res
-        }
-    }
-
-    fn push(&self, remote: &str) -> Result<(), Error> {
-        let res = self.manual_push(remote);
-        if self.fallback_command {
-            res.or_else(|_| self.command_push(remote))
-        } else {
-            res
-        }
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {

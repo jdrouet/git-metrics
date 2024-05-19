@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive", "env"] }
 git2 = { version = "0.18.3" }
 indexmap = { version = "2.2.6", features = ["serde"] }
 serde = { version = "1.0.200", features = ["derive"] }
