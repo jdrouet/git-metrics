@@ -1,11 +1,16 @@
 use std::fmt::Display;
 
+#[cfg(feature = "impl-command")]
 mod command;
+#[cfg(feature = "impl-git2")]
 mod git2;
 
 use crate::metric::Metric;
+#[cfg(feature = "impl-command")]
 pub(crate) use command::CommandRepository;
+#[cfg(feature = "impl-git2")]
 pub(crate) use git2::GitRepository;
+use serde::Serializer;
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Note {
@@ -13,87 +18,24 @@ struct Note {
 }
 
 #[derive(Debug)]
-pub(crate) enum ErrorKind {
-    RemoteNotFound,
-    TargetNotFound,
-    SignatureNotFound,
-    UnableToDecode,
-    UnableToEncode,
-    UnableToPersist,
-    UnableToPull,
-    UnableToPush,
-    UnableToReadConfig,
-}
-
-#[derive(Debug)]
 pub(crate) struct Error {
-    kind: ErrorKind,
+    message: &'static str,
     source: Box<dyn std::error::Error + 'static>,
 }
 
 impl Error {
     #[inline]
-    fn new<E: std::error::Error + 'static>(kind: ErrorKind, err: E) -> Self {
+    fn new<E: std::error::Error + 'static>(message: &'static str, err: E) -> Self {
         Self {
-            kind,
+            message,
             source: Box::new(err),
         }
-    }
-
-    #[inline]
-    fn signature_not_found<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::SignatureNotFound, err)
-    }
-
-    #[inline]
-    fn remote_not_found<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::RemoteNotFound, err)
-    }
-
-    #[inline]
-    fn target_not_found<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::TargetNotFound, err)
-    }
-
-    #[inline]
-    fn unable_to_decode<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::UnableToDecode, err)
-    }
-
-    #[inline]
-    fn unable_to_encode<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::UnableToEncode, err)
-    }
-
-    #[inline]
-    fn unable_to_persist<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::UnableToPersist, err)
-    }
-
-    #[inline]
-    fn unable_to_pull<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::UnableToPull, err)
-    }
-
-    #[inline]
-    fn unable_to_push<E: std::error::Error + 'static>(err: E) -> Self {
-        Self::new(ErrorKind::UnableToPush, err)
     }
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self.kind {
-            ErrorKind::RemoteNotFound => "unable to find remote",
-            ErrorKind::SignatureNotFound => "unable to get current signature",
-            ErrorKind::TargetNotFound => "target not found",
-            ErrorKind::UnableToDecode => "unable to decode metrics",
-            ErrorKind::UnableToEncode => "unable to encode metrics",
-            ErrorKind::UnableToPersist => "unable to persist metrics",
-            ErrorKind::UnableToPull => "unable to pull metrics",
-            ErrorKind::UnableToPush => "unable to push metrics",
-            ErrorKind::UnableToReadConfig => "unable to read git config",
-        })
+        f.serialize_str(self.message)
     }
 }
 
@@ -112,4 +54,3 @@ pub(crate) trait Repository {
 }
 
 const NOTES_REF: &str = "refs/notes/metrics";
-const NOTES_REF_OPTS: Option<&str> = Some(NOTES_REF);

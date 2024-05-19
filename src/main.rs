@@ -5,9 +5,14 @@ mod repository;
 use clap::Parser;
 use cmd::Executor;
 
+#[cfg(not(any(feature = "impl-command", feature = "impl-git2")))]
+compile_error!("you need to pick at least one implementation");
+
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
 enum Protocol {
+    #[cfg(feature = "impl-command")]
     Command,
+    #[cfg(feature = "impl-git2")]
     Git2,
 }
 
@@ -15,10 +20,17 @@ enum Protocol {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Allows to use git as an external fallback when command fails.
-    #[clap(long, default_value = "true")]
-    fallback_git: bool,
-    #[clap(short, long, default_value = "git2", value_enum, env = "PROTOCOL")]
+    /// Select the backend to use to interact with git.
+    ///
+    /// If running on the CI, you should use command to avoid authentication failures.
+    #[cfg_attr(
+        not(feature = "impl-git2"),
+        clap(short, long, default_value = "command", value_enum, env = "PROTOCOL")
+    )]
+    #[cfg_attr(
+        feature = "impl-git2",
+        clap(short, long, default_value = "git2", value_enum, env = "PROTOCOL")
+    )]
     protocol: Protocol,
     /// Enables verbosity
     #[clap(short, long, action = clap::ArgAction::Count)]
@@ -45,10 +57,12 @@ impl Args {
         stderr: &mut Err,
     ) -> Result<(), crate::cmd::Error> {
         match self.protocol {
+            #[cfg(feature = "impl-command")]
             Protocol::Command => {
                 self.command
                     .execute(crate::repository::CommandRepository, stdout, stderr)
             }
+            #[cfg(feature = "impl-git2")]
             Protocol::Git2 => self.command.execute(
                 crate::repository::GitRepository::from_env().unwrap(),
                 stdout,
