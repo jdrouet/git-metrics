@@ -10,6 +10,7 @@ pub(crate) struct CommandPush {
 }
 
 impl super::Executor for CommandPush {
+    #[tracing::instrument(name = "push", skip_all, fields(remote = self.remote.as_str()))]
     fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,
