@@ -18,6 +18,7 @@ pub(crate) enum ErrorKind {
     UnableToDecode,
     UnableToEncode,
     UnableToPersist,
+    UnableToPull,
     UnableToPush,
     UnableToReadConfig,
 }
@@ -68,6 +69,11 @@ impl Error {
     }
 
     #[inline]
+    fn unable_to_pull<E: std::error::Error + 'static>(err: E) -> Self {
+        Self::new(ErrorKind::UnableToPull, err)
+    }
+
+    #[inline]
     fn unable_to_push<E: std::error::Error + 'static>(err: E) -> Self {
         Self::new(ErrorKind::UnableToPush, err)
     }
@@ -82,6 +88,7 @@ impl Display for Error {
             ErrorKind::UnableToDecode => "unable to decode metrics",
             ErrorKind::UnableToEncode => "unable to encode metrics",
             ErrorKind::UnableToPersist => "unable to persist metrics",
+            ErrorKind::UnableToPull => "unable to pull metrics",
             ErrorKind::UnableToPush => "unable to push metrics",
             ErrorKind::UnableToReadConfig => "unable to read git config",
         })
@@ -96,6 +103,7 @@ impl std::error::Error for Error {
 
 #[cfg_attr(test, mockall::automock)]
 pub(crate) trait Repository {
+    fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error>;
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error>;
