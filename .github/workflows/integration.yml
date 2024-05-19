@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: push metrics
-        run: git push origin refs/notes/metrics
+        run: ./target/release/git-metrics push
 
       - name: save compiled binary
         uses: actions/upload-artifact@master
