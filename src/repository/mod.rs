@@ -4,6 +4,7 @@ mod command;
 mod git2;
 
 use crate::metric::Metric;
+pub(crate) use command::CommandRepository;
 pub(crate) use git2::GitRepository;
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
