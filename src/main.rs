@@ -45,11 +45,10 @@ impl Args {
         stderr: &mut Err,
     ) -> Result<(), crate::cmd::Error> {
         match self.protocol {
-            Protocol::Command => self.command.execute(
-                crate::repository::CommandRepository::default(),
-                stdout,
-                stderr,
-            ),
+            Protocol::Command => {
+                self.command
+                    .execute(crate::repository::CommandRepository, stdout, stderr)
+            }
             Protocol::Git2 => self.command.execute(
                 crate::repository::GitRepository::from_env().unwrap(),
                 stdout,
