@@ -35,6 +35,12 @@ jobs:
       - name: fetch remote metrics
         run: cargo run -- --backend git2 pull
 
+      - name: add metric
+        run: cargo run -- --backend git2 add with-git2 1.0
+
+      - name: push metrics
+        run: cargo run -- --backend git2 push
+
   push-metrics:
     runs-on: ubuntu-latest
     steps:
