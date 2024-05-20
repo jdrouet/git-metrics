@@ -13,6 +13,7 @@ where
 
     let mut ssh_username_requested = false;
     let mut cred_helper_bad = None;
+    let mut github_bad = None;
     let mut ssh_agent_attempts = Vec::new();
     let mut any_attempts = false;
     let mut tried_sshkey = false;
@@ -66,6 +67,14 @@ where
             debug_assert!(!ssh_username_requested);
             ssh_agent_attempts.push(username.to_string());
             return git2::Cred::ssh_key_from_agent(username);
+        }
+
+        if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) && github_bad.is_none() {
+            if let Ok(github_token) = std::env::var("GITHUB_TOKEN") {
+                let r = git2::Cred::userpass_plaintext(&github_token, "");
+                github_bad = Some(r.is_err());
+                return r;
+            }
         }
 
         // Sometimes libgit2 will ask for a username/password in plaintext. This
