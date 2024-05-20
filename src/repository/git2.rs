@@ -7,6 +7,7 @@ struct Authenticator {
     config: git2::Config,
     cred_helper: git2::CredentialHelper,
     github_token: Option<String>,
+    cred_helper_failed: bool,
 }
 
 impl Authenticator {
@@ -19,6 +20,7 @@ impl Authenticator {
             config,
             cred_helper,
             github_token: std::env::var("GITHUB_TOKEN").ok(),
+            cred_helper_failed: false,
         }
     }
 
@@ -58,9 +60,12 @@ impl Authenticator {
         }
 
         if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-            res = res.or_else(|_| git2::Cred::credential_helper(&self.config, url, username));
-            if res.is_err() {
-                eprintln!("credential_helper(_, {url:?}, {username:?}) failed");
+            if !self.cred_helper_failed {
+                res = res.or_else(|_| git2::Cred::credential_helper(&self.config, url, username));
+                self.cred_helper_failed = res.is_err();
+                if res.is_err() {
+                    eprintln!("credential_helper(_, {url:?}, {username:?}) failed");
+                }
             }
             if let Some(ref username) = self.github_token {
                 res = res.or_else(|_| git2::Cred::userpass_plaintext(username, ""));
