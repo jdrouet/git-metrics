@@ -9,7 +9,7 @@ use cmd::Executor;
 compile_error!("you need to pick at least one implementation");
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
-enum Protocol {
+enum Backend {
     #[cfg(feature = "impl-command")]
     Command,
     #[cfg(feature = "impl-git2")]
@@ -25,13 +25,19 @@ struct Args {
     /// If running on the CI, you should use command to avoid authentication failures.
     #[cfg_attr(
         not(feature = "impl-git2"),
-        clap(short, long, default_value = "command", value_enum, env = "PROTOCOL")
+        clap(
+            short,
+            long,
+            default_value = "command",
+            value_enum,
+            env = "GIT_BACKEND"
+        )
     )]
     #[cfg_attr(
         feature = "impl-git2",
-        clap(short, long, default_value = "git2", value_enum, env = "PROTOCOL")
+        clap(short, long, default_value = "git2", value_enum, env = "GIT_BACKEND")
     )]
-    protocol: Protocol,
+    backend: Backend,
     /// Enables verbosity
     #[clap(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
@@ -56,14 +62,14 @@ impl Args {
         stdout: &mut Out,
         stderr: &mut Err,
     ) -> Result<(), crate::cmd::Error> {
-        match self.protocol {
+        match self.backend {
             #[cfg(feature = "impl-command")]
-            Protocol::Command => {
+            Backend::Command => {
                 self.command
                     .execute(crate::repository::CommandRepository, stdout, stderr)
             }
             #[cfg(feature = "impl-git2")]
-            Protocol::Git2 => self.command.execute(
+            Backend::Git2 => self.command.execute(
                 crate::repository::GitRepository::from_env().unwrap(),
                 stdout,
                 stderr,
