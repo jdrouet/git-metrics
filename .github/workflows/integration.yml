@@ -40,8 +40,8 @@ jobs:
         with:
           args: pull
 
-      - name: fetch remote metrics
-        run: target/release/git-metrics --protocol command pull
+      # - name: fetch remote metrics
+      #   run: target/release/git-metrics --protocol command pull
 
       - name: create metrics
         run: |

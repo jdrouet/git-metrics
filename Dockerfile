@@ -36,6 +36,7 @@ RUN cargo build --release \
 FROM alpine
 
 RUN apk add --no-cache git
+RUN git config --global --add safe.directory /github/workspace
 
 COPY --from=builder /code/target/release/git-metrics /usr/bin/git-metrics
 
