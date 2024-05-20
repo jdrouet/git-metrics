@@ -1,0 +1,12 @@
+name: "git-metrics"
+description: "Use git-metrics from github actions"
+inputs:
+  args:
+    description: "arguments to pass to git-metrics"
+    required: true
+    default: "show"
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.args }}

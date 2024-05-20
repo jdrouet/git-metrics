@@ -35,6 +35,11 @@ jobs:
       - name: set git user
         uses: ./.github/actions/git-user
 
+      - name: fetch remote metrics with action
+        uses: ./
+        with:
+          args: pull
+
       - name: fetch remote metrics
         run: target/release/git-metrics --protocol command pull
 
