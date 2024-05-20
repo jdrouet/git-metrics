@@ -99,6 +99,10 @@ impl Authenticator {
             res = res.or_else(|_| git2::Cred::default());
         }
 
+        if let Err(ref err) = res {
+            eprintln!("error: {err:?}");
+        }
+
         res
     }
 }
