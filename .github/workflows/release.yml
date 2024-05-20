@@ -21,25 +21,21 @@ jobs:
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             filename: git-metrics_linux-x86_64
-            command: build
 
           - release_for: linux-aarch64
             os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             filename: git-metrics_linux-aarch64
-            command: build
 
           - release_for: macos-x86_64
             os: macos-latest
             target: x86_64-apple-darwin
             filename: git-metrics_macos-x86_64
-            command: build
 
           - release_for: macos-aarch64
             os: macos-latest
             target: aarch64-apple-darwin
             filename: git-metrics_macos-aarch64
-            command: build
 
     steps:
       - name: checkout
@@ -47,7 +43,7 @@ jobs:
       - name: build binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
-          command: ${{ matrix.platform.command }}
+          command: build
           target: ${{ matrix.platform.target }}
           args: "--locked --release --no-default-features --features impl-command"
           strip: true
@@ -83,8 +79,6 @@ jobs:
         with:
           name: macos-aarch64
 
-      - name: display downloaded files
-        run: ls -R
       - name: get release id from tag
         id: release_id
         run: |
