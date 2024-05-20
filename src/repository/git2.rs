@@ -30,6 +30,7 @@ impl Authenticator {
         username: Option<&str>,
         allowed: git2::CredentialType,
     ) -> Result<git2::Cred, git2::Error> {
+        eprintln!("CALL AUTHENTICATE");
         let mut res = Err(git2::Error::from_str(
             "unable to find an authentication method",
         ));
