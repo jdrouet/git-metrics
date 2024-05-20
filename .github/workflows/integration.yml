@@ -11,6 +11,30 @@ permissions:
   contents: write
 
 jobs:
+  pull-with-git2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: fetch remote metrics
+        run: cargo run -- --backend git2 pull
+
   push-metrics:
     runs-on: ubuntu-latest
     steps:
