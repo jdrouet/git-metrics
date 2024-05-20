@@ -35,32 +35,59 @@ impl Authenticator {
         if allowed.contains(git2::CredentialType::SSH_KEY) {
             if let Some(username) = username {
                 res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
+                if res.is_err() {
+                    eprintln!("ssh_key_from_agent({username:?}) failed");
+                }
             }
             if let Some(ref username) = self.cred_helper.username {
                 res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
+                if res.is_err() {
+                    eprintln!("ssh_key_from_agent({username:?}) failed with cred_helper.username");
+                }
             }
             res = res.or_else(|_| git2::Cred::ssh_key_from_agent("git"));
+            if res.is_err() {
+                eprintln!("ssh_key_from_agent(git) failed");
+            }
             if let Some(ref username) = self.github_token {
                 res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
+                if res.is_err() {
+                    eprintln!("ssh_key_from_agent(github_token) failed");
+                }
             }
         }
 
         if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
             res = res.or_else(|_| git2::Cred::credential_helper(&self.config, url, username));
+            if res.is_err() {
+                eprintln!("credential_helper(_, {url:?}, {username:?}) failed");
+            }
             if let Some(ref username) = self.github_token {
                 res = res.or_else(|_| git2::Cred::userpass_plaintext(username, ""));
+                if res.is_err() {
+                    eprintln!("userpass_plaintext(github_token, \"\") failed");
+                }
             }
         }
 
         if allowed.contains(git2::CredentialType::USERNAME) {
             if let Some(username) = username {
                 res = res.or_else(|_| git2::Cred::username(username));
+                if res.is_err() {
+                    eprintln!("username({username:?}) failed");
+                }
             }
             if let Some(ref username) = self.cred_helper.username {
                 res = res.or_else(|_| git2::Cred::username(username));
+                if res.is_err() {
+                    eprintln!("username({username:?}) failed");
+                }
             }
 
             res = res.or_else(|_| git2::Cred::username("git"));
+            if res.is_err() {
+                eprintln!("username(git) failed");
+            }
         }
 
         if allowed.contains(git2::CredentialType::DEFAULT) {
