@@ -40,6 +40,8 @@ jobs:
 
       - name: push metrics
         run: cargo run -- --backend git2 push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   push-metrics:
     runs-on: ubuntu-latest
