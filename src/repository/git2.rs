@@ -102,16 +102,6 @@ impl<'s> Authenticator<'s> {
         }
 
         if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-            if !self.cred_helper_failed {
-                let res = git2::Cred::credential_helper(&self.config, url, username);
-                if res.is_err() {
-                    tracing::trace!(
-                        "unable to authenticate with credential_helper(_, {url:?}, {username:?})"
-                    );
-                    self.cred_helper_failed = true;
-                }
-                return res;
-            }
             if !self.github_plaintext_failed {
                 if let Some(ref username) = self.github_token {
                     let res = git2::Cred::userpass_plaintext(username, "");
@@ -123,6 +113,17 @@ impl<'s> Authenticator<'s> {
                     }
                     return res;
                 }
+            }
+
+            if !self.cred_helper_failed {
+                let res = git2::Cred::credential_helper(&self.config, url, username);
+                if res.is_err() {
+                    tracing::trace!(
+                        "unable to authenticate with credential_helper(_, {url:?}, {username:?})"
+                    );
+                    self.cred_helper_failed = true;
+                }
+                return res;
             }
         }
 
