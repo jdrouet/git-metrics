@@ -3,15 +3,39 @@ use crate::metric::Metric;
 
 const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
 
+#[derive(Default)]
+pub(crate) struct GitCredentials {
+    username: Option<String>,
+    password: Option<String>,
+}
+
+impl From<crate::cmd::GitCredentials> for GitCredentials {
+    fn from(value: crate::cmd::GitCredentials) -> Self {
+        Self {
+            username: value.username,
+            password: value.password,
+        }
+    }
+}
+
 pub(crate) struct GitRepository {
     repo: git2::Repository,
+    credentials: GitCredentials,
 }
 
 impl GitRepository {
     pub(crate) fn from_env() -> Result<Self, String> {
         let repo = git2::Repository::open_from_env()
             .map_err(|err| format!("unable to open repository: {err:?}"))?;
-        Ok(GitRepository { repo })
+        Ok(GitRepository {
+            repo,
+            credentials: GitCredentials::default(),
+        })
+    }
+
+    pub(crate) fn with_credentials(mut self, creds: impl Into<GitCredentials>) -> Self {
+        self.credentials = creds.into();
+        self
     }
 
     fn revision_id(&self, target: &str) -> Result<git2::Oid, Error> {
@@ -35,10 +59,15 @@ impl GitRepository {
 
     fn authenticator(&self) -> auth_git2::GitAuthenticator {
         let auth = auth_git2::GitAuthenticator::new();
-        if let Ok(ref token) = std::env::var("GITHUB_TOKEN") {
-            auth.add_plaintext_credentials("*", "git", token)
-        } else {
-            auth
+        match (
+            self.credentials.username.as_deref(),
+            self.credentials.password.as_deref(),
+        ) {
+            (Some(username), Some(password)) => {
+                auth.add_plaintext_credentials("*", username, password)
+            }
+            (Some(username), None) => auth.add_username("*", username),
+            _ => auth,
         }
     }
 }

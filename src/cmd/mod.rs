@@ -55,3 +55,13 @@ impl Executor for Command {
         }
     }
 }
+
+#[derive(Debug, Default, clap::Parser)]
+pub(crate) struct GitCredentials {
+    /// Username for git authentication
+    #[clap(long, env = "GIT_USERNAME")]
+    pub(crate) username: Option<String>,
+    /// Password for git authentication
+    #[clap(long, env = "GIT_PASSWORD")]
+    pub(crate) password: Option<String>,
+}

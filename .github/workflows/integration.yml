@@ -62,7 +62,8 @@ jobs:
       - name: push metrics
         run: ./target/release/git-metrics -vvvvv push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_USERNAME: git
+          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           GIT_BACKEND: git2
 
   with-git2-pull-metrics:
@@ -134,7 +135,8 @@ jobs:
       - name: push metrics
         run: ./target/release/git-metrics -vvvvv push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_USERNAME: git
+          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           GIT_BACKEND: command
 
   with-cmd-pull-metrics:
