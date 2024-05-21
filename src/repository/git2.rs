@@ -251,16 +251,19 @@ impl Repository for GitRepository {
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
+        remote_cb.push_update_reference(|first, second| {
+            tracing::trace!("first={first:?} second={second:?}");
+            Ok(())
+        });
 
         let mut push_opts = git2::PushOptions::new();
         push_opts.remote_callbacks(remote_cb);
 
-        remote
-            .push(&[NOTES_REF], Some(&mut push_opts))
-            .map_err(|err| {
-                tracing::error!("unable to push metrics: {err:?}");
-                Error::new("unable to push metrics", err)
-            })
+        let target = format!("{NOTES_REF}:{NOTES_REF}");
+        remote.push(&[target], Some(&mut push_opts)).map_err(|err| {
+            tracing::error!("unable to push metrics: {err:?}");
+            Error::new("unable to push metrics", err)
+        })
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
