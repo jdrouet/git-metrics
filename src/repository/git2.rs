@@ -208,7 +208,7 @@ impl GitRepository {
     fn authenticator(&self) -> auth_git2::GitAuthenticator {
         let auth = auth_git2::GitAuthenticator::new();
         if let Ok(ref token) = std::env::var("GITHUB_TOKEN") {
-            auth.add_plaintext_credentials("*", token, "")
+            auth.add_plaintext_credentials("*", "git", token)
         } else {
             auth
         }
