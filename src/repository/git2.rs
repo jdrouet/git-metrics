@@ -53,9 +53,9 @@ impl<'s> Authenticator<'s> {
         if let Some(ref token) = self.github_token {
             if !self.github_plaintext_failed {
                 tracing::trace!("found github token, authenticating with token");
-                let res = git2::Cred::userpass_plaintext(token, "");
+                let res = git2::Cred::username(token);
                 if res.is_err() {
-                    tracing::trace!("unable to authenticate with userpass_plaintext(github_token)");
+                    tracing::trace!("unable to authenticate with username(github_token)");
                     self.github_plaintext_failed = true;
                 }
                 return res;
