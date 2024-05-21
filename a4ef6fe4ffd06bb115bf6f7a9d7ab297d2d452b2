@@ -3,3 +3,9 @@ name = "with-git2"
 value = 1.0
 
 [metrics.tags]
+
+[[metrics]]
+name = "with-command"
+value = 1.0
+
+[metrics.tags]
