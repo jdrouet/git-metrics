@@ -20,6 +20,8 @@ enum Backend {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    #[clap(flatten)]
+    auth: cmd::GitCredentials,
     /// Select the backend to use to interact with git.
     ///
     /// If running on the CI, you should use command to avoid authentication failures.
@@ -70,7 +72,9 @@ impl Args {
             }
             #[cfg(feature = "impl-git2")]
             Backend::Git2 => self.command.execute(
-                crate::repository::GitRepository::from_env().unwrap(),
+                crate::repository::GitRepository::from_env()
+                    .unwrap()
+                    .with_credentials(self.auth),
                 stdout,
                 stderr,
             ),

@@ -3,56 +3,39 @@ use crate::metric::Metric;
 
 const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
 
-// see https://github.com/rust-lang/cargo/blob/bb28e71202260180ecff658cd0fa0c7ba86d0296/src/cargo/sources/git/utils.rs#L344-L391
-fn with_credentials(
-    config: &git2::Config,
-    url: &str,
-    username: Option<&str>,
-    allowed_types: git2::CredentialType,
-) -> Result<git2::Cred, git2::Error> {
-    let mut cred_helper = git2::CredentialHelper::new(url);
-    cred_helper.config(config);
+#[derive(Default)]
+pub(crate) struct GitCredentials {
+    username: Option<String>,
+    password: Option<String>,
+}
 
-    let mut res = Err(git2::Error::from_str("no authentication available"));
-
-    if allowed_types.contains(git2::CredentialType::SSH_KEY) {
-        res = res.or_else(|_| {
-            let user = username
-                .or(cred_helper.username.as_deref())
-                .unwrap_or("git");
-            git2::Cred::ssh_key_from_agent(user)
-        });
-    }
-
-    if allowed_types.contains(git2::CredentialType::USERNAME) {
-        if let Some(username) = username {
-            res = res.or_else(|_| git2::Cred::username(username));
-        }
-        if let Some(ref username) = cred_helper.username {
-            res = res.or_else(|_| git2::Cred::username(username));
+impl From<crate::cmd::GitCredentials> for GitCredentials {
+    fn from(value: crate::cmd::GitCredentials) -> Self {
+        Self {
+            username: value.username,
+            password: value.password,
         }
     }
-
-    if allowed_types.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-        res = res.or_else(|_| git2::Cred::credential_helper(config, url, username));
-    }
-
-    if allowed_types.contains(git2::CredentialType::DEFAULT) {
-        res = res.or_else(|_| git2::Cred::default());
-    }
-
-    res
 }
 
 pub(crate) struct GitRepository {
     repo: git2::Repository,
+    credentials: GitCredentials,
 }
 
 impl GitRepository {
     pub(crate) fn from_env() -> Result<Self, String> {
         let repo = git2::Repository::open_from_env()
             .map_err(|err| format!("unable to open repository: {err:?}"))?;
-        Ok(GitRepository { repo })
+        Ok(GitRepository {
+            repo,
+            credentials: GitCredentials::default(),
+        })
+    }
+
+    pub(crate) fn with_credentials(mut self, creds: impl Into<GitCredentials>) -> Self {
+        self.credentials = creds.into();
+        self
     }
 
     fn revision_id(&self, target: &str) -> Result<git2::Oid, Error> {
@@ -73,6 +56,20 @@ impl GitRepository {
             Error::new("unable to get signature", err)
         })
     }
+
+    fn authenticator(&self) -> auth_git2::GitAuthenticator {
+        let auth = auth_git2::GitAuthenticator::new();
+        match (
+            self.credentials.username.as_deref(),
+            self.credentials.password.as_deref(),
+        ) {
+            (Some(username), Some(password)) => {
+                auth.add_plaintext_credentials("*", username, password)
+            }
+            (Some(username), None) => auth.add_username("*", username),
+            _ => auth,
+        }
+    }
 }
 
 impl Repository for GitRepository {
@@ -85,10 +82,10 @@ impl Repository for GitRepository {
             tracing::error!("unable to find remote: {err:?}");
             Error::new("unable to find remote", err)
         })?;
+
+        let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed_types| {
-            with_credentials(&config, url, username, allowed_types)
-        });
+        remote_cb.credentials(auth.credentials(&config));
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
         remote
@@ -108,18 +105,22 @@ impl Repository for GitRepository {
             tracing::error!("unable to find remote {remote:?}: {err:?}");
             Error::new("unable to find remote", err)
         })?;
+        let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed_types| {
-            with_credentials(&config, url, username, allowed_types)
+        remote_cb.credentials(auth.credentials(&config));
+        remote_cb.push_update_reference(|first, second| {
+            tracing::trace!("first={first:?} second={second:?}");
+            Ok(())
         });
+
         let mut push_opts = git2::PushOptions::new();
         push_opts.remote_callbacks(remote_cb);
-        remote
-            .push(&[NOTES_REF], Some(&mut push_opts))
-            .map_err(|err| {
-                tracing::error!("unable to push metrics: {err:?}");
-                Error::new("unable to push metrics", err)
-            })
+
+        let target = format!("+{NOTES_REF}:{NOTES_REF}");
+        remote.push(&[target], Some(&mut push_opts)).map_err(|err| {
+            tracing::error!("unable to push metrics: {err:?}");
+            Error::new("unable to push metrics", err)
+        })
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {

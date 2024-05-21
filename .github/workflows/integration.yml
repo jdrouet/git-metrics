@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  push-metrics:
+  build-binary:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,48 +28,18 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-
       - name: build binary
         run: cargo build --release
-
-      - name: set git user
-        uses: ./.github/actions/git-user
-
-      - name: fetch remote metrics
-        run: target/release/git-metrics --backend command pull
-
-      - name: create metrics
-        run: |
-          ./target/release/git-metrics -vvvvv add \
-            binary-size \
-            --tag "unit: byte" \
-            --tag "platform.arch: $RUNNER_ARCH" \
-            --tag "platform.os: $RUNNER_OS" \
-            --tag "rust.version: $(rustc --version)" \
-            $(stat --printf="%s" target/release/git-metrics)
-
-      - name: check metrics exist
-        run: |
-          if [ -z "$(./target/release/git-metrics -vvvvv show)" ]; then
-            echo "NO METRICS FOUND"
-            exit 1;
-          fi
-
-      - name: push metrics
-        run: ./target/release/git-metrics push
-        env:
-          GIT_BACKEND: command
-
       - name: save compiled binary
         uses: actions/upload-artifact@master
         with:
           name: git-metrics-binary
           path: target/release/git-metrics
 
-  check-metrics:
+  with-git2-push-metrics:
     runs-on: ubuntu-latest
     needs:
-      - push-metrics
+      - build-binary
     steps:
       - uses: actions/checkout@v3
       - name: fetch compiled binary
@@ -77,19 +47,120 @@ jobs:
         with:
           name: git-metrics-binary
           path: target/release
+      - name: make binary executable
+        run: chmod +x target/release/git-metrics
 
       - name: set git user
         uses: ./.github/actions/git-user
 
-      - name: make git-metrics executable
+      - name: fetch remote metrics
+        run: ./target/release/git-metrics --backend git2 pull
+
+      - name: add metric
+        run: ./target/release/git-metrics --backend git2 add with-git2 1.0
+
+      - name: push metrics
+        run: ./target/release/git-metrics -vvvvv push
+        env:
+          GIT_USERNAME: git
+          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GIT_BACKEND: git2
+
+  with-git2-pull-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - build-binary
+      - with-git2-push-metrics
+    steps:
+      - uses: actions/checkout@v3
+      - name: fetch compiled binary
+        uses: actions/download-artifact@master
+        with:
+          name: git-metrics-binary
+          path: target/release
+      - name: make binary executable
         run: chmod +x target/release/git-metrics
+
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: fetch remote metrics
+        run: ./target/release/git-metrics --backend git2 pull
+
+      - name: check metric presence
+        run: if [ ! -z "$(./target/release/git-metrics --backend git2 show | grep with-git2)" ]; then exit 1; fi
+
+  with-cmd-push-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - build-binary
+      # in order to avoid conflicts
+      - with-git2-pull-metrics
+    steps:
+      - uses: actions/checkout@v3
+      - name: fetch compiled binary
+        uses: actions/download-artifact@master
+        with:
+          name: git-metrics-binary
+          path: target/release
+      - name: make binary executable
+        run: chmod +x target/release/git-metrics
+
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: fetch remote metrics
+        run: ./target/release/git-metrics --backend command pull
+
+      - name: add metric
+        run: ./target/release/git-metrics --backend command add with-command 1.0
+
+      - name: add metric
+        run: |
+          ./target/release/git-metrics -vvvvv add \
+            binary-size \
+            --tag "unit: byte" \
+            --tag "platform.arch: $RUNNER_ARCH" \
+            --tag "platform.os: $RUNNER_OS" \
+            --tag "rust.version: stable" \
+            $(stat --printf="%s" target/release/git-metrics)
+        env:
+          GIT_BACKEND: command
+
+      - name: check metrics exist
+        run: if [ -z "$(./target/release/git-metrics -vvvvv show | grep with-command)" ]; then exit 1; fi
+        env:
+          GIT_BACKEND: command
+
+      - name: push metrics
+        run: ./target/release/git-metrics -vvvvv push
+        env:
+          GIT_USERNAME: git
+          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GIT_BACKEND: command
+
+  with-cmd-pull-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - build-binary
+      - with-cmd-push-metrics
+    steps:
+      - uses: actions/checkout@v3
+      - name: fetch compiled binary
+        uses: actions/download-artifact@master
+        with:
+          name: git-metrics-binary
+          path: target/release
+      - name: make binary executable
+        run: chmod +x target/release/git-metrics
+
+      - name: set git user
+        uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
         run: target/release/git-metrics --backend command pull
 
       - name: check metrics exist
-        run: |
-          if [ -z "$(./target/release/git-metrics -vvvvv show)" ]; then
-            echo "NO METRICS FOUND"
-            exit 1;
-          fi
+        run: if [ -z "$(./target/release/git-metrics -vvvvv show | grep with-command)" ]; then exit 1; fi
+        env:
+          GIT_BACKEND: command
