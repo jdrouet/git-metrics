@@ -50,6 +50,18 @@ impl<'s> Authenticator<'s> {
             );
         }
 
+        if let Some(ref token) = self.github_token {
+            if !self.github_plaintext_failed {
+                tracing::trace!("found github token, authenticating with token");
+                let res = git2::Cred::userpass_plaintext(token, "");
+                if res.is_err() {
+                    tracing::trace!("unable to authenticate with userpass_plaintext(github_token)");
+                    self.github_plaintext_failed = true;
+                }
+                return res;
+            }
+        }
+
         if allowed.contains(git2::CredentialType::SSH_KEY) {
             if let Some(username) = username {
                 if !self.ssh_key_from_agent_failed.contains(username) {
@@ -102,19 +114,6 @@ impl<'s> Authenticator<'s> {
         }
 
         if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
-            if !self.github_plaintext_failed {
-                if let Some(ref username) = self.github_token {
-                    let res = git2::Cred::userpass_plaintext(username, "");
-                    if res.is_err() {
-                        tracing::trace!(
-                            "unable to authenticate with userpass_plaintext(github_token, \"\")"
-                        );
-                        self.github_plaintext_failed = true;
-                    }
-                    return res;
-                }
-            }
-
             if !self.cred_helper_failed {
                 let res = git2::Cred::credential_helper(&self.config, url, username);
                 if res.is_err() {
