@@ -204,6 +204,15 @@ impl GitRepository {
             Error::new("unable to get signature", err)
         })
     }
+
+    fn authenticator(&self) -> auth_git2::GitAuthenticator {
+        let auth = auth_git2::GitAuthenticator::new();
+        if let Ok(ref token) = std::env::var("GITHUB_TOKEN") {
+            auth.add_plaintext_credentials("*", token, "")
+        } else {
+            auth
+        }
+    }
 }
 
 impl Repository for GitRepository {
@@ -217,7 +226,7 @@ impl Repository for GitRepository {
             Error::new("unable to find remote", err)
         })?;
 
-        let auth = auth_git2::GitAuthenticator::new();
+        let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
         let mut fetch_opts = git2::FetchOptions::new();
@@ -239,7 +248,7 @@ impl Repository for GitRepository {
             tracing::error!("unable to find remote {remote:?}: {err:?}");
             Error::new("unable to find remote", err)
         })?;
-        let auth = auth_git2::GitAuthenticator::new();
+        let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
 
