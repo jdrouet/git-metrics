@@ -9,3 +9,13 @@ name = "with-command"
 value = 1.0
 
 [metrics.tags]
+
+[[metrics]]
+name = "binary-size"
+value = 3827272.0
+
+[metrics.tags]
+unit = "byte"
+"platform.arch" = "X64"
+"platform.os" = "Linux"
+"rust.version" = "stable"
