@@ -212,21 +212,14 @@ impl Repository for GitRepository {
             tracing::error!("unable to read config: {err:?}");
             Error::new("unable to read config", err)
         })?;
-        let remote = self.repo.find_remote(remote).map_err(|err| {
+        let mut remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote: {err:?}");
             Error::new("unable to find remote", err)
         })?;
-        let url = remote.url().ok_or_else(|| {
-            tracing::error!("unable to get url from remote");
-            Error::new(
-                "unable to get url from remote",
-                git2::Error::from_str("invalid remote configuration"),
-            )
-        })?;
-        let mut remote = remote.clone();
-        let mut auth = Authenticator::new(config, url);
+
+        let auth = auth_git2::GitAuthenticator::new();
         let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed| auth.authenticate(url, username, allowed));
+        remote_cb.credentials(auth.credentials(&config));
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
         remote
@@ -242,24 +235,17 @@ impl Repository for GitRepository {
             tracing::error!("unable to read config: {err:?}");
             Error::new("unable to read config", err)
         })?;
-        let remote = self.repo.find_remote(remote).map_err(|err| {
+        let mut remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote {remote:?}: {err:?}");
             Error::new("unable to find remote", err)
         })?;
-        let url = remote.url().ok_or_else(|| {
-            tracing::error!("unable to get url from remote");
-            Error::new(
-                "unable to get url from remote",
-                git2::Error::from_str("invalid remote configuration"),
-            )
-        })?;
-        let mut remote = remote.clone();
-        let mut auth = Authenticator::new(config, url);
+        let auth = auth_git2::GitAuthenticator::new();
         let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(|url, username, allowed| auth.authenticate(url, username, allowed));
+        remote_cb.credentials(auth.credentials(&config));
 
         let mut push_opts = git2::PushOptions::new();
         push_opts.remote_callbacks(remote_cb);
+
         remote
             .push(&[NOTES_REF], Some(&mut push_opts))
             .map_err(|err| {
