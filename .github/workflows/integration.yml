@@ -39,6 +39,6 @@ jobs:
         run: cargo run -- --backend git2 add with-git2 1.0
 
       - name: push metrics
-        run: cargo run -- --backend git2 push
+        run: cargo run -- --backend git2 -vvvvv push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,110 +1,177 @@
+use std::{borrow::Cow, collections::HashSet};
+
 use super::{Error, Repository, NOTES_REF};
 use crate::metric::Metric;
 
 const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
 
-struct Authenticator {
+struct Authenticator<'s> {
+    url: &'s str,
     config: git2::Config,
     cred_helper: git2::CredentialHelper,
     github_token: Option<String>,
     cred_helper_failed: bool,
+    default_failed: bool,
+    github_plaintext_failed: bool,
+    ssh_key_from_agent_failed: HashSet<Cow<'s, str>>,
+    username_failed: HashSet<Cow<'s, str>>,
 }
 
-impl Authenticator {
+impl<'s> Authenticator<'s> {
     #[inline]
-    fn new(config: git2::Config, url: &str) -> Self {
+    fn new(config: git2::Config, url: &'s str) -> Self {
         let mut cred_helper = git2::CredentialHelper::new(url);
         cred_helper.config(&config);
 
         Self {
+            url,
             config,
             cred_helper,
             github_token: std::env::var("GITHUB_TOKEN").ok(),
             cred_helper_failed: false,
+            default_failed: false,
+            github_plaintext_failed: false,
+            ssh_key_from_agent_failed: HashSet::with_capacity(4),
+            username_failed: HashSet::with_capacity(4),
         }
     }
 
+    #[tracing::instrument(skip(self, allowed))]
     fn authenticate(
         &mut self,
         url: &str,
         username: Option<&str>,
         allowed: git2::CredentialType,
     ) -> Result<git2::Cred, git2::Error> {
-        eprintln!("CALL AUTHENTICATE");
-        let mut res = Err(git2::Error::from_str(
-            "unable to find an authentication method",
-        ));
+        if url != self.url {
+            tracing::warn!(
+                "remote url different from given url, got {url:?}, expected {:?}",
+                self.url
+            );
+        }
 
         if allowed.contains(git2::CredentialType::SSH_KEY) {
             if let Some(username) = username {
-                res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
-                if res.is_err() {
-                    eprintln!("ssh_key_from_agent({username:?}) failed");
+                if !self.ssh_key_from_agent_failed.contains(username) {
+                    let res = git2::Cred::ssh_key_from_agent(username);
+                    if res.is_err() {
+                        tracing::trace!(
+                            "unable to authenticate with ssh_key_from_agent({username:?})"
+                        );
+                        self.ssh_key_from_agent_failed
+                            .insert(Cow::Owned(username.to_string()));
+                    }
+                    return res;
                 }
             }
             if let Some(ref username) = self.cred_helper.username {
-                res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
-                if res.is_err() {
-                    eprintln!("ssh_key_from_agent({username:?}) failed with cred_helper.username");
+                if !self.ssh_key_from_agent_failed.contains(username.as_str()) {
+                    let res = git2::Cred::ssh_key_from_agent(username);
+                    if res.is_err() {
+                        tracing::trace!(
+                            "unable to authenticate with ssh_key_from_agent({username:?})"
+                        );
+                        self.ssh_key_from_agent_failed
+                            .insert(Cow::Owned(username.to_string()));
+                    }
+                    return res;
                 }
             }
-            res = res.or_else(|_| git2::Cred::ssh_key_from_agent("git"));
-            if res.is_err() {
-                eprintln!("ssh_key_from_agent(git) failed");
-            }
-            if let Some(ref username) = self.github_token {
-                res = res.or_else(|_| git2::Cred::ssh_key_from_agent(username));
+            if !self.ssh_key_from_agent_failed.contains("git") {
+                let res = git2::Cred::ssh_key_from_agent("git");
                 if res.is_err() {
-                    eprintln!("ssh_key_from_agent(github_token) failed");
+                    tracing::trace!("unable to authenticate with ssh_key_from_agent(git)");
+                    self.ssh_key_from_agent_failed.insert(Cow::Borrowed("git"));
+                }
+                return res;
+            }
+
+            if let Some(ref username) = self.github_token {
+                if !self.ssh_key_from_agent_failed.contains(username.as_str()) {
+                    let res = git2::Cred::ssh_key_from_agent(username.as_str());
+                    if res.is_err() {
+                        tracing::trace!(
+                            "unable to authenticate with ssh_key_from_agent(user_agent)"
+                        );
+                        self.ssh_key_from_agent_failed
+                            .insert(Cow::Owned(username.to_string()));
+                    }
+                    return res;
                 }
             }
         }
 
         if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
             if !self.cred_helper_failed {
-                res = res.or_else(|_| git2::Cred::credential_helper(&self.config, url, username));
-                self.cred_helper_failed = res.is_err();
+                let res = git2::Cred::credential_helper(&self.config, url, username);
                 if res.is_err() {
-                    eprintln!("credential_helper(_, {url:?}, {username:?}) failed");
+                    tracing::trace!(
+                        "unable to authenticate with credential_helper(_, {url:?}, {username:?})"
+                    );
+                    self.cred_helper_failed = true;
                 }
+                return res;
             }
-            if let Some(ref username) = self.github_token {
-                res = res.or_else(|_| git2::Cred::userpass_plaintext(username, ""));
-                if res.is_err() {
-                    eprintln!("userpass_plaintext(github_token, \"\") failed");
+            if !self.github_plaintext_failed {
+                if let Some(ref username) = self.github_token {
+                    let res = git2::Cred::userpass_plaintext(username, "");
+                    if res.is_err() {
+                        tracing::trace!(
+                            "unable to authenticate with userpass_plaintext(github_token, \"\")"
+                        );
+                        self.github_plaintext_failed = true;
+                    }
+                    return res;
                 }
             }
         }
 
         if allowed.contains(git2::CredentialType::USERNAME) {
             if let Some(username) = username {
-                res = res.or_else(|_| git2::Cred::username(username));
-                if res.is_err() {
-                    eprintln!("username({username:?}) failed");
+                if !self.username_failed.contains(username) {
+                    let res = git2::Cred::username(username);
+                    if res.is_err() {
+                        tracing::trace!("unable to authenticate with username({username:?})");
+                        self.username_failed
+                            .insert(Cow::Owned(username.to_string()));
+                    }
+                    return res;
                 }
             }
             if let Some(ref username) = self.cred_helper.username {
-                res = res.or_else(|_| git2::Cred::username(username));
-                if res.is_err() {
-                    eprintln!("username({username:?}) failed");
+                if !self.username_failed.contains(username.as_str()) {
+                    let res = git2::Cred::username(username);
+                    if res.is_err() {
+                        tracing::trace!("unable to authenticate with username({username:?})");
+                        self.username_failed
+                            .insert(Cow::Owned(username.to_string()));
+                    }
+                    return res;
                 }
             }
 
-            res = res.or_else(|_| git2::Cred::username("git"));
-            if res.is_err() {
-                eprintln!("username(git) failed");
+            if !self.username_failed.contains("git") {
+                let res = git2::Cred::username("git");
+                if res.is_err() {
+                    tracing::trace!("unable to authenticate with username(git)");
+                    self.username_failed.insert(Cow::Borrowed("git"));
+                }
+                return res;
             }
         }
 
-        if allowed.contains(git2::CredentialType::DEFAULT) {
-            res = res.or_else(|_| git2::Cred::default());
+        if allowed.contains(git2::CredentialType::DEFAULT) && !self.default_failed {
+            let res = git2::Cred::default();
+            if res.is_err() {
+                tracing::trace!("unable to authenticate with default method");
+                self.default_failed = true;
+            }
+            return res;
         }
 
-        if let Err(ref err) = res {
-            eprintln!("error: {err:?}");
-        }
-
-        res
+        Err(git2::Error::from_str(
+            "unable to find authentication method",
+        ))
     }
 }
 
@@ -145,7 +212,7 @@ impl Repository for GitRepository {
             tracing::error!("unable to read config: {err:?}");
             Error::new("unable to read config", err)
         })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
+        let remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote: {err:?}");
             Error::new("unable to find remote", err)
         })?;
@@ -156,6 +223,7 @@ impl Repository for GitRepository {
                 git2::Error::from_str("invalid remote configuration"),
             )
         })?;
+        let mut remote = remote.clone();
         let mut auth = Authenticator::new(config, url);
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(|url, username, allowed| auth.authenticate(url, username, allowed));
@@ -174,7 +242,7 @@ impl Repository for GitRepository {
             tracing::error!("unable to read config: {err:?}");
             Error::new("unable to read config", err)
         })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
+        let remote = self.repo.find_remote(remote).map_err(|err| {
             tracing::error!("unable to find remote {remote:?}: {err:?}");
             Error::new("unable to find remote", err)
         })?;
@@ -185,6 +253,7 @@ impl Repository for GitRepository {
                 git2::Error::from_str("invalid remote configuration"),
             )
         })?;
+        let mut remote = remote.clone();
         let mut auth = Authenticator::new(config, url);
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(|url, username, allowed| auth.authenticate(url, username, allowed));
