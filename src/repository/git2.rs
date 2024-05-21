@@ -260,6 +260,9 @@ impl Repository for GitRepository {
         push_opts.remote_callbacks(remote_cb);
 
         let target = format!("{NOTES_REF}:{NOTES_REF}");
+        if let Ok(list) = remote.push_refspecs() {
+            tracing::trace!("refspecs: {:?}", list.iter().collect::<Vec<_>>());
+        }
         remote.push(&[target], Some(&mut push_opts)).map_err(|err| {
             tracing::error!("unable to push metrics: {err:?}");
             Error::new("unable to push metrics", err)
