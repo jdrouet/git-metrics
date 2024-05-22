@@ -1,8 +1,4 @@
-use std::{
-    ffi::OsString,
-    path::{PathBuf},
-    process::Command,
-};
+use std::{ffi::OsString, path::PathBuf, process::Command};
 
 mod simple_use_case;
 
