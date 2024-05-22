@@ -90,7 +90,7 @@ jobs:
         uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
-        run: ./git-metrics_linux-x86_64 pull
+        run: git-metrics pull
       - name: add metrics
         run: |
           git-metrics add \
