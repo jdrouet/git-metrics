@@ -77,10 +77,10 @@ jobs:
           name: macos-aarch64
       - name: make git-metrics executable
         run: chmod +x git-metrics_linux-x86_64
-      - name: list downloaded files
-        run: ls -lha *
       - name: copy git-metrics to /usr/bin
         run: cp git-metrics_linux-x86_64 git-metrics
+      - name: list downloaded files
+        run: ls -lha *
 
       - name: checkout
         uses: actions/checkout@v3
