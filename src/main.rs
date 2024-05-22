@@ -1,6 +1,11 @@
+#[cfg(test)]
+pub(crate) mod tests;
+
 mod cmd;
 mod metric;
 mod repository;
+
+use std::path::PathBuf;
 
 use clap::Parser;
 use cmd::Executor;
@@ -20,6 +25,9 @@ enum Backend {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Root directory of the git repository
+    #[clap(long)]
+    root_dir: Option<PathBuf>,
     #[clap(flatten)]
     auth: cmd::GitCredentials,
     /// Select the backend to use to interact with git.
@@ -66,13 +74,14 @@ impl Args {
     ) -> Result<(), crate::cmd::Error> {
         match self.backend {
             #[cfg(feature = "impl-command")]
-            Backend::Command => {
-                self.command
-                    .execute(crate::repository::CommandRepository, stdout, stderr)
-            }
+            Backend::Command => self.command.execute(
+                crate::repository::CommandRepository::new(self.root_dir),
+                stdout,
+                stderr,
+            ),
             #[cfg(feature = "impl-git2")]
             Backend::Git2 => self.command.execute(
-                crate::repository::GitRepository::from_env()
+                crate::repository::GitRepository::new(self.root_dir)
                     .unwrap()
                     .with_credentials(self.auth),
                 stdout,

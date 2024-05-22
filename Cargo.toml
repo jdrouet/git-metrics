@@ -24,3 +24,5 @@ tracing-subscriber = { version = "0.3.18" }
 
 [dev-dependencies]
 mockall = "0.12.1"
+tempdir = "0.3.7"
+test-case = "3.3.1"
