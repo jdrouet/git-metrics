@@ -75,13 +75,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: macos-aarch64
+      - name: list downloaded files
+        run: ls -lha *
+      - name: make git-metrics executable
+        run: chmod +x git-metrics_linux-x86_64
 
       - name: checkout
         uses: actions/checkout@v3
       - name: set git user
         uses: ./.github/actions/git-user
-      - name: make git-metrics executable
-        run: chmod +x git-metrics_linux-x86_64
 
       - name: fetch remote metrics
         run: ./git-metrics_linux-x86_64 pull
