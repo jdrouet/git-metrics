@@ -80,9 +80,7 @@ jobs:
       - name: list downloaded files
         run: ls -lha *
       - name: copy git-metrics to /usr/bin
-        run: |
-          mkdir -p /home/runner/.local/bin/git-metrics
-          cp git-metrics_linux-x86_64 /home/runner/.local/bin/git-metrics
+        run: cp git-metrics_linux-x86_64 git-metrics
 
       - name: checkout
         uses: actions/checkout@v3
@@ -90,31 +88,31 @@ jobs:
         uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
-        run: git-metrics pull
+        run: ./git-metrics pull
       - name: add metrics
         run: |
-          git-metrics add \
+          ./git-metrics add \
             binary-size \
             --tag "build.target: x86_64-unknown-linux-gnu" \
             --tag "platform.os: linux" \
             --tag "platform.arch: x86_64" \
             --tag "unit: byte" \
             $(stat --printf="%s" ./git-metrics_linux-x86_64)
-          git-metrics add \
+          ./git-metrics add \
             binary-size \
             --tag "build.target: aarch64-unknown-linux-gnu" \
             --tag "platform.os: linux" \
             --tag "platform.arch: aarch64" \
             --tag "unit: byte" \
             $(stat --printf="%s" ./git-metrics_linux-aarch64)
-          git-metrics add \
+          ./git-metrics add \
             binary-size \
             --tag "build.target: x86_64-apple-darwin" \
             --tag "platform.os: macos" \
             --tag "platform.arch: x86_64" \
             --tag "unit: byte" \
             $(stat --printf="%s" ./git-metrics_macos-x86_64)
-          git-metrics add \
+          ./git-metrics add \
             binary-size \
             --tag "build.target: aarch64-apple-darwin" \
             --tag "platform.os: macos" \
@@ -122,7 +120,7 @@ jobs:
             --tag "unit: byte" \
             $(stat --printf="%s" ./git-metrics_macos-aarch64)
       - name: push metrics
-        run: git-metrics push
+        run: ./git-metrics push
         env:
           GIT_USERNAME: git
           GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
