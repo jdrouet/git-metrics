@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use super::Error;
 
 #[inline]
@@ -6,14 +8,32 @@ fn unable_execute_git_command(err: std::io::Error) -> Error {
     Error::new("unable to execute git command", err)
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct CommandRepository;
+#[derive(Debug)]
+pub(crate) struct CommandRepository {
+    path: Option<PathBuf>,
+}
+
+impl CommandRepository {
+    pub fn new(path: Option<PathBuf>) -> Self {
+        Self { path }
+    }
+}
+
+impl CommandRepository {
+    fn cmd(&self) -> std::process::Command {
+        let mut cmd = std::process::Command::new("git");
+        if let Some(ref path) = self.path {
+            cmd.current_dir(path);
+        }
+        cmd
+    }
+}
 
 impl super::Repository for CommandRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pulling metrics");
         let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
-        std::process::Command::new("git")
+        self.cmd()
             .args(["fetch", remote, refs.as_str()])
             .spawn()
             .map_err(unable_execute_git_command)
@@ -27,7 +47,7 @@ impl super::Repository for CommandRepository {
 
     fn push(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pushing metrics");
-        std::process::Command::new("git")
+        self.cmd()
             .args(["push", remote, super::NOTES_REF, "--force"])
             .spawn()
             .map_err(unable_execute_git_command)
@@ -41,7 +61,8 @@ impl super::Repository for CommandRepository {
 
     fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {
         tracing::trace!("getting metrics");
-        let output = std::process::Command::new("git")
+        let output = self
+            .cmd()
             .args(["notes", "--ref=metrics", "show", target])
             .output()
             .map_err(unable_execute_git_command)?;
@@ -70,7 +91,8 @@ impl super::Repository for CommandRepository {
             tracing::error!("unable to serialize metrics: {err:?}");
             Error::new("unable to serialize metrics", err)
         })?;
-        let output = std::process::Command::new("git")
+        let output = self
+            .cmd()
             .args([
                 "notes",
                 "--ref=metrics",

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use super::{Error, Repository, NOTES_REF};
 use crate::metric::Metric;
 
@@ -24,9 +26,18 @@ pub(crate) struct GitRepository {
 }
 
 impl GitRepository {
-    pub(crate) fn from_env() -> Result<Self, String> {
-        let repo = git2::Repository::open_from_env()
-            .map_err(|err| format!("unable to open repository: {err:?}"))?;
+    pub(crate) fn new(root: Option<PathBuf>) -> Result<Self, String> {
+        let repo = match root {
+            Some(path) => {
+                tracing::debug!("opening repository in {path:?}");
+                git2::Repository::open(path)
+            }
+            None => {
+                tracing::debug!("opening repository based on environment");
+                git2::Repository::open_from_env()
+            }
+        }
+        .map_err(|err| format!("unable to open repository: {err:?}"))?;
         Ok(GitRepository {
             repo,
             credentials: GitCredentials::default(),
@@ -88,8 +99,9 @@ impl Repository for GitRepository {
         remote_cb.credentials(auth.credentials(&config));
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
+        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
         remote
-            .fetch(&[NOTES_REF], Some(&mut fetch_opts), None)
+            .fetch(&[refs], Some(&mut fetch_opts), None)
             .map_err(|err| {
                 tracing::error!("unable to pull metrics: {err:?}");
                 Error::new("unable to pull metrics", err)

@@ -70,5 +70,11 @@ jobs:
             target/
           key: ${{ runner.os }}-testing-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: prepare git global config
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "git-metrics tester"
+          git config --global init.defaultBranch main
+
       - name: run tests
         run: cargo test
