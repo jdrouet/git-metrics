@@ -1,6 +1,6 @@
 use std::{
     ffi::OsString,
-    path::{Path, PathBuf},
+    path::{PathBuf},
     process::Command,
 };
 

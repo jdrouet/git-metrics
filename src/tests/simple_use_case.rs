@@ -5,7 +5,7 @@ use crate::tests::GitRepo;
 fn execute(backend: &str) {
     super::init_logs();
 
-    let root = tempdir::TempDir::new("git2-create-metrics").unwrap();
+    let root = tempfile::tempdir().unwrap();
     let server = GitRepo::create(root.path().join("server"));
     let first = GitRepo::clone(&server, root.path().join("first"));
     first.commit("Hello World");
