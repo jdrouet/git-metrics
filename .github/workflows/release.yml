@@ -77,6 +77,8 @@ jobs:
           name: macos-aarch64
       - name: list downloaded files
         run: ls -lha *
+      - name: show PATH
+        run: echo $PATH
       - name: make git-metrics executable
         run: chmod +x git-metrics_linux-x86_64
       - name: copy git-metrics to /usr/bin
