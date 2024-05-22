@@ -2,6 +2,9 @@ name: release
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       release_tag:
@@ -48,13 +51,13 @@ jobs:
         run: cp target/release/git-metrics git-metrics_linux-x86_64
 
       - name: get release id from tag
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
         id: release_id
         run: |
           release_id=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/${{ inputs.release_tag }} | jq .id)
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
       - name: upload the artifacts
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
         uses: skx/github-action-publish-binaries@release-2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
