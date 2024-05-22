@@ -22,7 +22,11 @@ impl GitRepo {
             .arg(path.as_path())
             .output()
             .unwrap();
-        assert!(output.status.success());
+        assert!(
+            output.status.success(),
+            "stderr: {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         Self { path, path_str }
     }
 
@@ -34,7 +38,11 @@ impl GitRepo {
             .arg(path.as_path())
             .output()
             .unwrap();
-        assert!(output.status.success());
+        assert!(
+            output.status.success(),
+            "stderr: {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         Self { path, path_str }
     }
 
@@ -51,7 +59,11 @@ impl GitRepo {
             .arg(message)
             .output()
             .unwrap();
-        assert!(output.status.success());
+        assert!(
+            output.status.success(),
+            "stderr: {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     fn push(&self) {
@@ -60,8 +72,16 @@ impl GitRepo {
             .arg("push")
             .output()
             .unwrap();
-        assert!(String::from_utf8_lossy(&output.stderr).contains("main -> main"));
-        assert!(output.status.success());
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("main -> main"),
+            "stderr: {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            output.status.success(),
+            "stderr: {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     fn execute<I, T>(&self, itr: I) -> (String, String)
