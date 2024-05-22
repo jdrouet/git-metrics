@@ -43,9 +43,7 @@ jobs:
       - name: push metrics
         run: ./target/release/git-metrics push
         env:
-          GIT_USERNAME: git
-          GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          GIT_BACKEND: git2
+          GIT_BACKEND: command
 
       - name: move the binaries
         run: cp target/release/git-metrics git-metrics_linux-x86_64
