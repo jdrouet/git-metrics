@@ -45,7 +45,7 @@ jobs:
         with:
           command: build
           target: ${{ matrix.platform.target }}
-          args: "--locked --release --no-default-features --features impl-command"
+          args: "--locked --release"
           strip: true
       - name: move binary file
         run: mv target/${{ matrix.platform.target }}/release/git-metrics target/${{ matrix.platform.filename }}
@@ -75,6 +75,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: macos-aarch64
+      - name: change ownership on every binary
+        run: chown $(id -u):$(id -g) git-metrics_*
       - name: make git-metrics executable
         run: chmod +x git-metrics_linux-x86_64
       - name: copy git-metrics to /usr/bin
