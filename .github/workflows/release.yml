@@ -1,4 +1,4 @@
-name: git-metrics release
+name: release
 
 on:
   pull_request:
@@ -10,153 +10,51 @@ on:
         type: string
 
 jobs:
-  build-linux-binaries:
-    name: build linux binary for ${{ matrix.platform.release_for }}
-    runs-on: ${{ matrix.platform.os }}
-
-    strategy:
-      matrix:
-        platform:
-          - release_for: linux-x86_64
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            filename: git-metrics_linux-x86_64
-
-          - release_for: linux-aarch64
-            os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            filename: git-metrics_linux-aarch64
-
-          - release_for: macos-x86_64
-            os: macos-latest
-            target: x86_64-apple-darwin
-            filename: git-metrics_macos-x86_64
-
-          - release_for: macos-aarch64
-            os: macos-latest
-            target: aarch64-apple-darwin
-            filename: git-metrics_macos-aarch64
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v3
-      - name: build binary
-        uses: houseabsolute/actions-rust-cross@v0
-        with:
-          command: build
-          target: ${{ matrix.platform.target }}
-          args: "--locked --release"
-          strip: true
-      - name: move binary file
-        run: mv target/${{ matrix.platform.target }}/release/git-metrics target/${{ matrix.platform.filename }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.platform.release_for }}
-          path: target/${{ matrix.platform.filename }}
-
-  monitor-binary-size:
+  build-binary:
+    name: build binary
     runs-on: ubuntu-latest
-    needs:
-      - build-linux-binaries
     steps:
-      - name: download linux x86_64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-x86_64
-      - name: download linux aarch64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-aarch64
-      - name: download macos x86_64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-x86_64
-      - name: download macos aarch64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-aarch64
-      - name: change ownership on every binary
-        run: chown $(id -u):$(id -g) git-metrics_*
-      - name: make git-metrics executable
-        run: chmod +x git-metrics_linux-x86_64
-      - name: copy git-metrics to /usr/bin
-        run: cp git-metrics_linux-x86_64 git-metrics
-      - name: list downloaded files
-        run: ls -lha *
-
       - name: checkout
         uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - name: build binary
+        run: cargo build --release
+
       - name: set git user
         uses: ./.github/actions/git-user
 
       - name: fetch remote metrics
-        run: ./git-metrics pull
+        run: ./target/release/git-metrics pull
       - name: add metrics
         run: |
-          ./git-metrics add \
-            binary-size \
-            --tag "build.target: x86_64-unknown-linux-gnu" \
-            --tag "platform.os: linux" \
-            --tag "platform.arch: x86_64" \
-            --tag "unit: byte" \
-            $(stat --printf="%s" ./git-metrics_linux-x86_64)
-          ./git-metrics add \
-            binary-size \
-            --tag "build.target: aarch64-unknown-linux-gnu" \
-            --tag "platform.os: linux" \
-            --tag "platform.arch: aarch64" \
-            --tag "unit: byte" \
-            $(stat --printf="%s" ./git-metrics_linux-aarch64)
-          ./git-metrics add \
-            binary-size \
-            --tag "build.target: x86_64-apple-darwin" \
-            --tag "platform.os: macos" \
-            --tag "platform.arch: x86_64" \
-            --tag "unit: byte" \
-            $(stat --printf="%s" ./git-metrics_macos-x86_64)
-          ./git-metrics add \
-            binary-size \
-            --tag "build.target: aarch64-apple-darwin" \
-            --tag "platform.os: macos" \
-            --tag "platform.arch: aarch64" \
-            --tag "unit: byte" \
-            $(stat --printf="%s" ./git-metrics_macos-aarch64)
+          ./target/release/git-metrics add binary-size \
+              --tag "rustc.version: $(rustc --version)" \
+              --tag "build.target: x86_64-unknown-linux-gnu" \
+              --tag "platform.os: linux" \
+              --tag "platform.arch: x86_64" \
+              --tag "unit: byte" \
+              $(stat --printf="%s" ./target/release/git-metrics)
       - name: push metrics
-        run: ./git-metrics push
+        run: ./target/release/git-metrics push
         env:
           GIT_USERNAME: git
           GIT_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           GIT_BACKEND: git2
 
-  release-binaries:
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    needs:
-      - build-linux-binaries
-    steps:
-      - name: download linux x86_64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-x86_64
-      - name: download linux aarch64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-aarch64
-      - name: download macos x86_64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-x86_64
-      - name: download macos aarch64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-aarch64
+      - name: move the binaries
+        run: cp target/release/git-metrics git-metrics_linux-x86_64
 
       - name: get release id from tag
+        if: ${{ github.ref == 'refs/heads/main' }}
         id: release_id
         run: |
           release_id=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/${{ inputs.release_tag }} | jq .id)
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
       - name: upload the artifacts
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: skx/github-action-publish-binaries@release-2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
