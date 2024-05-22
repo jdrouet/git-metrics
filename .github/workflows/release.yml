@@ -75,10 +75,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: macos-aarch64
-      - name: list downloaded files
-        run: ls -lha *
       - name: make git-metrics executable
         run: chmod +x git-metrics_linux-x86_64
+      - name: list downloaded files
+        run: ls -lha *
       - name: copy git-metrics to /usr/bin
         run: |
           mkdir -p /home/runner/.local/bin/git-metrics
