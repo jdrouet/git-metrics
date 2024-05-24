@@ -32,7 +32,7 @@ impl super::Executor for CommandRemove {
 mod tests {
     use clap::Parser;
 
-    use crate::{cmd::Executor, metric::Metric, repository::MockRepository};
+    use crate::{metric::Metric, repository::MockRepository};
 
     #[test]
     fn should_remove_metric() {
@@ -50,11 +50,11 @@ mod tests {
             )
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(["_", "remove", "0"])
+        let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+            .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }

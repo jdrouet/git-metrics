@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::repository::NOTES_REF_MAP;
+
 use super::Error;
 
 #[inline]
@@ -32,31 +34,45 @@ impl CommandRepository {
 impl super::Repository for CommandRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pulling metrics");
-        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
-        self.cmd()
-            .args(["fetch", remote, refs.as_str()])
-            .spawn()
-            .map_err(unable_execute_git_command)
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pulling failed: {err:?}");
-                    Error::new("unable to pull metrics", err)
-                })
-            })
+        let output = self
+            .cmd()
+            .args(["fetch", remote, NOTES_REF_MAP])
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if stderr.starts_with("fatal: couldn't find remote ref") {
+                Ok(())
+            } else {
+                tracing::error!("something went wrong when fetching metrics");
+                Err(Error::new(
+                    "something went wrong when fetching metrics",
+                    std::io::Error::new(std::io::ErrorKind::Other, stderr),
+                ))
+            }
+        }
     }
 
     fn push(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pushing metrics");
-        self.cmd()
-            .args(["push", remote, super::NOTES_REF, "--force"])
-            .spawn()
-            .map_err(unable_execute_git_command)
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pushing failed: {err:?}");
-                    Error::new("unable to push metrics", err)
-                })
-            })
+        let output = self
+            .cmd()
+            .args(["push", remote, NOTES_REF_MAP])
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("something went wrong when pushing metrics");
+            Err(Error::new(
+                "something went wrong when pushing metrics",
+                std::io::Error::new(std::io::ErrorKind::Other, stderr),
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {

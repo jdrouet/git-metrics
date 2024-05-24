@@ -26,7 +26,7 @@ impl super::Executor for CommandPush {
 mod tests {
     use clap::Parser;
 
-    use crate::{cmd::Executor, repository::MockRepository};
+    use crate::repository::MockRepository;
 
     #[test]
     fn should_add_metric_with_one_attribute() {
@@ -48,11 +48,11 @@ mod tests {
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
+        let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+            .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }
@@ -78,7 +78,7 @@ mod tests {
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from([
+        let code = crate::Args::parse_from([
             "_",
             "add",
             "my-metric",
@@ -89,9 +89,9 @@ mod tests {
             "12.34",
         ])
         .command
-        .execute(repo, &mut stdout, &mut stderr)
-        .unwrap();
+        .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }

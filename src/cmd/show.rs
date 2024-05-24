@@ -30,7 +30,7 @@ mod tests {
     use clap::Parser;
     use indexmap::IndexMap;
 
-    use crate::{cmd::Executor, metric::Metric, repository::MockRepository};
+    use crate::{metric::Metric, repository::MockRepository};
 
     #[test]
     fn should_read_head_and_return_nothing() {
@@ -42,11 +42,12 @@ mod tests {
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
 
-        crate::Args::parse_from(["_", "show"])
-            .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+        let code =
+            crate::Args::parse_from(["_", "show"])
+                .command
+                .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }
@@ -76,11 +77,11 @@ mod tests {
                 ])
             });
 
-        crate::Args::parse_from(["_", "show", "--target", sha])
+        let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+            .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(!stdout.is_empty());
         assert!(stderr.is_empty());
 

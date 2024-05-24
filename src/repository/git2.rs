@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{Error, Repository, NOTES_REF};
+use super::{Error, Repository, NOTES_REF_MAP};
 use crate::metric::Metric;
 
 const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
@@ -97,11 +97,11 @@ impl Repository for GitRepository {
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
+
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
-        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
         remote
-            .fetch(&[refs], Some(&mut fetch_opts), None)
+            .fetch(&[NOTES_REF_MAP], Some(&mut fetch_opts), None)
             .map_err(|err| {
                 tracing::error!("unable to pull metrics: {err:?}");
                 Error::new("unable to pull metrics", err)
@@ -128,11 +128,12 @@ impl Repository for GitRepository {
         let mut push_opts = git2::PushOptions::new();
         push_opts.remote_callbacks(remote_cb);
 
-        let target = format!("+{NOTES_REF}:{NOTES_REF}");
-        remote.push(&[target], Some(&mut push_opts)).map_err(|err| {
-            tracing::error!("unable to push metrics: {err:?}");
-            Error::new("unable to push metrics", err)
-        })
+        remote
+            .push(&[NOTES_REF_MAP], Some(&mut push_opts))
+            .map_err(|err| {
+                tracing::error!("unable to push metrics: {err:?}");
+                Error::new("unable to push metrics", err)
+            })
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {

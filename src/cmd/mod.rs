@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::{repository::Repository, ExitCode};
 use std::io::Write;
 
 pub(crate) mod add;
@@ -39,19 +39,26 @@ impl Default for Command {
     }
 }
 
-impl Executor for Command {
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+impl Command {
+    pub(crate) fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
         repo: Repo,
         stdout: &mut Out,
         stderr: &mut Err,
-    ) -> Result<(), Error> {
-        match self {
+    ) -> ExitCode {
+        let result = match self {
             Self::Add(inner) => inner.execute(repo, stdout, stderr),
             Self::Pull(inner) => inner.execute(repo, stdout, stderr),
             Self::Push(inner) => inner.execute(repo, stdout, stderr),
             Self::Remove(inner) => inner.execute(repo, stdout, stderr),
             Self::Show(inner) => inner.execute(repo, stdout, stderr),
+        };
+
+        if let Err(error) = result {
+            writeln!(stderr, "{error}").expect("couldn't log error");
+            ExitCode::Failure
+        } else {
+            ExitCode::Success
         }
     }
 }
