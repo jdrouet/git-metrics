@@ -19,7 +19,7 @@ impl super::Executor for CommandShow {
     ) -> Result<(), super::Error> {
         let metrics = repo.get_metrics(&self.target)?;
         for m in metrics.iter() {
-            writeln!(stdout, "{m:?}")?;
+            writeln!(stdout, "{m}")?;
         }
         Ok(())
     }
@@ -28,7 +28,6 @@ impl super::Executor for CommandShow {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use indexmap::IndexMap;
 
     use crate::{metric::Metric, repository::MockRepository};
 
@@ -64,16 +63,8 @@ mod tests {
             .with(mockall::predicate::eq(sha))
             .return_once(|_| {
                 Ok(vec![
-                    Metric {
-                        name: "foo".into(),
-                        tags: Default::default(),
-                        value: 1.0,
-                    },
-                    Metric {
-                        name: "foo".into(),
-                        tags: IndexMap::from_iter([(String::from("bar"), String::from("baz"))]),
-                        value: 1.0,
-                    },
+                    Metric::new("foo", 1.0),
+                    Metric::new("foo", 1.0).with_tag("bar", "baz"),
                 ])
             });
 
@@ -86,11 +77,6 @@ mod tests {
         assert!(stderr.is_empty());
 
         let stdout = String::from_utf8_lossy(&stdout);
-        assert_eq!(
-            stdout,
-            r#"Metric { name: "foo", tags: {}, value: 1.0 }
-Metric { name: "foo", tags: {"bar": "baz"}, value: 1.0 }
-"#
-        );
+        assert_eq!(stdout, "foo{} = 1.0\nfoo{bar=\"baz\"} = 1.0\n");
     }
 }

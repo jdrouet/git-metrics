@@ -41,9 +41,9 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 1
-                    && metrics[0].tags["foo"] == "bar"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 1
+                    && metrics[0].header.tags["foo"] == "bar"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));
@@ -70,10 +70,10 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 2
-                    && metrics[0].tags["foo"] == "bar"
-                    && metrics[0].tags["yolo"] == "pouwet"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 2
+                    && metrics[0].header.tags["foo"] == "bar"
+                    && metrics[0].header.tags["yolo"] == "pouwet"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));

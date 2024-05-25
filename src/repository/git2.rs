@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 
-use super::{Error, Repository, NOTES_REF_MAP};
+use super::{Error, Repository};
 use crate::metric::Metric;
 
-const NOTES_REF_OPTS: Option<&str> = Some(super::NOTES_REF);
+use super::{
+    HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE, REMOTE_METRICS_REF,
+};
 
 #[derive(Default)]
 pub(crate) struct GitCredentials {
@@ -81,6 +83,58 @@ impl GitRepository {
             _ => auth,
         }
     }
+
+    fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
+        tracing::trace!("getting metrics for target {target:?} and ref {ref_name:?}");
+        let rev_id = self.revision_id(target)?;
+
+        let Ok(note) = self.repo.find_note(Some(ref_name), rev_id) else {
+            tracing::debug!("no note found for revision");
+            return Ok(Default::default());
+        };
+
+        note.message()
+            .map(|msg| {
+                tracing::trace!("deserializing note content");
+                toml::from_str::<super::Note>(msg).map_err(|err| {
+                    tracing::error!("unable to deserialize note: {err:?}");
+                    Error::new("unable to deserialize note", err)
+                })
+            })
+            .unwrap_or_else(|| {
+                tracing::debug!("no message found for note {:?}", note.id());
+                Ok(super::Note::default())
+            })
+            .map(|res| res.metrics)
+    }
+
+    fn set_metrics_for_ref(
+        &self,
+        target: &str,
+        ref_name: &str,
+        metrics: Vec<Metric>,
+    ) -> Result<(), Error> {
+        tracing::trace!(
+            "settings {} metrics for target {target:?} and ref {ref_name:?}",
+            metrics.len()
+        );
+        let head_id = self.revision_id(target)?;
+        let sig = self.signature()?;
+
+        tracing::trace!("serializing metrics");
+        let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
+            tracing::error!("unable to serialize metrics: {err:?}");
+            Error::new("unable to serialize metrics", err)
+        })?;
+        self.repo
+            .note(&sig, &sig, Some(ref_name), head_id, &note, true)
+            .map_err(|err| {
+                tracing::error!("unable to persist metrics: {err:?}");
+                Error::new("unable to persist metrics", err)
+            })?;
+
+        Ok(())
+    }
 }
 
 impl Repository for GitRepository {
@@ -101,11 +155,19 @@ impl Repository for GitRepository {
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
         remote
-            .fetch(&[NOTES_REF_MAP], Some(&mut fetch_opts), None)
+            .fetch(&[REMOTE_METRICS_MAP_FORCE], Some(&mut fetch_opts), None)
             .map_err(|err| {
                 tracing::error!("unable to pull metrics: {err:?}");
                 Error::new("unable to pull metrics", err)
-            })
+            })?;
+
+        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+
+        self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
+
+        Ok(())
     }
 
     fn push(&self, remote: &str) -> Result<(), Error> {
@@ -128,8 +190,14 @@ impl Repository for GitRepository {
         let mut push_opts = git2::PushOptions::new();
         push_opts.remote_callbacks(remote_cb);
 
+        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+
+        self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, metrics)?;
+
         remote
-            .push(&[NOTES_REF_MAP], Some(&mut push_opts))
+            .push(&[REMOTE_METRICS_MAP], Some(&mut push_opts))
             .map_err(|err| {
                 tracing::error!("unable to push metrics: {err:?}");
                 Error::new("unable to push metrics", err)
@@ -137,46 +205,10 @@ impl Repository for GitRepository {
     }
 
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
-        tracing::trace!("getting metrics for target {target:?}");
-        let rev_id = self.revision_id(target)?;
-
-        let Ok(note) = self.repo.find_note(NOTES_REF_OPTS, rev_id) else {
-            tracing::debug!("no note found for revision");
-            return Ok(Default::default());
-        };
-
-        note.message()
-            .map(|msg| {
-                tracing::trace!("deserializing note content");
-                toml::from_str::<super::Note>(msg).map_err(|err| {
-                    tracing::error!("unable to deserialize note: {err:?}");
-                    Error::new("unable to deserialize note", err)
-                })
-            })
-            .unwrap_or_else(|| {
-                tracing::debug!("no message found for note {:?}", note.id());
-                Ok(super::Note::default())
-            })
-            .map(|res| res.metrics)
+        self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
     }
 
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
-        tracing::trace!("settings {} metrics for target {target:?}", metrics.len());
-        let head_id = self.revision_id(target)?;
-        let sig = self.signature()?;
-
-        tracing::trace!("serializing metrics");
-        let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
-            tracing::error!("unable to serialize metrics: {err:?}");
-            Error::new("unable to serialize metrics", err)
-        })?;
-        self.repo
-            .note(&sig, &sig, NOTES_REF_OPTS, head_id, &note, true)
-            .map_err(|err| {
-                tracing::error!("unable to persist metrics: {err:?}");
-                Error::new("unable to persist metrics", err)
-            })?;
-
-        Ok(())
+        self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
     }
 }

@@ -1,7 +1,5 @@
 use std::{path::PathBuf, process::Command};
 
-use crate::ExitCode;
-
 mod conflict_different;
 mod simple_use_case;
 
@@ -121,8 +119,4 @@ impl GitRepo {
 
         callback(stdout, stderr, result);
     }
-}
-
-fn no_output(_stdout: String, _stderr: String, code: ExitCode) {
-    assert!(code.is_success());
 }

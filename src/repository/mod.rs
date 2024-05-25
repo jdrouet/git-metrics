@@ -12,8 +12,11 @@ pub(crate) use command::CommandRepository;
 pub(crate) use git2::GitRepository;
 use serde::Serializer;
 
-const NOTES_REF: &str = "refs/notes/metrics";
-const NOTES_REF_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
+const HEAD: &str = "HEAD";
+const LOCAL_METRICS_REF: &str = "refs/notes/local-metrics";
+const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
+const REMOTE_METRICS_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
+const REMOTE_METRICS_MAP_FORCE: &str = "+refs/notes/metrics:refs/notes/metrics";
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Note {

@@ -33,8 +33,10 @@ impl super::Executor for CommandAdd {
     ) -> Result<(), super::Error> {
         let mut metrics = repo.get_metrics(&self.target)?;
         metrics.push(crate::metric::Metric {
-            name: self.name,
-            tags: self.tag.into_iter().filter_map(parse_tag).collect(),
+            header: crate::metric::MetricHeader {
+                name: self.name,
+                tags: self.tag.into_iter().filter_map(parse_tag).collect(),
+            },
             value: self.value,
         });
         repo.set_metrics(&self.target, metrics)?;
@@ -61,9 +63,9 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 1
-                    && metrics[0].tags["foo"] == "bar"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 1
+                    && metrics[0].header.tags["foo"] == "bar"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));
@@ -90,10 +92,10 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 2
-                    && metrics[0].tags["foo"] == "bar"
-                    && metrics[0].tags["yolo"] == "pouwet"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 2
+                    && metrics[0].header.tags["foo"] == "bar"
+                    && metrics[0].header.tags["yolo"] == "pouwet"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));
