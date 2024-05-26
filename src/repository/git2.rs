@@ -96,14 +96,14 @@ impl GitRepository {
 
 impl Repository for GitRepository {
     fn pull(&self, remote: &str) -> Result<(), Error> {
-        let config = self.repo.config().map_err(|err| {
-            tracing::error!("unable to read config: {err:?}");
-            Error::new("unable to read config", err)
-        })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
-            tracing::error!("unable to find remote: {err:?}");
-            Error::new("unable to find remote", err)
-        })?;
+        let config = self
+            .repo
+            .config()
+            .map_err(with_error!("unable to read config"))?;
+        let mut remote = self
+            .repo
+            .find_remote(remote)
+            .map_err(with_error!("unable to find remote"))?;
 
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
@@ -132,10 +132,10 @@ impl Repository for GitRepository {
             tracing::error!("unable to read config: {err:?}");
             Error::new("unable to read config", err)
         })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
-            tracing::error!("unable to find remote {remote:?}: {err:?}");
-            Error::new("unable to find remote", err)
-        })?;
+        let mut remote = self
+            .repo
+            .find_remote(remote)
+            .map_err(with_error!("unable to find remote"))?;
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
@@ -155,10 +155,7 @@ impl Repository for GitRepository {
 
         remote
             .push(&[REMOTE_METRICS_MAP], Some(&mut push_opts))
-            .map_err(|err| {
-                tracing::error!("unable to push metrics: {err:?}");
-                Error::new("unable to push metrics", err)
-            })
+            .map_err(with_error!("unable to push metrics"))
     }
 
     fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
@@ -173,10 +170,7 @@ impl Repository for GitRepository {
         note.message()
             .map(|msg| {
                 tracing::trace!("deserializing note content");
-                toml::from_str::<super::Note>(msg).map_err(|err| {
-                    tracing::error!("unable to deserialize note: {err:?}");
-                    Error::new("unable to deserialize note", err)
-                })
+                toml::from_str::<super::Note>(msg).map_err(with_error!("unable to deserialize not"))
             })
             .unwrap_or_else(|| {
                 tracing::debug!("no message found for note {:?}", note.id());
@@ -199,16 +193,11 @@ impl Repository for GitRepository {
         let sig = self.signature()?;
 
         tracing::trace!("serializing metrics");
-        let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
-            tracing::error!("unable to serialize metrics: {err:?}");
-            Error::new("unable to serialize metrics", err)
-        })?;
+        let note = toml::to_string_pretty(&super::Note { metrics })
+            .map_err(with_error!("unable to serialize metrics"))?;
         self.repo
             .note(&sig, &sig, Some(ref_name), head_id, &note, true)
-            .map_err(|err| {
-                tracing::error!("unable to persist metrics: {err:?}");
-                Error::new("unable to persist metrics", err)
-            })?;
+            .map_err(with_error!("unable to persist metrics"))?;
 
         Ok(())
     }
