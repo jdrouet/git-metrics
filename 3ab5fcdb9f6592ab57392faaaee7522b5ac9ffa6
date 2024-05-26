@@ -1,0 +1,10 @@
+[[metrics]]
+name = "binary-size"
+value = 3916408.0
+
+[metrics.tags]
+"rustc.version" = "rustc 1.78.0 (9b00956e5 2024-04-29)"
+"build.target" = "x86_64-unknown-linux-gnu"
+"platform.os" = "linux"
+"platform.arch" = "x86_64"
+unit = "byte"
