@@ -55,6 +55,9 @@ impl std::error::Error for Error {
 pub(crate) trait Repository {
     fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
+    fn get_remote_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
+        self.get_metrics_for_ref(target, REMOTE_METRICS_REF)
+    }
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
         self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
     }

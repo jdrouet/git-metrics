@@ -9,6 +9,10 @@ pub(crate) struct CommandLog {
     /// Can use ranges like HEAD~2..HEAD
     #[clap(default_value = "HEAD")]
     target: String,
+
+    /// If enabled, the empty commits will not be displayed
+    #[clap(long)]
+    filter_empty: bool,
 }
 
 impl super::Executor for CommandLog {
@@ -20,8 +24,11 @@ impl super::Executor for CommandLog {
     ) -> Result<(), super::Error> {
         let commits = repo.get_commits(&self.target)?;
         for commit in commits.iter() {
-            let metrics = repo.get_metrics(commit.sha.as_str())?;
-            writeln!(stdout, "* {} {}", commit.sha, commit.summary)?;
+            let metrics = repo.get_remote_metrics(commit.sha.as_str())?;
+            if self.filter_empty && metrics.is_empty() {
+                continue;
+            }
+            writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
             for metric in metrics {
                 writeln!(stdout, "\t{metric}")?;
             }
