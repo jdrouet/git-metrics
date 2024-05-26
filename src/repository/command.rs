@@ -131,7 +131,7 @@ impl super::Repository for CommandRepository {
         self.fetch_remote_metrics(remote)?;
         let remote_metrics = self.get_metrics_for_note(HEAD, "metrics")?;
         let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
-        let metrics = crate::entity::merge(remote_metrics, local_metrics);
+        let metrics = crate::entity::merge_metrics(remote_metrics, local_metrics);
         self.set_metrics_for_note(HEAD, "local-metrics", metrics)?;
         Ok(())
     }

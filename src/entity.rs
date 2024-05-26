@@ -72,7 +72,7 @@ impl Display for Metric {
     }
 }
 
-pub(crate) fn merge(mut remote: Vec<Metric>, local: Vec<Metric>) -> Vec<Metric> {
+pub(crate) fn merge_metrics(mut remote: Vec<Metric>, local: Vec<Metric>) -> Vec<Metric> {
     let existing: HashSet<&MetricHeader, std::hash::RandomState> =
         HashSet::from_iter(remote.iter().map(|m| &m.header));
     let missing = local
