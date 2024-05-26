@@ -9,8 +9,8 @@ that `git-metrics` simplifies.
 - [x] `git-metrics show` displays the metrics to the current commit
 - [x] `git-metrics add` adds a metric to the current commit
 - [x] `git-metrics remove` removes a metric from the current commit
-- [ ] `git-metrics fetch` fetches the metrics
-- [ ] `git-metrics push` pushes the metrics
+- [x] `git-metrics fetch` fetches the metrics
+- [x] `git-metrics push` pushes the metrics
+- [x] `git-metrics log` displays the metrics for the last commits
 - [ ] `git-metrics diff` computes the diff of the metrics between 2 commits
-- [ ] `git-metrics log` displays the metrics for the last commits
 - [ ] `git-metrics page` generates a web page with charts for every metrics
