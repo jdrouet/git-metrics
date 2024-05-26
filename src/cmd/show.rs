@@ -19,7 +19,7 @@ impl super::Executor for CommandShow {
     ) -> Result<(), super::Error> {
         let metrics = repo.get_metrics(&self.target)?;
         for m in metrics.iter() {
-            writeln!(stdout, "{m:?}")?;
+            writeln!(stdout, "{m}")?;
         }
         Ok(())
     }
@@ -28,9 +28,8 @@ impl super::Executor for CommandShow {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use indexmap::IndexMap;
 
-    use crate::{cmd::Executor, metric::Metric, repository::MockRepository};
+    use crate::{metric::Metric, repository::MockRepository};
 
     #[test]
     fn should_read_head_and_return_nothing() {
@@ -42,11 +41,12 @@ mod tests {
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
 
-        crate::Args::parse_from(["_", "show"])
-            .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+        let code =
+            crate::Args::parse_from(["_", "show"])
+                .command
+                .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }
@@ -63,33 +63,20 @@ mod tests {
             .with(mockall::predicate::eq(sha))
             .return_once(|_| {
                 Ok(vec![
-                    Metric {
-                        name: "foo".into(),
-                        tags: Default::default(),
-                        value: 1.0,
-                    },
-                    Metric {
-                        name: "foo".into(),
-                        tags: IndexMap::from_iter([(String::from("bar"), String::from("baz"))]),
-                        value: 1.0,
-                    },
+                    Metric::new("foo", 1.0),
+                    Metric::new("foo", 1.0).with_tag("bar", "baz"),
                 ])
             });
 
-        crate::Args::parse_from(["_", "show", "--target", sha])
+        let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+            .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(!stdout.is_empty());
         assert!(stderr.is_empty());
 
         let stdout = String::from_utf8_lossy(&stdout);
-        assert_eq!(
-            stdout,
-            r#"Metric { name: "foo", tags: {}, value: 1.0 }
-Metric { name: "foo", tags: {"bar": "baz"}, value: 1.0 }
-"#
-        );
+        assert_eq!(stdout, "foo{} = 1.0\nfoo{bar=\"baz\"} = 1.0\n");
     }
 }

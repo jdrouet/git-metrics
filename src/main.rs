@@ -8,7 +8,25 @@ mod repository;
 use std::path::PathBuf;
 
 use clap::Parser;
-use cmd::Executor;
+
+pub(crate) enum ExitCode {
+    Success,
+    Failure,
+}
+
+impl ExitCode {
+    #[cfg(test)]
+    fn is_success(&self) -> bool {
+        matches!(self, Self::Success)
+    }
+
+    fn exit(self) {
+        std::process::exit(match self {
+            Self::Success => 0,
+            Self::Failure => 1,
+        })
+    }
+}
 
 #[cfg(not(any(feature = "impl-command", feature = "impl-git2")))]
 compile_error!("you need to pick at least one implementation");
@@ -71,7 +89,7 @@ impl Args {
         self,
         stdout: &mut Out,
         stderr: &mut Err,
-    ) -> Result<(), crate::cmd::Error> {
+    ) -> ExitCode {
         match self.backend {
             #[cfg(feature = "impl-command")]
             Backend::Command => self.command.execute(
@@ -101,8 +119,5 @@ fn main() {
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
 
-    if let Err(err) = args.execute(&mut stdout, &mut stderr) {
-        eprintln!("{err:?}");
-        std::process::exit(1);
-    }
+    args.execute(&mut stdout, &mut stderr).exit();
 }

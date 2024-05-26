@@ -12,6 +12,12 @@ pub(crate) use command::CommandRepository;
 pub(crate) use git2::GitRepository;
 use serde::Serializer;
 
+const HEAD: &str = "HEAD";
+const LOCAL_METRICS_REF: &str = "refs/notes/local-metrics";
+const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
+const REMOTE_METRICS_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
+const REMOTE_METRICS_MAP_FORCE: &str = "+refs/notes/metrics:refs/notes/metrics";
+
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Note {
     metrics: Vec<Metric>,
@@ -52,5 +58,3 @@ pub(crate) trait Repository {
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error>;
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error>;
 }
-
-const NOTES_REF: &str = "refs/notes/metrics";

@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 
+use super::{HEAD, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
+use crate::metric::Metric;
+
 use super::Error;
 
 #[inline]
@@ -27,43 +30,40 @@ impl CommandRepository {
         }
         cmd
     }
-}
 
-impl super::Repository for CommandRepository {
-    fn pull(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pulling metrics");
-        let refs = format!("{}:{}", super::NOTES_REF, super::NOTES_REF);
-        self.cmd()
-            .args(["fetch", remote, refs.as_str()])
-            .spawn()
-            .map_err(unable_execute_git_command)
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pulling failed: {err:?}");
-                    Error::new("unable to pull metrics", err)
-                })
-            })
-    }
-
-    fn push(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pushing metrics");
-        self.cmd()
-            .args(["push", remote, super::NOTES_REF, "--force"])
-            .spawn()
-            .map_err(unable_execute_git_command)
-            .and_then(|mut cmd| {
-                cmd.wait().map(|_| ()).map_err(|err| {
-                    tracing::error!("pushing failed: {err:?}");
-                    Error::new("unable to push metrics", err)
-                })
-            })
-    }
-
-    fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {
-        tracing::trace!("getting metrics");
+    fn fetch_remote_metrics(&self, remote: &str) -> Result<(), Error> {
+        tracing::trace!("fetch remote metrics from {remote:?}");
         let output = self
             .cmd()
-            .args(["notes", "--ref=metrics", "show", target])
+            .args(["fetch", remote, REMOTE_METRICS_MAP_FORCE])
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if stderr.starts_with("fatal: couldn't find remote ref") {
+                Ok(())
+            } else {
+                tracing::error!("something went wrong when fetching metrics");
+                Err(Error::new(
+                    "something went wrong when fetching metrics",
+                    std::io::Error::new(std::io::ErrorKind::Other, stderr),
+                ))
+            }
+        }
+    }
+
+    fn get_metrics_for_note(&self, target: &str, note_name: &str) -> Result<Vec<Metric>, Error> {
+        tracing::trace!("getting metrics for target {target:?} and note {note_name:?}");
+        let output = self
+            .cmd()
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_name)
+            .arg("show")
+            .arg(target)
             .output()
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
@@ -85,7 +85,16 @@ impl super::Repository for CommandRepository {
         }
     }
 
-    fn set_metrics(&self, target: &str, metrics: Vec<crate::metric::Metric>) -> Result<(), Error> {
+    fn set_metrics_for_note(
+        &self,
+        target: &str,
+        note_name: &str,
+        metrics: Vec<Metric>,
+    ) -> Result<(), Error> {
+        tracing::trace!(
+            "settings {} metrics for target {target:?} and note {note_name:?}",
+            metrics.len()
+        );
         let note = super::Note { metrics };
         let message = toml::to_string(&note).map_err(|err| {
             tracing::error!("unable to serialize metrics: {err:?}");
@@ -93,17 +102,17 @@ impl super::Repository for CommandRepository {
         })?;
         let output = self
             .cmd()
-            .args([
-                "notes",
-                "--ref=metrics",
-                "add",
-                "-f",
-                "-m",
-                message.as_str(),
-                target,
-            ])
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_name)
+            .arg("add")
+            .arg("-f")
+            .arg("-m")
+            .arg(message.as_str())
+            .arg(target)
             .output()
             .map_err(unable_execute_git_command)?;
+
         if output.status.success() {
             Ok(())
         } else {
@@ -113,5 +122,50 @@ impl super::Repository for CommandRepository {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
             ))
         }
+    }
+}
+
+impl super::Repository for CommandRepository {
+    fn pull(&self, remote: &str) -> Result<(), Error> {
+        tracing::trace!("pulling metrics");
+        self.fetch_remote_metrics(remote)?;
+        let remote_metrics = self.get_metrics_for_note(HEAD, "metrics")?;
+        let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
+        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+        self.set_metrics_for_note(HEAD, "local-metrics", metrics)?;
+        Ok(())
+    }
+
+    fn push(&self, remote: &str) -> Result<(), Error> {
+        tracing::trace!("pushing metrics");
+        let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
+        self.set_metrics_for_note(HEAD, "metrics", local_metrics)?;
+
+        let output = self
+            .cmd()
+            .arg("push")
+            .arg(remote)
+            .arg(REMOTE_METRICS_MAP)
+            .output()
+            .map_err(unable_execute_git_command)?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("something went wrong when pushing metrics");
+            Err(Error::new(
+                "something went wrong when pushing metrics",
+                std::io::Error::new(std::io::ErrorKind::Other, stderr),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {
+        self.get_metrics_for_note(target, "local-metrics")
+    }
+
+    fn set_metrics(&self, target: &str, metrics: Vec<crate::metric::Metric>) -> Result<(), Error> {
+        self.set_metrics_for_note(target, "local-metrics", metrics)
     }
 }

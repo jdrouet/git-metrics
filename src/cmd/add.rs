@@ -33,8 +33,10 @@ impl super::Executor for CommandAdd {
     ) -> Result<(), super::Error> {
         let mut metrics = repo.get_metrics(&self.target)?;
         metrics.push(crate::metric::Metric {
-            name: self.name,
-            tags: self.tag.into_iter().filter_map(parse_tag).collect(),
+            header: crate::metric::MetricHeader {
+                name: self.name,
+                tags: self.tag.into_iter().filter_map(parse_tag).collect(),
+            },
             value: self.value,
         });
         repo.set_metrics(&self.target, metrics)?;
@@ -46,7 +48,7 @@ impl super::Executor for CommandAdd {
 mod tests {
     use clap::Parser;
 
-    use crate::{cmd::Executor, repository::MockRepository};
+    use crate::repository::MockRepository;
 
     #[test]
     fn should_add_metric_with_one_attribute() {
@@ -61,18 +63,18 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 1
-                    && metrics[0].tags["foo"] == "bar"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 1
+                    && metrics[0].header.tags["foo"] == "bar"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
+        let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
-            .execute(repo, &mut stdout, &mut stderr)
-            .unwrap();
+            .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }
@@ -90,15 +92,15 @@ mod tests {
             .withf_st(|target, metrics| {
                 target == "HEAD"
                     && metrics.len() == 1
-                    && metrics[0].name == "my-metric"
-                    && metrics[0].tags.len() == 2
-                    && metrics[0].tags["foo"] == "bar"
-                    && metrics[0].tags["yolo"] == "pouwet"
+                    && metrics[0].header.name == "my-metric"
+                    && metrics[0].header.tags.len() == 2
+                    && metrics[0].header.tags["foo"] == "bar"
+                    && metrics[0].header.tags["yolo"] == "pouwet"
                     && metrics[0].value == 12.34
             })
             .return_once(|_, _| Ok(()));
 
-        crate::Args::parse_from([
+        let code = crate::Args::parse_from([
             "_",
             "add",
             "my-metric",
@@ -109,9 +111,9 @@ mod tests {
             "12.34",
         ])
         .command
-        .execute(repo, &mut stdout, &mut stderr)
-        .unwrap();
+        .execute(repo, &mut stdout, &mut stderr);
 
+        assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
     }

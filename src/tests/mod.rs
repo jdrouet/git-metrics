@@ -1,5 +1,6 @@
-use std::{ffi::OsString, path::PathBuf, process::Command};
+use std::{path::PathBuf, process::Command};
 
+mod conflict_different;
 mod simple_use_case;
 
 fn init_logs() {
@@ -9,12 +10,13 @@ fn init_logs() {
 }
 
 struct GitRepo {
+    backend: &'static str,
     path: PathBuf,
     path_str: String,
 }
 
 impl GitRepo {
-    fn create(path: PathBuf) -> Self {
+    fn create(backend: &'static str, path: PathBuf) -> Self {
         let path_str = path.to_string_lossy().to_string();
         let output = Command::new("git")
             .arg("init")
@@ -27,7 +29,11 @@ impl GitRepo {
             "stderr: {:?}",
             String::from_utf8_lossy(&output.stderr)
         );
-        Self { path, path_str }
+        Self {
+            backend,
+            path,
+            path_str,
+        }
     }
 
     fn clone(server: &GitRepo, path: PathBuf) -> Self {
@@ -43,7 +49,11 @@ impl GitRepo {
             "stderr: {:?}",
             String::from_utf8_lossy(&output.stderr)
         );
-        Self { path, path_str }
+        Self {
+            backend: server.backend,
+            path,
+            path_str,
+        }
     }
 
     fn path_str(&self) -> &str {
@@ -84,24 +94,29 @@ impl GitRepo {
         );
     }
 
-    fn execute<I, T>(&self, itr: I) -> (String, String)
+    fn metrics<'a, I, F>(&'a self, iter: I, callback: F)
     where
-        I: IntoIterator<Item = T>,
-        T: Into<OsString> + Clone,
+        I: IntoIterator<Item = &'a str>,
+        F: FnOnce(String, String, crate::ExitCode),
     {
         use clap::Parser;
 
+        let mut args = vec![
+            "git-metrics",
+            "--root-dir",
+            self.path_str(),
+            "--backend",
+            self.backend,
+        ];
+        args.extend(iter);
+
         let mut stdout = Vec::<u8>::new();
         let mut stderr = Vec::<u8>::new();
-        crate::Args::parse_from(itr)
-            .execute(&mut stdout, &mut stderr)
-            .unwrap();
+        let result = crate::Args::parse_from(args).execute(&mut stdout, &mut stderr);
 
-        tracing::info!("output bytes: {}/{}", stdout.len(), stderr.len());
+        let stdout = String::from_utf8_lossy(&stdout).to_string();
+        let stderr = String::from_utf8_lossy(&stderr).to_string();
 
-        (
-            String::from_utf8_lossy(&stdout).to_string(),
-            String::from_utf8_lossy(&stderr).to_string(),
-        )
+        callback(stdout, stderr, result);
     }
 }
