@@ -8,6 +8,8 @@ pub(crate) mod push;
 pub(crate) mod remove;
 pub(crate) mod show;
 
+mod prelude;
+
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
     #[error("unable to write to stdout or stderr")]

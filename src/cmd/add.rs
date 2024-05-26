@@ -1,12 +1,7 @@
-use crate::repository::Repository;
 use std::io::Write;
 
-fn parse_tag(input: String) -> Option<(String, String)> {
-    input
-        .split_once(':')
-        .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
-        .filter(|(key, _)| !key.is_empty())
-}
+use super::prelude::Tag;
+use crate::repository::Repository;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -18,7 +13,7 @@ pub(crate) struct CommandAdd {
     name: String,
     /// Tag given to the metric
     #[clap(long)]
-    tag: Vec<String>,
+    tag: Vec<Tag>,
     /// Value of the metric
     value: f64,
 }
@@ -35,7 +30,11 @@ impl super::Executor for CommandAdd {
         metrics.push(crate::entity::Metric {
             header: crate::entity::MetricHeader {
                 name: self.name,
-                tags: self.tag.into_iter().filter_map(parse_tag).collect(),
+                tags: self
+                    .tag
+                    .into_iter()
+                    .map(|tag| (tag.name, tag.value))
+                    .collect(),
             },
             value: self.value,
         });
