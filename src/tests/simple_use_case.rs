@@ -1,4 +1,4 @@
-use crate::tests::GitRepo;
+use crate::{assert_success, tests::GitRepo};
 
 #[test_case::test_case("git2"; "with git2 backend")]
 #[test_case::test_case("command"; "with command backend")]
@@ -11,35 +11,34 @@ fn execute(backend: &'static str) {
     first.commit("Hello World");
     first.push();
     //
-    first.metrics(["add", "my-metric", "1.0"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
+    first.metrics(["add", "my-metric", "1.0"], assert_success!());
     //
-    first.metrics(["show"], |stdout, stderr, code| {
-        assert!(code.is_success());
-        assert_eq!(stdout, "my-metric{} = 1.0\n");
-        assert_eq!(stderr, "");
-    });
+    first.metrics(["show"], assert_success!("my-metric{} = 1.0\n"));
     //
-    first.metrics(["push"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
+    first.metrics(["push"], assert_success!());
     //
     let second = GitRepo::clone(&server, root.path().join("second"));
-    second.metrics(["pull"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
+    second.metrics(["pull"], assert_success!());
     //
-    second.metrics(["show"], |stdout, stderr, code| {
-        assert!(code.is_success());
-        assert_eq!(stdout, "my-metric{} = 1.0\n");
+    second.metrics(["show"], assert_success!("my-metric{} = 1.0\n"));
+    //
+    first.commit("second commit");
+    first.push();
+    first.metrics(["add", "my-metric", "2.0"], assert_success!());
+    first.metrics(["add", "other-metric", "42.0"], assert_success!());
+    first.metrics(["push"], assert_success!());
+    //
+    second.pull();
+    second.metrics(["pull"], assert_success!());
+    second.metrics(["log"], |stdout, stderr, code| {
+        let lines: Vec<_> = stdout.trim().split('\n').collect();
+        assert_eq!(lines.len(), 5);
+        assert!(!lines[0].starts_with('\t'));
+        assert_eq!(lines[1], "\tmy-metric{} = 2.0");
+        assert_eq!(lines[2], "\tother-metric{} = 42.0");
+        assert!(!lines[3].starts_with('\t'));
+        assert_eq!(lines[4], "\tmy-metric{} = 1.0");
         assert_eq!(stderr, "");
-        assert!(stderr.is_empty());
+        assert!(code.is_success());
     });
 }

@@ -14,10 +14,18 @@ pub(crate) struct CommandLog {
 impl super::Executor for CommandLog {
     fn execute<Repo: Repository, Out: Write, Err: Write>(
         self,
-        _repo: Repo,
-        _stdout: &mut Out,
+        repo: Repo,
+        stdout: &mut Out,
         _stderr: &mut Err,
     ) -> Result<(), super::Error> {
+        let commits = repo.get_commits(&self.target)?;
+        for commit_id in commits.iter() {
+            let metrics = repo.get_metrics(commit_id.as_str())?;
+            writeln!(stdout, "{commit_id}")?;
+            for metric in metrics {
+                writeln!(stdout, "\t{metric}")?;
+            }
+        }
         Ok(())
     }
 }

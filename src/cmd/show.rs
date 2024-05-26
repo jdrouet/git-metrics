@@ -29,7 +29,7 @@ impl super::Executor for CommandShow {
 mod tests {
     use clap::Parser;
 
-    use crate::{metric::Metric, repository::MockRepository};
+    use crate::{entity::Metric, repository::MockRepository};
 
     #[test]
     fn should_read_head_and_return_nothing() {

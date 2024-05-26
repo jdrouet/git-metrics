@@ -32,7 +32,7 @@ impl super::Executor for CommandRemove {
 mod tests {
     use clap::Parser;
 
-    use crate::{metric::Metric, repository::MockRepository};
+    use crate::{entity::Metric, repository::MockRepository};
 
     #[test]
     fn should_remove_metric() {

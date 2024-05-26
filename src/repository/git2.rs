@@ -1,11 +1,20 @@
 use std::path::PathBuf;
 
 use super::{Error, Repository};
-use crate::metric::Metric;
+use crate::entity::Metric;
 
 use super::{
     HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE, REMOTE_METRICS_REF,
 };
+
+macro_rules! with_error {
+    ($msg:expr) => {
+        |err| {
+            tracing::error!(concat!($msg, ": {:?}"), err);
+            Error::new($msg, err)
+        }
+    };
+}
 
 #[derive(Default)]
 pub(crate) struct GitCredentials {
@@ -163,7 +172,7 @@ impl Repository for GitRepository {
 
         let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
         let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+        let metrics = crate::entity::merge(remote_metrics, local_metrics);
 
         self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
 
@@ -192,7 +201,7 @@ impl Repository for GitRepository {
 
         let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
         let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+        let metrics = crate::entity::merge(remote_metrics, local_metrics);
 
         self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, metrics)?;
 
@@ -210,5 +219,73 @@ impl Repository for GitRepository {
 
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
         self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
+    }
+
+    fn get_commits(&self, range: &str) -> Result<Vec<String>, Error> {
+        let mut revwalk = self
+            .repo
+            .revwalk()
+            .map_err(with_error!("unable to lookup commits"))?;
+        revwalk
+            .set_sorting(git2::Sort::TOPOLOGICAL)
+            .map_err(with_error!("unable to set sorting direction"))?;
+        let revspec = self
+            .repo
+            .revparse(range.as_ref())
+            .map_err(with_error!("unable to parse commit range"))?;
+        if revspec.mode().contains(git2::RevparseMode::SINGLE) {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            revwalk
+                .push(from.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+        } else {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            let to = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range ending");
+                Error::new(
+                    "unable to get range ending",
+                    git2::Error::from_str("revspec.to is None"),
+                )
+            })?;
+            revwalk
+                .push(from.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+            if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
+                let base = self
+                    .repo
+                    .merge_base(from.id(), to.id())
+                    .map_err(with_error!("unable to get merge base"))?;
+                let o = self
+                    .repo
+                    .find_object(base, Some(git2::ObjectType::Commit))
+                    .map_err(with_error!("unable to get commit"))?;
+                revwalk
+                    .push(o.id())
+                    .map_err(with_error!("unable to push commit id in revwalk"))?;
+            }
+            revwalk
+                .hide(from.id())
+                .map_err(with_error!("unable to hide commit id in revwalk"))?;
+        }
+
+        let mut result = Vec::new();
+        for commit in revwalk {
+            let commit = commit.map_err(with_error!("unable to get commit from revwalk"))?;
+            result.push(commit.to_string());
+        }
+
+        Ok(result)
     }
 }

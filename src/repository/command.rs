@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::{HEAD, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
-use crate::metric::Metric;
+use crate::entity::Metric;
 
 use super::Error;
 
@@ -131,7 +131,7 @@ impl super::Repository for CommandRepository {
         self.fetch_remote_metrics(remote)?;
         let remote_metrics = self.get_metrics_for_note(HEAD, "metrics")?;
         let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
+        let metrics = crate::entity::merge(remote_metrics, local_metrics);
         self.set_metrics_for_note(HEAD, "local-metrics", metrics)?;
         Ok(())
     }
@@ -151,9 +151,9 @@ impl super::Repository for CommandRepository {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            tracing::error!("something went wrong when pushing metrics");
+            tracing::error!("unable to push metrics");
             Err(Error::new(
-                "something went wrong when pushing metrics",
+                "unable to push metrics",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),
             ))
         } else {
@@ -161,11 +161,38 @@ impl super::Repository for CommandRepository {
         }
     }
 
-    fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {
+    fn get_metrics(&self, target: &str) -> Result<Vec<crate::entity::Metric>, Error> {
         self.get_metrics_for_note(target, "local-metrics")
     }
 
-    fn set_metrics(&self, target: &str, metrics: Vec<crate::metric::Metric>) -> Result<(), Error> {
+    fn set_metrics(&self, target: &str, metrics: Vec<crate::entity::Metric>) -> Result<(), Error> {
         self.set_metrics_for_note(target, "local-metrics", metrics)
+    }
+
+    fn get_commits(&self, range: &str) -> Result<Vec<String>, Error> {
+        let output = self
+            .cmd()
+            .arg("log")
+            .arg("--format=format:%H")
+            .arg(range)
+            .output()
+            .map_err(unable_execute_git_command)?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("something went wrong when getting commits");
+            Err(Error::new(
+                "something went wrong when getting commits",
+                std::io::Error::new(std::io::ErrorKind::Other, stderr),
+            ))
+        } else {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout
+                .split('\n')
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .map(String::from)
+                .collect())
+        }
     }
 }

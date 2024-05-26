@@ -5,7 +5,7 @@ mod command;
 #[cfg(feature = "impl-git2")]
 mod git2;
 
-use crate::metric::Metric;
+use crate::entity::Metric;
 #[cfg(feature = "impl-command")]
 pub(crate) use command::CommandRepository;
 #[cfg(feature = "impl-git2")]
@@ -57,4 +57,5 @@ pub(crate) trait Repository {
     fn push(&self, remote: &str) -> Result<(), Error>;
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error>;
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error>;
+    fn get_commits(&self, range: &str) -> Result<Vec<String>, Error>;
 }

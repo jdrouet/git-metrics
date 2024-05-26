@@ -2,7 +2,7 @@
 pub(crate) mod tests;
 
 mod cmd;
-mod metric;
+mod entity;
 mod repository;
 
 use std::path::PathBuf;
