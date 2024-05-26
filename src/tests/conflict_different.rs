@@ -1,4 +1,4 @@
-use crate::tests::GitRepo;
+use crate::{assert_failure, assert_success, tests::GitRepo};
 
 #[test_case::test_case("git2"; "with git2 backend")]
 #[test_case::test_case("command"; "with command backend")]
@@ -13,57 +13,20 @@ fn execute(backend: &'static str) {
     //
     let second = GitRepo::clone(&server, root.path().join("second"));
     //
-    second.metrics(["pull"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
+    second.metrics(["pull"], assert_success!());
     //
-    first.metrics(["pull"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    first.metrics(["add", "my-metric", "1.0"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    first.metrics(["show"], |stdout, stderr, code| {
-        assert_eq!(stdout, "my-metric{} = 1.0\n");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    first.metrics(["push"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
+    first.metrics(["pull"], assert_success!());
+    first.metrics(["add", "my-metric", "1.0"], assert_success!());
+    first.metrics(["show"], assert_success!("my-metric{} = 1.0\n"));
+    first.metrics(["push"], assert_success!());
     //
-    second.metrics(["add", "other-metric", "1.0"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    second.metrics(["push"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_ne!(stderr, "");
-        assert!(!code.is_success());
-    });
+    second.metrics(["add", "other-metric", "1.0"], assert_success!());
+    second.metrics(["push"], assert_failure!("unable to push metrics\n"));
     //
-    second.metrics(["show"], |stdout, stderr, code| {
-        assert_eq!(stdout, "other-metric{} = 1.0\n");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    second.metrics(["pull"], |stdout, stderr, code| {
-        assert_eq!(stdout, "");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    });
-    second.metrics(["show"], |stdout, stderr, code| {
-        assert_eq!(stdout, "my-metric{} = 1.0\nother-metric{} = 1.0\n");
-        assert_eq!(stderr, "");
-        assert!(code.is_success());
-    })
+    second.metrics(["show"], assert_success!("other-metric{} = 1.0\n"));
+    second.metrics(["pull"], assert_success!());
+    second.metrics(
+        ["show"],
+        assert_success!("my-metric{} = 1.0\nother-metric{} = 1.0\n"),
+    );
 }

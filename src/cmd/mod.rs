@@ -2,6 +2,7 @@ use crate::{repository::Repository, ExitCode};
 use std::io::Write;
 
 pub(crate) mod add;
+pub(crate) mod log;
 pub(crate) mod pull;
 pub(crate) mod push;
 pub(crate) mod remove;
@@ -27,6 +28,7 @@ pub(crate) trait Executor {
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum Command {
     Add(add::CommandAdd),
+    Log(log::CommandLog),
     Pull(pull::CommandPull),
     Push(push::CommandPush),
     Remove(remove::CommandRemove),
@@ -48,6 +50,7 @@ impl Command {
     ) -> ExitCode {
         let result = match self {
             Self::Add(inner) => inner.execute(repo, stdout, stderr),
+            Self::Log(inner) => inner.execute(repo, stdout, stderr),
             Self::Pull(inner) => inner.execute(repo, stdout, stderr),
             Self::Push(inner) => inner.execute(repo, stdout, stderr),
             Self::Remove(inner) => inner.execute(repo, stdout, stderr),

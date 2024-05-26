@@ -76,6 +76,15 @@ impl GitRepo {
         );
     }
 
+    fn pull(&self) {
+        let output = Command::new("git")
+            .current_dir(self.path.as_path())
+            .arg("pull")
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+    }
+
     fn push(&self) {
         let output = Command::new("git")
             .current_dir(self.path.as_path())
@@ -119,4 +128,39 @@ impl GitRepo {
 
         callback(stdout, stderr, result);
     }
+}
+
+#[macro_export]
+macro_rules! assert_success {
+    () => {
+        |stdout, stderr, code| {
+            assert_eq!(stdout, "", "unexpected stdout");
+            assert_eq!(stderr, "", "unexpected stderr");
+            assert!(code.is_success());
+        }
+    };
+    ($output:expr) => {
+        |stdout, stderr, code| {
+            assert_eq!(stdout, $output, "unexpected stdout");
+            assert_eq!(stderr, "", "unexpected stderr");
+            assert!(code.is_success());
+        }
+    };
+}
+#[macro_export]
+macro_rules! assert_failure {
+    () => {
+        |stdout, stderr, code| {
+            assert_eq!(stdout, "", "unexpected stdout");
+            assert_eq!(stderr, "", "unexpected stderr");
+            assert!(!code.is_success());
+        }
+    };
+    ($output:expr) => {
+        |stdout, stderr, code| {
+            assert_eq!(stdout, "", "unexpected stdout");
+            assert_eq!(stderr, $output, "unexpected stderr");
+            assert!(!code.is_success());
+        }
+    };
 }

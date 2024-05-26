@@ -1,11 +1,20 @@
 use std::path::PathBuf;
 
 use super::{Error, Repository};
-use crate::metric::Metric;
+use crate::entity::{Commit, Metric};
 
 use super::{
     HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE, REMOTE_METRICS_REF,
 };
+
+macro_rules! with_error {
+    ($msg:expr) => {
+        |err| {
+            tracing::error!(concat!($msg, ": {:?}"), err);
+            Error::new($msg, err)
+        }
+    };
+}
 
 #[derive(Default)]
 pub(crate) struct GitCredentials {
@@ -83,6 +92,74 @@ impl GitRepository {
             _ => auth,
         }
     }
+}
+
+impl Repository for GitRepository {
+    fn pull(&self, remote: &str) -> Result<(), Error> {
+        let config = self.repo.config().map_err(|err| {
+            tracing::error!("unable to read config: {err:?}");
+            Error::new("unable to read config", err)
+        })?;
+        let mut remote = self.repo.find_remote(remote).map_err(|err| {
+            tracing::error!("unable to find remote: {err:?}");
+            Error::new("unable to find remote", err)
+        })?;
+
+        let auth = self.authenticator();
+        let mut remote_cb = git2::RemoteCallbacks::new();
+        remote_cb.credentials(auth.credentials(&config));
+
+        let mut fetch_opts = git2::FetchOptions::new();
+        fetch_opts.remote_callbacks(remote_cb);
+        remote
+            .fetch(&[REMOTE_METRICS_MAP_FORCE], Some(&mut fetch_opts), None)
+            .map_err(|err| {
+                tracing::error!("unable to pull metrics: {err:?}");
+                Error::new("unable to pull metrics", err)
+            })?;
+
+        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        let metrics = crate::entity::merge_metrics(remote_metrics, local_metrics);
+
+        self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
+
+        Ok(())
+    }
+
+    fn push(&self, remote: &str) -> Result<(), Error> {
+        let config = self.repo.config().map_err(|err| {
+            tracing::error!("unable to read config: {err:?}");
+            Error::new("unable to read config", err)
+        })?;
+        let mut remote = self.repo.find_remote(remote).map_err(|err| {
+            tracing::error!("unable to find remote {remote:?}: {err:?}");
+            Error::new("unable to find remote", err)
+        })?;
+        let auth = self.authenticator();
+        let mut remote_cb = git2::RemoteCallbacks::new();
+        remote_cb.credentials(auth.credentials(&config));
+        remote_cb.push_update_reference(|first, second| {
+            tracing::trace!("first={first:?} second={second:?}");
+            Ok(())
+        });
+
+        let mut push_opts = git2::PushOptions::new();
+        push_opts.remote_callbacks(remote_cb);
+
+        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        let metrics = crate::entity::merge_metrics(remote_metrics, local_metrics);
+
+        self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, metrics)?;
+
+        remote
+            .push(&[REMOTE_METRICS_MAP], Some(&mut push_opts))
+            .map_err(|err| {
+                tracing::error!("unable to push metrics: {err:?}");
+                Error::new("unable to push metrics", err)
+            })
+    }
 
     fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
         tracing::trace!("getting metrics for target {target:?} and ref {ref_name:?}");
@@ -135,80 +212,80 @@ impl GitRepository {
 
         Ok(())
     }
-}
 
-impl Repository for GitRepository {
-    fn pull(&self, remote: &str) -> Result<(), Error> {
-        let config = self.repo.config().map_err(|err| {
-            tracing::error!("unable to read config: {err:?}");
-            Error::new("unable to read config", err)
-        })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
-            tracing::error!("unable to find remote: {err:?}");
-            Error::new("unable to find remote", err)
-        })?;
-
-        let auth = self.authenticator();
-        let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(auth.credentials(&config));
-
-        let mut fetch_opts = git2::FetchOptions::new();
-        fetch_opts.remote_callbacks(remote_cb);
-        remote
-            .fetch(&[REMOTE_METRICS_MAP_FORCE], Some(&mut fetch_opts), None)
-            .map_err(|err| {
-                tracing::error!("unable to pull metrics: {err:?}");
-                Error::new("unable to pull metrics", err)
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
+        let mut revwalk = self
+            .repo
+            .revwalk()
+            .map_err(with_error!("unable to lookup commits"))?;
+        revwalk
+            .set_sorting(git2::Sort::TOPOLOGICAL)
+            .map_err(with_error!("unable to set sorting direction"))?;
+        let revspec = self
+            .repo
+            .revparse(range.as_ref())
+            .map_err(with_error!("unable to parse commit range"))?;
+        if revspec.mode().contains(git2::RevparseMode::SINGLE) {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
             })?;
+            revwalk
+                .push(from.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+        } else {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            let to = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range ending");
+                Error::new(
+                    "unable to get range ending",
+                    git2::Error::from_str("revspec.to is None"),
+                )
+            })?;
+            revwalk
+                .push(from.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+            if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
+                let base = self
+                    .repo
+                    .merge_base(from.id(), to.id())
+                    .map_err(with_error!("unable to get merge base"))?;
+                let o = self
+                    .repo
+                    .find_object(base, Some(git2::ObjectType::Commit))
+                    .map_err(with_error!("unable to get commit"))?;
+                revwalk
+                    .push(o.id())
+                    .map_err(with_error!("unable to push commit id in revwalk"))?;
+            }
+            revwalk
+                .hide(from.id())
+                .map_err(with_error!("unable to hide commit id in revwalk"))?;
+        }
 
-        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
-        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
-
-        self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
-
-        Ok(())
-    }
-
-    fn push(&self, remote: &str) -> Result<(), Error> {
-        let config = self.repo.config().map_err(|err| {
-            tracing::error!("unable to read config: {err:?}");
-            Error::new("unable to read config", err)
-        })?;
-        let mut remote = self.repo.find_remote(remote).map_err(|err| {
-            tracing::error!("unable to find remote {remote:?}: {err:?}");
-            Error::new("unable to find remote", err)
-        })?;
-        let auth = self.authenticator();
-        let mut remote_cb = git2::RemoteCallbacks::new();
-        remote_cb.credentials(auth.credentials(&config));
-        remote_cb.push_update_reference(|first, second| {
-            tracing::trace!("first={first:?} second={second:?}");
-            Ok(())
-        });
-
-        let mut push_opts = git2::PushOptions::new();
-        push_opts.remote_callbacks(remote_cb);
-
-        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
-        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
-
-        self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, metrics)?;
-
-        remote
-            .push(&[REMOTE_METRICS_MAP], Some(&mut push_opts))
-            .map_err(|err| {
-                tracing::error!("unable to push metrics: {err:?}");
-                Error::new("unable to push metrics", err)
+        let mut result = Vec::new();
+        for commit_id in revwalk {
+            let commit_id = commit_id.map_err(with_error!("unable to get commit from revwalk"))?;
+            let commit = self
+                .repo
+                .find_commit(commit_id)
+                .map_err(with_error!("unable to get commit"))?;
+            let summary = commit.summary().map(String::from).unwrap_or_default();
+            result.push(Commit {
+                sha: commit_id.to_string(),
+                summary,
             })
-    }
+        }
 
-    fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
-        self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
-    }
-
-    fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
-        self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
+        Ok(result)
     }
 }

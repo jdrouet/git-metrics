@@ -32,8 +32,8 @@ impl super::Executor for CommandAdd {
         _stderr: &mut Err,
     ) -> Result<(), super::Error> {
         let mut metrics = repo.get_metrics(&self.target)?;
-        metrics.push(crate::metric::Metric {
-            header: crate::metric::MetricHeader {
+        metrics.push(crate::entity::Metric {
+            header: crate::entity::MetricHeader {
                 name: self.name,
                 tags: self.tag.into_iter().filter_map(parse_tag).collect(),
             },

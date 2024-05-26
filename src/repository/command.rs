@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
-use super::{HEAD, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
-use crate::metric::Metric;
+use super::{HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
+use crate::{
+    entity::{Commit, Metric},
+    repository::REMOTE_METRICS_REF,
+};
 
 use super::Error;
 
@@ -54,14 +57,51 @@ impl CommandRepository {
             }
         }
     }
+}
 
-    fn get_metrics_for_note(&self, target: &str, note_name: &str) -> Result<Vec<Metric>, Error> {
-        tracing::trace!("getting metrics for target {target:?} and note {note_name:?}");
+impl super::Repository for CommandRepository {
+    fn pull(&self, remote: &str) -> Result<(), Error> {
+        tracing::trace!("pulling metrics");
+        self.fetch_remote_metrics(remote)?;
+        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        let metrics = crate::entity::merge_metrics(remote_metrics, local_metrics);
+        self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
+        Ok(())
+    }
+
+    fn push(&self, remote: &str) -> Result<(), Error> {
+        tracing::trace!("pushing metrics");
+        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
+        self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, local_metrics)?;
+
+        let output = self
+            .cmd()
+            .arg("push")
+            .arg(remote)
+            .arg(REMOTE_METRICS_MAP)
+            .output()
+            .map_err(unable_execute_git_command)?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("unable to push metrics");
+            Err(Error::new(
+                "unable to push metrics",
+                std::io::Error::new(std::io::ErrorKind::Other, stderr),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn get_metrics_for_ref(&self, target: &str, ref_note: &str) -> Result<Vec<Metric>, Error> {
+        tracing::trace!("getting metrics for target {target:?} and note {ref_note:?}");
         let output = self
             .cmd()
             .arg("notes")
             .arg("--ref")
-            .arg(note_name)
+            .arg(ref_note)
             .arg("show")
             .arg(target)
             .output()
@@ -85,14 +125,14 @@ impl CommandRepository {
         }
     }
 
-    fn set_metrics_for_note(
+    fn set_metrics_for_ref(
         &self,
         target: &str,
-        note_name: &str,
+        ref_note: &str,
         metrics: Vec<Metric>,
     ) -> Result<(), Error> {
         tracing::trace!(
-            "settings {} metrics for target {target:?} and note {note_name:?}",
+            "settings {} metrics for target {target:?} and note {ref_note:?}",
             metrics.len()
         );
         let note = super::Note { metrics };
@@ -104,7 +144,7 @@ impl CommandRepository {
             .cmd()
             .arg("notes")
             .arg("--ref")
-            .arg(note_name)
+            .arg(ref_note)
             .arg("add")
             .arg("-f")
             .arg("-m")
@@ -123,49 +163,36 @@ impl CommandRepository {
             ))
         }
     }
-}
 
-impl super::Repository for CommandRepository {
-    fn pull(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pulling metrics");
-        self.fetch_remote_metrics(remote)?;
-        let remote_metrics = self.get_metrics_for_note(HEAD, "metrics")?;
-        let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
-        let metrics = crate::metric::merge(remote_metrics, local_metrics);
-        self.set_metrics_for_note(HEAD, "local-metrics", metrics)?;
-        Ok(())
-    }
-
-    fn push(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("pushing metrics");
-        let local_metrics = self.get_metrics_for_note(HEAD, "local-metrics")?;
-        self.set_metrics_for_note(HEAD, "metrics", local_metrics)?;
-
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
         let output = self
             .cmd()
-            .arg("push")
-            .arg(remote)
-            .arg(REMOTE_METRICS_MAP)
+            .arg("log")
+            .arg("--format=format:%H:%s")
+            .arg(range)
             .output()
             .map_err(unable_execute_git_command)?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            tracing::error!("something went wrong when pushing metrics");
+            tracing::error!("something went wrong when getting commits");
             Err(Error::new(
-                "something went wrong when pushing metrics",
+                "something went wrong when getting commits",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),
             ))
         } else {
-            Ok(())
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout
+                .split('\n')
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .filter_map(|line| {
+                    line.split_once(':').map(|(sha, summary)| Commit {
+                        sha: sha.to_string(),
+                        summary: summary.to_string(),
+                    })
+                })
+                .collect())
         }
-    }
-
-    fn get_metrics(&self, target: &str) -> Result<Vec<crate::metric::Metric>, Error> {
-        self.get_metrics_for_note(target, "local-metrics")
-    }
-
-    fn set_metrics(&self, target: &str, metrics: Vec<crate::metric::Metric>) -> Result<(), Error> {
-        self.set_metrics_for_note(target, "local-metrics", metrics)
     }
 }
