@@ -15,6 +15,6 @@ impl FromStr for Tag {
                 name: name.trim().to_string(),
                 value: value.trim().to_string(),
             })
-            .ok_or_else(|| "unable to decode tag name and value")
+            .ok_or("unable to decode tag name and value")
     }
 }
