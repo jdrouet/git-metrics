@@ -5,7 +5,7 @@ mod command;
 #[cfg(feature = "impl-git2")]
 mod git2;
 
-use crate::entity::Metric;
+use crate::entity::{Commit, Metric};
 #[cfg(feature = "impl-command")]
 pub(crate) use command::CommandRepository;
 #[cfg(feature = "impl-git2")]
@@ -55,7 +55,18 @@ impl std::error::Error for Error {
 pub(crate) trait Repository {
     fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
-    fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error>;
-    fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error>;
-    fn get_commits(&self, range: &str) -> Result<Vec<String>, Error>;
+    fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
+        self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
+    }
+    fn get_metrics_for_ref(&self, target: &str, note_ref: &str) -> Result<Vec<Metric>, Error>;
+    fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
+        self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
+    }
+    fn set_metrics_for_ref(
+        &self,
+        target: &str,
+        note_ref: &str,
+        metrics: Vec<Metric>,
+    ) -> Result<(), Error>;
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error>;
 }

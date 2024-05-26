@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::{Error, Repository};
-use crate::entity::Metric;
+use crate::entity::{Commit, Metric};
 
 use super::{
     HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE, REMOTE_METRICS_REF,
@@ -92,58 +92,6 @@ impl GitRepository {
             _ => auth,
         }
     }
-
-    fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
-        tracing::trace!("getting metrics for target {target:?} and ref {ref_name:?}");
-        let rev_id = self.revision_id(target)?;
-
-        let Ok(note) = self.repo.find_note(Some(ref_name), rev_id) else {
-            tracing::debug!("no note found for revision");
-            return Ok(Default::default());
-        };
-
-        note.message()
-            .map(|msg| {
-                tracing::trace!("deserializing note content");
-                toml::from_str::<super::Note>(msg).map_err(|err| {
-                    tracing::error!("unable to deserialize note: {err:?}");
-                    Error::new("unable to deserialize note", err)
-                })
-            })
-            .unwrap_or_else(|| {
-                tracing::debug!("no message found for note {:?}", note.id());
-                Ok(super::Note::default())
-            })
-            .map(|res| res.metrics)
-    }
-
-    fn set_metrics_for_ref(
-        &self,
-        target: &str,
-        ref_name: &str,
-        metrics: Vec<Metric>,
-    ) -> Result<(), Error> {
-        tracing::trace!(
-            "settings {} metrics for target {target:?} and ref {ref_name:?}",
-            metrics.len()
-        );
-        let head_id = self.revision_id(target)?;
-        let sig = self.signature()?;
-
-        tracing::trace!("serializing metrics");
-        let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
-            tracing::error!("unable to serialize metrics: {err:?}");
-            Error::new("unable to serialize metrics", err)
-        })?;
-        self.repo
-            .note(&sig, &sig, Some(ref_name), head_id, &note, true)
-            .map_err(|err| {
-                tracing::error!("unable to persist metrics: {err:?}");
-                Error::new("unable to persist metrics", err)
-            })?;
-
-        Ok(())
-    }
 }
 
 impl Repository for GitRepository {
@@ -213,15 +161,59 @@ impl Repository for GitRepository {
             })
     }
 
-    fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
-        self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
+    fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
+        tracing::trace!("getting metrics for target {target:?} and ref {ref_name:?}");
+        let rev_id = self.revision_id(target)?;
+
+        let Ok(note) = self.repo.find_note(Some(ref_name), rev_id) else {
+            tracing::debug!("no note found for revision");
+            return Ok(Default::default());
+        };
+
+        note.message()
+            .map(|msg| {
+                tracing::trace!("deserializing note content");
+                toml::from_str::<super::Note>(msg).map_err(|err| {
+                    tracing::error!("unable to deserialize note: {err:?}");
+                    Error::new("unable to deserialize note", err)
+                })
+            })
+            .unwrap_or_else(|| {
+                tracing::debug!("no message found for note {:?}", note.id());
+                Ok(super::Note::default())
+            })
+            .map(|res| res.metrics)
     }
 
-    fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
-        self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
+    fn set_metrics_for_ref(
+        &self,
+        target: &str,
+        ref_name: &str,
+        metrics: Vec<Metric>,
+    ) -> Result<(), Error> {
+        tracing::trace!(
+            "settings {} metrics for target {target:?} and ref {ref_name:?}",
+            metrics.len()
+        );
+        let head_id = self.revision_id(target)?;
+        let sig = self.signature()?;
+
+        tracing::trace!("serializing metrics");
+        let note = toml::to_string_pretty(&super::Note { metrics }).map_err(|err| {
+            tracing::error!("unable to serialize metrics: {err:?}");
+            Error::new("unable to serialize metrics", err)
+        })?;
+        self.repo
+            .note(&sig, &sig, Some(ref_name), head_id, &note, true)
+            .map_err(|err| {
+                tracing::error!("unable to persist metrics: {err:?}");
+                Error::new("unable to persist metrics", err)
+            })?;
+
+        Ok(())
     }
 
-    fn get_commits(&self, range: &str) -> Result<Vec<String>, Error> {
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
         let mut revwalk = self
             .repo
             .revwalk()
@@ -281,9 +273,17 @@ impl Repository for GitRepository {
         }
 
         let mut result = Vec::new();
-        for commit in revwalk {
-            let commit = commit.map_err(with_error!("unable to get commit from revwalk"))?;
-            result.push(commit.to_string());
+        for commit_id in revwalk {
+            let commit_id = commit_id.map_err(with_error!("unable to get commit from revwalk"))?;
+            let commit = self
+                .repo
+                .find_commit(commit_id)
+                .map_err(with_error!("unable to get commit"))?;
+            let summary = commit.summary().map(String::from).unwrap_or_default();
+            result.push(Commit {
+                sha: commit_id.to_string(),
+                summary,
+            })
         }
 
         Ok(result)

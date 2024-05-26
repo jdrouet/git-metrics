@@ -6,6 +6,12 @@ use std::{
 
 use indexmap::IndexMap;
 
+#[derive(Debug)]
+pub(crate) struct Commit {
+    pub sha: String,
+    pub summary: String,
+}
+
 #[derive(Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MetricHeader {
     pub name: String,

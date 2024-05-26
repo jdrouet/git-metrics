@@ -19,9 +19,9 @@ impl super::Executor for CommandLog {
         _stderr: &mut Err,
     ) -> Result<(), super::Error> {
         let commits = repo.get_commits(&self.target)?;
-        for commit_id in commits.iter() {
-            let metrics = repo.get_metrics(commit_id.as_str())?;
-            writeln!(stdout, "{commit_id}")?;
+        for commit in commits.iter() {
+            let metrics = repo.get_metrics(commit.sha.as_str())?;
+            writeln!(stdout, "* {} {}", commit.sha, commit.summary)?;
             for metric in metrics {
                 writeln!(stdout, "\t{metric}")?;
             }
