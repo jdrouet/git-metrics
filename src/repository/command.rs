@@ -86,6 +86,7 @@ impl super::Repository for CommandRepository {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("unable to push metrics");
+            tracing::trace!("{stderr}");
             Err(Error::new(
                 "unable to push metrics",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),

@@ -54,6 +54,7 @@ jobs:
 
       - name: add metrics
         run: |
+          ./git-metrics_linux-x86_64 --backend command pull
           ./git-metrics_linux-x86_64 add binary-size \
               --tag "build.target: x86_64-unknown-linux-gnu" \
               --tag "platform.os: linux" \
@@ -67,9 +68,7 @@ jobs:
               --tag "unit: byte" \
               $(stat --printf="%s" ./git-metrics_linux-aarch64)
       - name: push metrics
-        run: ./git-metrics_linux-x86_64 -vvvvv push
-        env:
-          GIT_BACKEND: command
+        run: ./git-metrics_linux-x86_64 --backend command -vvvvv push
 
   # build-binary:
   #   name: build binary
