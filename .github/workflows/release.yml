@@ -13,9 +13,44 @@ on:
         type: string
 
 jobs:
+  build-windows-binaries:
+    name: build windows binaries
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-pc-windows-msvc
+      - name: build binary for amd64
+        run: cargo build --release --target x86_64-pc-windows-msvc
+      - name: rename binary for amd64
+        run: mv target/x86_64-pc-windows-msvc/release/git-metrics.exe ./git-metrics_win-x86_64.exe
+      - name: build binary for arm64
+        run: cargo build --release --target aarch64-pc-windows-msvc
+      - name: rename binary for arm64
+        run: mv target/aarch64-pc-windows-msvc/release/git-metrics.exe ./git-metrics_win-aarch64.exe
+      - run: stat --printf="%s" ./git-metrics_win-x86_64.exe
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: add metrics
+        run: |
+          ./git-metrics_win-x86_64.exe --backend command pull
+          ./git-metrics_win-x86_64.exe add binary-size --tag "build.target: x86_64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-x86_64.exe)
+          ./git-metrics_win-x86_64.exe add binary-size --tag "build.target: aarch64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-aarch64.exe)
+          ./git-metrics_win-x86_64.exe --backend command push
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-windows
+          path: git-metrics_win-*
+          if-no-files-found: error
+
   build-macos-binaries:
     name: build macos binaries
     runs-on: macos-latest
+    needs:
+      - build-windows-binaries
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -118,9 +153,13 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
     needs:
+      - build-windows-binaries
       - build-macos-binaries
       - build-linux-binaries
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-windows
       - uses: actions/download-artifact@v4
         with:
           name: binary-darwin
