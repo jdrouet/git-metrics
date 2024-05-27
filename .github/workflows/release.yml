@@ -34,7 +34,7 @@ jobs:
               --tag "platform.os: macos" \
               --tag "platform.arch: x86_64" \
               --tag "unit: byte" \
-              $(stat --printf="%s" ./target/release/git-metrics)
+              $(ls -l ./target/release/git-metrics | cut -d ' ' -f 5)
           ./target/release/git-metrics --backend command push
 
   build-linux-binaries:
