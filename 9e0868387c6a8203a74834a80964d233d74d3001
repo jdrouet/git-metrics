@@ -1,0 +1,19 @@
+[[metrics]]
+name = "binary-size"
+value = 3426816.0
+
+[metrics.tags]
+"build.target" = "x86_64-pc-windows-msvc"
+"platform.os" = "windows"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3053568.0
+
+[metrics.tags]
+"build.target" = "aarch64-pc-windows-msvc"
+"platform.os" = "windows"
+"platform.arch" = "aarch64"
+unit = "byte"
