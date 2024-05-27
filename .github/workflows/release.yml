@@ -67,7 +67,7 @@ jobs:
               --tag "unit: byte" \
               $(stat --printf="%s" ./git-metrics_linux-aarch64)
       - name: push metrics
-        run: ./git-metrics_linux-x86_64 push
+        run: ./git-metrics_linux-x86_64 -vvvvv push
         env:
           GIT_BACKEND: command
 
