@@ -5,9 +5,21 @@ on:
     types: [checks_requested]
   workflow_call:
   pull_request:
+    paths:
+      - ".github/workflows/code-testing.yml"
+      - "rust-toolchain.toml"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.rs"
   push:
     branches:
       - main
+    paths:
+      - ".github/workflows/code-testing.yml"
+      - "rust-toolchain.toml"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.rs"
 
 env:
   RUSTFLAGS: "-Dwarnings"
