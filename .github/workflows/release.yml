@@ -19,26 +19,39 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - name: build binary
+        with:
+          target: aarch64-apple-darwin
+
+      - name: build binary for amd64
         run: |
           cargo build --release
           strip target/release/git-metrics
+      - run: mv ./target/release/git-metrics ./git-metrics_darwin-x86_64
+      - name: build binary for arm64
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          strip target/aarch64-apple-darwin/release/git-metrics
+      - run: mv ./target/aarch64-apple-darwin/release/git-metrics ./git-metrics_darwin-aarch64
       - name: set git user
         uses: ./.github/actions/git-user
 
       - name: add metrics
         run: |
-          ./target/release/git-metrics --backend command pull
-          binary_size=$(stat -f '%z' ./target/release/git-metrics)
-          ./target/release/git-metrics add binary-size \
+          ./git-metrics_darwin-x86_64 --backend command pull
+          ./git-metrics_darwin-x86_64 add binary-size \
               --tag "build.target: x86_64-apple-darwin" \
               --tag "platform.os: macos" \
               --tag "platform.arch: x86_64" \
               --tag "unit: byte" \
-              $binary_size
-          ./target/release/git-metrics --backend command push
+              $(stat -f '%z' ./git-metrics_darwin-x86_64)
+          ./git-metrics_darwin-x86_64 add binary-size \
+              --tag "build.target: aarch64-apple-darwin" \
+              --tag "platform.os: macos" \
+              --tag "platform.arch: aarch64" \
+              --tag "unit: byte" \
+              $(stat -f '%z' ./git-metrics_darwin-aarch64)
+          ./git-metrics_darwin-x86_64 --backend command push
 
-      - run: mv ./target/release/git-metrics ./git-metrics_darwin-x86_64
       - uses: actions/upload-artifact@v4
         with:
           name: binary-darwin
