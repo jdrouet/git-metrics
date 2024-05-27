@@ -13,9 +13,56 @@ on:
         type: string
 
 jobs:
-  build-binaries:
-    name: build binaries
+  build-macos-binaries:
+    name: build macos binaries
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-apple-darwin
+
+      - name: build binary for amd64
+        run: |
+          cargo build --release
+          strip target/release/git-metrics
+      - run: mv ./target/release/git-metrics ./git-metrics_darwin-x86_64
+      - name: build binary for arm64
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          strip target/aarch64-apple-darwin/release/git-metrics
+      - run: mv ./target/aarch64-apple-darwin/release/git-metrics ./git-metrics_darwin-aarch64
+      - name: set git user
+        uses: ./.github/actions/git-user
+
+      - name: add metrics
+        run: |
+          ./git-metrics_darwin-x86_64 --backend command pull
+          ./git-metrics_darwin-x86_64 add binary-size \
+              --tag "build.target: x86_64-apple-darwin" \
+              --tag "platform.os: macos" \
+              --tag "platform.arch: x86_64" \
+              --tag "unit: byte" \
+              $(stat -f '%z' ./git-metrics_darwin-x86_64)
+          ./git-metrics_darwin-x86_64 add binary-size \
+              --tag "build.target: aarch64-apple-darwin" \
+              --tag "platform.os: macos" \
+              --tag "platform.arch: aarch64" \
+              --tag "unit: byte" \
+              $(stat -f '%z' ./git-metrics_darwin-aarch64)
+          ./git-metrics_darwin-x86_64 --backend command push
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-darwin
+          path: git-metrics_darwin-*
+          if-no-files-found: error
+
+  build-linux-binaries:
+    name: build linux binaries
     runs-on: ubuntu-latest
+    needs:
+      - build-macos-binaries
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -60,14 +107,32 @@ jobs:
               $(stat --printf="%s" ./git-metrics_linux-aarch64)
           ./git-metrics_linux-x86_64 --backend command push
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux
+          path: ./git-metrics_linux-*
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+    needs:
+      - build-macos-binaries
+      - build-linux-binaries
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-darwin
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-linux
       - name: get release id from tag
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
         id: release_id
         run: |
           release_id=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/${{ inputs.release_tag }} | jq .id)
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
       - name: upload the artifacts
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
         uses: skx/github-action-publish-binaries@release-2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
