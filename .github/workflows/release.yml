@@ -29,8 +29,7 @@ jobs:
       - run: ./target/release/git-metrics --backend command pull
       - name: add metrics
         run: |
-          binary_size=$(stat -printf="%s" ./target/release/git-metrics)
-          echo $binary_size
+          binary_size=$(stat -f '%z' ./target/release/git-metrics)
           ./target/release/git-metrics add binary-size \
               --tag "build.target: x86_64-apple-darwin" \
               --tag "platform.os: macos" \
