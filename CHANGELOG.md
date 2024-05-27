@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/jdrouet/git-metrics/compare/v0.1.0...v0.1.1) - 2024-05-27
+
+### Added
+- create log command ([#24](https://github.com/jdrouet/git-metrics/pull/24))
+- handle note conflicts ([#23](https://github.com/jdrouet/git-metrics/pull/23))
+- make git2 work on github ([#16](https://github.com/jdrouet/git-metrics/pull/16))
+- allow to pick backend implementation ([#12](https://github.com/jdrouet/git-metrics/pull/12))
+
+### Other
+- limit release when code changes
+- limit code testing when code changes
+- build git-metrics for windows ([#27](https://github.com/jdrouet/git-metrics/pull/27))
+- build binary for apple-darwin ([#26](https://github.com/jdrouet/git-metrics/pull/26))
+- build binaries using docker ([#25](https://github.com/jdrouet/git-metrics/pull/25))
+- update readme with instructions
+- update readme.md
+- apply clippy suggestion
+- parse tag as a struct
+- use macro to handle errors
+- push using command backend
+- only release if event is workflow dispatch
+- add some integration tests ([#21](https://github.com/jdrouet/git-metrics/pull/21))
+- rename protocol option to backend ([#15](https://github.com/jdrouet/git-metrics/pull/15))
+- remove extra command
+- create configuration to release binaries ([#13](https://github.com/jdrouet/git-metrics/pull/13))
+- release ([#10](https://github.com/jdrouet/git-metrics/pull/10))
+
 ## [0.1.0](https://github.com/jdrouet/git-metrics/releases/tag/v0.1.0) - 2024-05-19
 
 ### Added
