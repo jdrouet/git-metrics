@@ -23,45 +23,51 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v3
-      # - name: build binaries using buildx
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-      #     outputs: type=local,dest=$GITHUB_WORKSPACE
-      #     platform: linux/amd64,linux/arm64
-      #     push: false
-      #     target: binary
-      - name: build binaries using buildx
-        run: docker buildx build --platform linux/arm64,linux/amd64 --target binary --output type=local,dest=$GITHUB_WORKSPACE .
-      - name: move files around
-        run: |
-          ls -lha $GITHUB_WORKSPACE/*
-          mv $GITHUB_WORKSPACE/linux_amd64/git-metric $GITHUB_WORKSPACE/git-metrics_linux-x86_64
-          mv $GITHUB_WORKSPACE/linux_arm64/git-metric $GITHUB_WORKSPACE/git-metrics_linux-aarch64
+      - name: build amd64 binary using buildx
+        uses: docker/build-push-action@v5
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=local,dest=${{ github.workspace }}
+          platform: linux/amd64
+          push: false
+          target: binary
+      - name: move amd64 binary
+        run: mv ./git-metrics ./git-metrics_linux-x86_64
+      - name: build arm64 binary using buildx
+        uses: docker/build-push-action@v5
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=local,dest=${{ github.workspace }}
+          platform: linux/arm64
+          push: false
+          target: binary
+      - name: move arm64 binary
+        run: mv ./git-metrics ./git-metrics_linux-aarch64
 
       - name: set git user
         uses: ./.github/actions/git-user
 
       - name: make binary executable
-        run: chmod +x $GITHUB_WORKSPACE/git-metrics_linux-x86_64
+        run: chmod +x ./git-metrics_linux-x86_64
 
       - name: add metrics
         run: |
-          $GITHUB_WORKSPACE/git-metrics_linux-x86_64 add binary-size \
+          ./git-metrics_linux-x86_64 add binary-size \
               --tag "build.target: x86_64-unknown-linux-gnu" \
               --tag "platform.os: linux" \
               --tag "platform.arch: x86_64" \
               --tag "unit: byte" \
-              $(stat --printf="%s" $GITHUB_WORKSPACE/git-metrics_linux-x86_64)
-          $GITHUB_WORKSPACE/git-metrics_linux-x86_64 add binary-size \
+              $(stat --printf="%s" ./git-metrics_linux-x86_64)
+          ./git-metrics_linux-x86_64 add binary-size \
               --tag "build.target: aarch64-unknown-linux-gnu" \
               --tag "platform.os: linux" \
               --tag "platform.arch: aarch64" \
               --tag "unit: byte" \
-              $(stat --printf="%s" $GITHUB_WORKSPACE/git-metrics_linux-aarch64)
+              $(stat --printf="%s" ./git-metrics_linux-aarch64)
       - name: push metrics
-        run: $GITHUB_WORKSPACE/git-metrics_linux-x86_64 push
+        run: ./git-metrics_linux-x86_64 push
         env:
           GIT_BACKEND: command
 
