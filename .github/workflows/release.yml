@@ -23,28 +23,19 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v3
-      - name: build amd64 binary using buildx
+      - name: build binaries using buildx
         uses: docker/build-push-action@v5
         with:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=${{ github.workspace }}
-          platform: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: false
           target: binary
-      - name: move amd64 binary
-        run: mv ./git-metrics ./git-metrics_linux-x86_64
-      - name: build arm64 binary using buildx
-        uses: docker/build-push-action@v5
-        with:
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=local,dest=${{ github.workspace }}
-          platform: linux/arm64
-          push: false
-          target: binary
-      - name: move arm64 binary
-        run: mv ./git-metrics ./git-metrics_linux-aarch64
+      - name: move binaries
+        run: |
+          mv ./linux_amd64/git-metrics ./git-metrics_linux-x86_64
+          mv ./linux_arm64/git-metrics ./git-metrics_linux-aarch64
 
       - name: set git user
         uses: ./.github/actions/git-user
