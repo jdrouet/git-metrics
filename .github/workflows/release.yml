@@ -67,55 +67,19 @@ jobs:
               --tag "platform.arch: aarch64" \
               --tag "unit: byte" \
               $(stat --printf="%s" ./git-metrics_linux-aarch64)
-      - name: push metrics
-        run: ./git-metrics_linux-x86_64 --backend command -vvvvv push
+          ./git-metrics_linux-x86_64 --backend command push
 
-  # build-binary:
-  #   name: build binary
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: checkout
-  #       uses: actions/checkout@v3
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         profile: minimal
-  #     - name: build binary
-  #       run: cargo build --release
-
-  #     - name: set git user
-  #       uses: ./.github/actions/git-user
-
-  #     - name: fetch remote metrics
-  #       run: ./target/release/git-metrics pull
-  #     - name: add metrics
-  #       run: |
-  #         ./target/release/git-metrics add binary-size \
-  #             --tag "rustc.version: $(rustc --version)" \
-  #             --tag "build.target: x86_64-unknown-linux-gnu" \
-  #             --tag "platform.os: linux" \
-  #             --tag "platform.arch: x86_64" \
-  #             --tag "unit: byte" \
-  #             $(stat --printf="%s" ./target/release/git-metrics)
-  #     - name: push metrics
-  #       run: ./target/release/git-metrics push
-  #       env:
-  #         GIT_BACKEND: command
-
-  #     - name: move the binaries
-  #       run: cp target/release/git-metrics git-metrics_linux-x86_64
-
-  #     - name: get release id from tag
-  #       if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
-  #       id: release_id
-  #       run: |
-  #         release_id=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/${{ inputs.release_tag }} | jq .id)
-  #         echo "release_id=$release_id" >> $GITHUB_OUTPUT
-  #     - name: upload the artifacts
-  #       if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
-  #       uses: skx/github-action-publish-binaries@release-2.0
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       with:
-  #         releaseId: ${{ steps.release_id.outputs.release_id }}
-  #         args: "git-metrics_*"
+      - name: get release id from tag
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+        id: release_id
+        run: |
+          release_id=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/${{ inputs.release_tag }} | jq .id)
+          echo "release_id=$release_id" >> $GITHUB_OUTPUT
+      - name: upload the artifacts
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+        uses: skx/github-action-publish-binaries@release-2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ steps.release_id.outputs.release_id }}
+          args: "git-metrics_*"
