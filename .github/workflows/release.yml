@@ -26,16 +26,18 @@ jobs:
       - name: set git user
         uses: ./.github/actions/git-user
 
+      - run: ./target/release/git-metrics --backend command pull
       - name: add metrics
         run: |
-          ./target/release/git-metrics --backend command pull
+          binary_size=$(stat --printf="%s" ./target/release/git-metrics)
+          echo $binary_size
           ./target/release/git-metrics add binary-size \
               --tag "build.target: x86_64-apple-darwin" \
               --tag "platform.os: macos" \
               --tag "platform.arch: x86_64" \
               --tag "unit: byte" \
-              $(ls -l ./target/release/git-metrics | cut -d ' ' -f 5)
-          ./target/release/git-metrics --backend command push
+              $binary_size
+      - run: ./target/release/git-metrics --backend command push
 
   build-linux-binaries:
     name: build linux binaries
