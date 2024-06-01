@@ -11,12 +11,12 @@ pub(crate) struct CommandShow {
 
 impl super::Executor for CommandShow {
     #[tracing::instrument(name = "show", skip_all, fields(target = self.target.as_str()))]
-    fn execute<Repo: Backend, Out: Write>(
+    fn execute<B: Backend, Out: Write>(
         self,
-        repo: Repo,
+        backend: B,
         stdout: &mut Out,
     ) -> Result<(), super::Error> {
-        let metrics = repo.get_metrics(&self.target)?;
+        let metrics = backend.get_metrics(&self.target)?;
         for m in metrics.iter() {
             writeln!(stdout, "{m}")?;
         }

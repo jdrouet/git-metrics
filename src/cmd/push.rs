@@ -11,12 +11,12 @@ pub(crate) struct CommandPush {
 
 impl super::Executor for CommandPush {
     #[tracing::instrument(name = "push", skip_all, fields(remote = self.remote.as_str()))]
-    fn execute<Repo: Backend, Out: Write>(
+    fn execute<B: Backend, Out: Write>(
         self,
-        repo: Repo,
+        backend: B,
         _stdout: &mut Out,
     ) -> Result<(), super::Error> {
-        repo.push(self.remote.as_str())?;
+        backend.push(self.remote.as_str())?;
         Ok(())
     }
 }

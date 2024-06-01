@@ -20,7 +20,7 @@ pub(crate) enum Error {
 }
 
 pub(crate) trait Executor {
-    fn execute<Repo: Backend, Out: Write>(self, repo: Repo, stdout: &mut Out) -> Result<(), Error>;
+    fn execute<B: Backend, Out: Write>(self, backend: B, stdout: &mut Out) -> Result<(), Error>;
 }
 
 #[derive(Debug, clap::Subcommand)]

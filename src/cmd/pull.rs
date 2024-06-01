@@ -10,12 +10,12 @@ pub(crate) struct CommandPull {
 }
 
 impl super::Executor for CommandPull {
-    fn execute<Repo: Backend, Out: Write>(
+    fn execute<B: Backend, Out: Write>(
         self,
-        repo: Repo,
+        backend: B,
         _stdout: &mut Out,
     ) -> Result<(), super::Error> {
-        repo.pull(self.remote.as_str())?;
+        backend.pull(self.remote.as_str())?;
         Ok(())
     }
 }
