@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::backend::Backend;
 use std::io::Write;
 
 /// Pushes the metrics
@@ -11,7 +11,7 @@ pub(crate) struct CommandPush {
 
 impl super::Executor for CommandPush {
     #[tracing::instrument(name = "push", skip_all, fields(remote = self.remote.as_str()))]
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         _stdout: &mut Out,
@@ -26,14 +26,14 @@ impl super::Executor for CommandPush {
 mod tests {
     use clap::Parser;
 
-    use crate::repository::MockRepository;
+    use crate::backend::MockBackend;
 
     #[test]
     fn should_add_metric_with_one_attribute() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
@@ -62,7 +62,7 @@ mod tests {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));

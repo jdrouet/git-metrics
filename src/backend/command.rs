@@ -1,12 +1,10 @@
 use std::path::PathBuf;
 
-use super::{HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
-use crate::{
-    entity::{Commit, Metric},
-    repository::REMOTE_METRICS_REF,
-};
+use crate::backend::REMOTE_METRICS_REF;
+use crate::entity::{Commit, Metric};
 
 use super::Error;
+use super::{HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
 
 #[inline]
 fn unable_execute_git_command(err: std::io::Error) -> Error {
@@ -15,17 +13,17 @@ fn unable_execute_git_command(err: std::io::Error) -> Error {
 }
 
 #[derive(Debug)]
-pub(crate) struct CommandRepository {
+pub(crate) struct CommandBackend {
     path: Option<PathBuf>,
 }
 
-impl CommandRepository {
+impl CommandBackend {
     pub fn new(path: Option<PathBuf>) -> Self {
         Self { path }
     }
 }
 
-impl CommandRepository {
+impl CommandBackend {
     fn cmd(&self) -> std::process::Command {
         let mut cmd = std::process::Command::new("git");
         if let Some(ref path) = self.path {
@@ -59,7 +57,7 @@ impl CommandRepository {
     }
 }
 
-impl super::Repository for CommandRepository {
+impl super::Backend for CommandBackend {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pulling metrics");
         self.fetch_remote_metrics(remote)?;

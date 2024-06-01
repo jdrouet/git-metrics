@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::backend::Backend;
 use std::io::Write;
 
 /// Add a metric related to the target
@@ -16,7 +16,7 @@ pub(crate) struct CommandLog {
 }
 
 impl super::Executor for CommandLog {
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         stdout: &mut Out,

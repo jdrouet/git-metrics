@@ -1,4 +1,5 @@
-use crate::{repository::Repository, ExitCode};
+use crate::backend::Backend;
+use crate::ExitCode;
 use std::io::Write;
 
 pub(crate) mod add;
@@ -15,11 +16,11 @@ pub(crate) enum Error {
     #[error("unable to write to stdout or stderr")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
-    Repository(#[from] crate::repository::Error),
+    Backend(#[from] crate::backend::Error),
 }
 
 pub(crate) trait Executor {
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         stdout: &mut Out,
@@ -44,7 +45,7 @@ impl Default for Command {
 }
 
 impl Command {
-    pub(crate) fn execute<Repo: Repository, Out: Write, Err: Write>(
+    pub(crate) fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         stdout: &mut Out,

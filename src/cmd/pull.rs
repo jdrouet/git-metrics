@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::backend::Backend;
 use std::io::Write;
 
 /// Pulls the metrics
@@ -10,7 +10,7 @@ pub(crate) struct CommandPull {
 }
 
 impl super::Executor for CommandPull {
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         _stdout: &mut Out,

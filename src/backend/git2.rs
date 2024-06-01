@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use super::{Error, Repository};
 use crate::entity::{Commit, Metric};
 
+use super::{Backend, Error};
 use super::{
     HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE, REMOTE_METRICS_REF,
 };
@@ -31,12 +31,12 @@ impl From<crate::cmd::GitCredentials> for GitCredentials {
     }
 }
 
-pub(crate) struct GitRepository {
+pub(crate) struct Git2Backend {
     repo: git2::Repository,
     credentials: GitCredentials,
 }
 
-impl GitRepository {
+impl Git2Backend {
     pub(crate) fn new(root: Option<PathBuf>) -> Result<Self, String> {
         let repo = match root {
             Some(path) => {
@@ -49,7 +49,7 @@ impl GitRepository {
             }
         }
         .map_err(|err| format!("unable to open repository: {err:?}"))?;
-        Ok(GitRepository {
+        Ok(Git2Backend {
             repo,
             credentials: GitCredentials::default(),
         })
@@ -94,7 +94,7 @@ impl GitRepository {
     }
 }
 
-impl Repository for GitRepository {
+impl Backend for Git2Backend {
     fn pull(&self, remote: &str) -> Result<(), Error> {
         let config = self
             .repo

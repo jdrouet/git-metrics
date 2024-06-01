@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::backend::Backend;
 use std::io::Write;
 
 /// Display the metrics related to the target
@@ -11,7 +11,7 @@ pub(crate) struct CommandShow {
 
 impl super::Executor for CommandShow {
     #[tracing::instrument(name = "show", skip_all, fields(target = self.target.as_str()))]
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         stdout: &mut Out,
@@ -29,14 +29,15 @@ impl super::Executor for CommandShow {
 mod tests {
     use clap::Parser;
 
-    use crate::{entity::Metric, repository::MockRepository};
+    use crate::backend::MockBackend;
+    use crate::entity::Metric;
 
     #[test]
     fn should_read_head_and_return_nothing() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
@@ -58,7 +59,7 @@ mod tests {
 
         let sha = "aaaaaaa";
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq(sha))
             .return_once(|_| {

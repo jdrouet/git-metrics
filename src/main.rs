@@ -1,9 +1,9 @@
 #[cfg(test)]
 pub(crate) mod tests;
 
+mod backend;
 mod cmd;
 mod entity;
-mod repository;
 
 use std::path::PathBuf;
 
@@ -93,13 +93,13 @@ impl Args {
         match self.backend {
             #[cfg(feature = "impl-command")]
             Backend::Command => self.command.execute(
-                crate::repository::CommandRepository::new(self.root_dir),
+                crate::backend::CommandBackend::new(self.root_dir),
                 stdout,
                 stderr,
             ),
             #[cfg(feature = "impl-git2")]
             Backend::Git2 => self.command.execute(
-                crate::repository::GitRepository::new(self.root_dir)
+                crate::backend::Git2Backend::new(self.root_dir)
                     .unwrap()
                     .with_credentials(self.auth),
                 stdout,

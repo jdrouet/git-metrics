@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use super::prelude::Tag;
-use crate::repository::Repository;
+use crate::backend::Backend;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -20,7 +20,7 @@ pub(crate) struct CommandAdd {
 
 impl super::Executor for CommandAdd {
     #[tracing::instrument(name = "add", skip_all, fields(target = self.target.as_str(), name = self.name.as_str()))]
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         _stdout: &mut Out,
@@ -47,14 +47,14 @@ impl super::Executor for CommandAdd {
 mod tests {
     use clap::Parser;
 
-    use crate::repository::MockRepository;
+    use crate::backend::MockBackend;
 
     #[test]
     fn should_add_metric_with_one_attribute() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
@@ -83,7 +83,7 @@ mod tests {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));

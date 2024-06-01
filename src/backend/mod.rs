@@ -7,9 +7,9 @@ mod git2;
 
 use crate::entity::{Commit, Metric};
 #[cfg(feature = "impl-command")]
-pub(crate) use command::CommandRepository;
+pub(crate) use command::CommandBackend;
 #[cfg(feature = "impl-git2")]
-pub(crate) use git2::GitRepository;
+pub(crate) use git2::Git2Backend;
 use serde::Serializer;
 
 const HEAD: &str = "HEAD";
@@ -52,7 +52,7 @@ impl std::error::Error for Error {
 }
 
 #[cfg_attr(test, mockall::automock)]
-pub(crate) trait Repository {
+pub(crate) trait Backend {
     fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
     fn get_remote_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {

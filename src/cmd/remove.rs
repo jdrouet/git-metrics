@@ -1,4 +1,4 @@
-use crate::repository::Repository;
+use crate::backend::Backend;
 use std::io::Write;
 
 /// Remove a metric related to the target
@@ -13,7 +13,7 @@ pub(crate) struct CommandRemove {
 
 impl super::Executor for CommandRemove {
     #[tracing::instrument(name = "remove", skip_all, fields(target = self.target.as_str(), index = self.index))]
-    fn execute<Repo: Repository, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write, Err: Write>(
         self,
         repo: Repo,
         _stdout: &mut Out,
@@ -32,14 +32,14 @@ impl super::Executor for CommandRemove {
 mod tests {
     use clap::Parser;
 
-    use crate::{entity::Metric, repository::MockRepository};
+    use crate::{backend::MockBackend, entity::Metric};
 
     #[test]
     fn should_remove_metric() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockRepository::new();
+        let mut repo = MockBackend::new();
         repo.expect_get_metrics()
             .with(mockall::predicate::eq("HEAD"))
             .return_once(|_| Ok(Vec::new()));
