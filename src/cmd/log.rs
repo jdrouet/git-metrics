@@ -16,15 +16,14 @@ pub(crate) struct CommandLog {
 }
 
 impl super::Executor for CommandLog {
-    fn execute<Repo: Backend, Out: Write, Err: Write>(
+    fn execute<B: Backend, Out: Write>(
         self,
-        repo: Repo,
+        backend: B,
         stdout: &mut Out,
-        _stderr: &mut Err,
     ) -> Result<(), super::Error> {
-        let commits = repo.get_commits(&self.target)?;
+        let commits = backend.get_commits(&self.target)?;
         for commit in commits.iter() {
-            let metrics = repo.get_remote_metrics(commit.sha.as_str())?;
+            let metrics = backend.get_remote_metrics(commit.sha.as_str())?;
             if self.filter_empty && metrics.is_empty() {
                 continue;
             }

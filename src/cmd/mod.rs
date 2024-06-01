@@ -20,12 +20,7 @@ pub(crate) enum Error {
 }
 
 pub(crate) trait Executor {
-    fn execute<Repo: Backend, Out: Write, Err: Write>(
-        self,
-        repo: Repo,
-        stdout: &mut Out,
-        stderr: &mut Err,
-    ) -> Result<(), Error>;
+    fn execute<Repo: Backend, Out: Write>(self, repo: Repo, stdout: &mut Out) -> Result<(), Error>;
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -52,12 +47,12 @@ impl Command {
         stderr: &mut Err,
     ) -> ExitCode {
         let result = match self {
-            Self::Add(inner) => inner.execute(repo, stdout, stderr),
-            Self::Log(inner) => inner.execute(repo, stdout, stderr),
-            Self::Pull(inner) => inner.execute(repo, stdout, stderr),
-            Self::Push(inner) => inner.execute(repo, stdout, stderr),
-            Self::Remove(inner) => inner.execute(repo, stdout, stderr),
-            Self::Show(inner) => inner.execute(repo, stdout, stderr),
+            Self::Add(inner) => inner.execute(repo, stdout),
+            Self::Log(inner) => inner.execute(repo, stdout),
+            Self::Pull(inner) => inner.execute(repo, stdout),
+            Self::Push(inner) => inner.execute(repo, stdout),
+            Self::Remove(inner) => inner.execute(repo, stdout),
+            Self::Show(inner) => inner.execute(repo, stdout),
         };
 
         if let Err(error) = result {

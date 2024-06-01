@@ -20,13 +20,12 @@ pub(crate) struct CommandAdd {
 
 impl super::Executor for CommandAdd {
     #[tracing::instrument(name = "add", skip_all, fields(target = self.target.as_str(), name = self.name.as_str()))]
-    fn execute<Repo: Backend, Out: Write, Err: Write>(
+    fn execute<B: Backend, Out: Write>(
         self,
-        repo: Repo,
+        backend: B,
         _stdout: &mut Out,
-        _stderr: &mut Err,
     ) -> Result<(), super::Error> {
-        let mut metrics = repo.get_metrics(&self.target)?;
+        let mut metrics = backend.get_metrics(&self.target)?;
         metrics.push(crate::entity::Metric {
             header: crate::entity::MetricHeader {
                 name: self.name,
@@ -38,7 +37,7 @@ impl super::Executor for CommandAdd {
             },
             value: self.value,
         });
-        repo.set_metrics(&self.target, metrics)?;
+        backend.set_metrics(&self.target, metrics)?;
         Ok(())
     }
 }

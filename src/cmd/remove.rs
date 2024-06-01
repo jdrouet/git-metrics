@@ -13,11 +13,10 @@ pub(crate) struct CommandRemove {
 
 impl super::Executor for CommandRemove {
     #[tracing::instrument(name = "remove", skip_all, fields(target = self.target.as_str(), index = self.index))]
-    fn execute<Repo: Backend, Out: Write, Err: Write>(
+    fn execute<Repo: Backend, Out: Write>(
         self,
         repo: Repo,
         _stdout: &mut Out,
-        _stderr: &mut Err,
     ) -> Result<(), super::Error> {
         let mut metrics = repo.get_metrics(&self.target)?;
         if self.index < metrics.len() {
