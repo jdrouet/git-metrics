@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::{backend::Backend, service::Service};
 use std::io::Write;
 
 /// Display the metrics related to the target
@@ -15,12 +15,13 @@ impl super::Executor for CommandShow {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), super::Error> {
-        let metrics = backend.get_metrics(&self.target)?;
-        for m in metrics.iter() {
-            writeln!(stdout, "{m}")?;
-        }
-        Ok(())
+    ) -> Result<(), crate::service::Error> {
+        Service::new(backend).show(
+            stdout,
+            &crate::service::show::Options {
+                target: self.target,
+            },
+        )
     }
 }
 

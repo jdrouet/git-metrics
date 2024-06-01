@@ -11,16 +11,12 @@ pub(crate) mod show;
 
 mod prelude;
 
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
-    #[error("unable to write to stdout or stderr")]
-    Io(#[from] std::io::Error),
-    #[error("{0}")]
-    Backend(#[from] crate::backend::Error),
-}
-
 pub(crate) trait Executor {
-    fn execute<B: Backend, Out: Write>(self, backend: B, stdout: &mut Out) -> Result<(), Error>;
+    fn execute<B: Backend, Out: Write>(
+        self,
+        backend: B,
+        stdout: &mut Out,
+    ) -> Result<(), crate::service::Error>;
 }
 
 #[derive(Debug, clap::Subcommand)]

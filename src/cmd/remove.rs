@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::{backend::Backend, service::Service};
 use std::io::Write;
 
 /// Remove a metric related to the target
@@ -17,13 +17,13 @@ impl super::Executor for CommandRemove {
         self,
         backend: B,
         _stdout: &mut Out,
-    ) -> Result<(), super::Error> {
-        let mut metrics = backend.get_metrics(&self.target)?;
-        if self.index < metrics.len() {
-            metrics.remove(self.index);
-        }
-        backend.set_metrics(&self.target, metrics)?;
-        Ok(())
+    ) -> Result<(), crate::service::Error> {
+        Service::new(backend).remove(
+            self.index,
+            &crate::service::remove::Options {
+                target: self.target,
+            },
+        )
     }
 }
 

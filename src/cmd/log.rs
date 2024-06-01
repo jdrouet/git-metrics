@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::{backend::Backend, service::Service};
 use std::io::Write;
 
 /// Add a metric related to the target
@@ -20,19 +20,12 @@ impl super::Executor for CommandLog {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), super::Error> {
-        let commits = backend.get_commits(&self.target)?;
-        for commit in commits.iter() {
-            let metrics = backend.get_remote_metrics(commit.sha.as_str())?;
-            if self.filter_empty && metrics.is_empty() {
-                continue;
-            }
-            writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
-            for metric in metrics {
-                writeln!(stdout, "\t{metric}")?;
-            }
-        }
-        Ok(())
+    ) -> Result<(), crate::service::Error> {
+        let opts = crate::service::log::Options {
+            target: self.target,
+            hide_empty: self.filter_empty,
+        };
+        Service::new(backend).log(stdout, &opts)
     }
 }
 

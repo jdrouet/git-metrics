@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::{backend::Backend, service::Service};
 use std::io::Write;
 
 /// Pulls the metrics
@@ -14,8 +14,9 @@ impl super::Executor for CommandPull {
         self,
         backend: B,
         _stdout: &mut Out,
-    ) -> Result<(), super::Error> {
-        backend.pull(self.remote.as_str())?;
-        Ok(())
+    ) -> Result<(), crate::service::Error> {
+        Service::new(backend).pull(&crate::service::pull::Options {
+            remote: self.remote,
+        })
     }
 }
