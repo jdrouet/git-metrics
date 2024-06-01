@@ -17,3 +17,23 @@ value = 3041792.0
 "platform.os" = "windows"
 "platform.arch" = "aarch64"
 unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 2765208.0
+
+[metrics.tags]
+"build.target" = "x86_64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 2765208.0
+
+[metrics.tags]
+"build.target" = "aarch64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "aarch64"
+unit = "byte"
