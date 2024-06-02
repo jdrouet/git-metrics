@@ -49,27 +49,74 @@ impl super::Executor for CommandAdd {
 mod tests {
     use clap::Parser;
 
-    use crate::backend::MockBackend;
+    use crate::entity::Metric;
+
+    struct MockBackend {
+        get_metrics_expected: &'static str,
+        get_metrics_returns: Vec<Metric>,
+        set_metrics_expected_target: &'static str,
+        set_metrics_expected_values: Vec<&'static str>,
+    }
+
+    impl crate::backend::Backend for MockBackend {
+        fn pull(&self, _remote: &str) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn push(&self, _remote: &str) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn read_note<T: serde::de::DeserializeOwned>(
+            &self,
+            _target: &str,
+            _note_ref: &str,
+        ) -> Result<Option<T>, crate::backend::Error> {
+            todo!()
+        }
+        fn write_note<T: serde::Serialize>(
+            &self,
+            _target: &str,
+            _note_ref: &str,
+            _value: &T,
+        ) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn get_commits(
+            &self,
+            _range: &str,
+        ) -> Result<Vec<crate::entity::Commit>, crate::backend::Error> {
+            todo!()
+        }
+
+        fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, crate::backend::Error> {
+            assert_eq!(self.get_metrics_expected, target);
+            Ok(self.get_metrics_returns.clone())
+        }
+        fn set_metrics(
+            &self,
+            target: &str,
+            metrics: Vec<Metric>,
+        ) -> Result<(), crate::backend::Error> {
+            assert_eq!(self.set_metrics_expected_target, target);
+            assert_eq!(self.set_metrics_expected_values.len(), metrics.len());
+            self.set_metrics_expected_values
+                .iter()
+                .zip(metrics.iter().map(|v| v.to_string()))
+                .for_each(|(left, right)| assert_eq!(left, &right));
+            Ok(())
+        }
+    }
 
     #[test]
     fn should_add_metric_with_one_attribute() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
-        repo.expect_set_metrics()
-            .withf_st(|target, metrics| {
-                target == "HEAD"
-                    && metrics.len() == 1
-                    && metrics[0].header.name == "my-metric"
-                    && metrics[0].header.tags.len() == 1
-                    && metrics[0].header.tags["foo"] == "bar"
-                    && metrics[0].value == 12.34
-            })
-            .return_once(|_, _| Ok(()));
+        let repo = MockBackend {
+            get_metrics_expected: "HEAD",
+            get_metrics_returns: Vec::new(),
+            set_metrics_expected_target: "HEAD",
+            set_metrics_expected_values: vec!["my-metric{foo=\"bar\"} 12.34"],
+        };
 
         let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
@@ -85,21 +132,12 @@ mod tests {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
-        repo.expect_set_metrics()
-            .withf_st(|target, metrics| {
-                target == "HEAD"
-                    && metrics.len() == 1
-                    && metrics[0].header.name == "my-metric"
-                    && metrics[0].header.tags.len() == 2
-                    && metrics[0].header.tags["foo"] == "bar"
-                    && metrics[0].header.tags["yolo"] == "pouwet"
-                    && metrics[0].value == 12.34
-            })
-            .return_once(|_, _| Ok(()));
+        let repo = MockBackend {
+            get_metrics_expected: "HEAD",
+            get_metrics_returns: Vec::new(),
+            set_metrics_expected_target: "HEAD",
+            set_metrics_expected_values: vec!["my-metric{foo=\"bar\", yolo=\"pouwet\"} 12.34"],
+        };
 
         let code = crate::Args::parse_from([
             "_",

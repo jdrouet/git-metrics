@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::entity::{Commit, Metric};
+use crate::entity::Commit;
 
 use super::{Backend, Error};
 use super::{

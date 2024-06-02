@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::backend::REMOTE_METRICS_REF;
-use crate::entity::{Commit, Metric};
+use crate::entity::Commit;
 
 use super::Error;
 use super::{HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};

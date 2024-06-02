@@ -29,18 +29,57 @@ impl super::Executor for CommandShow {
 mod tests {
     use clap::Parser;
 
-    use crate::backend::MockBackend;
     use crate::entity::Metric;
+
+    struct MockBackend {
+        get_metrics_expected: &'static str,
+        get_metrics_returns: Vec<Metric>,
+    }
+
+    impl crate::backend::Backend for MockBackend {
+        fn pull(&self, _remote: &str) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn push(&self, _remote: &str) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn read_note<T: serde::de::DeserializeOwned>(
+            &self,
+            _target: &str,
+            _note_ref: &str,
+        ) -> Result<Option<T>, crate::backend::Error> {
+            todo!()
+        }
+        fn write_note<T: serde::Serialize>(
+            &self,
+            _target: &str,
+            _note_ref: &str,
+            _value: &T,
+        ) -> Result<(), crate::backend::Error> {
+            todo!()
+        }
+        fn get_commits(
+            &self,
+            _range: &str,
+        ) -> Result<Vec<crate::entity::Commit>, crate::backend::Error> {
+            todo!()
+        }
+
+        fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, crate::backend::Error> {
+            assert_eq!(self.get_metrics_expected, target);
+            Ok(self.get_metrics_returns.clone())
+        }
+    }
 
     #[test]
     fn should_read_head_and_return_nothing() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
+        let repo = MockBackend {
+            get_metrics_expected: "HEAD",
+            get_metrics_returns: Vec::new(),
+        };
 
         let code =
             crate::Args::parse_from(["_", "show"])
@@ -59,15 +98,13 @@ mod tests {
 
         let sha = "aaaaaaa";
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq(sha))
-            .return_once(|_| {
-                Ok(vec![
-                    Metric::new("foo", 1.0),
-                    Metric::new("foo", 1.0).with_tag("bar", "baz"),
-                ])
-            });
+        let repo = MockBackend {
+            get_metrics_expected: sha,
+            get_metrics_returns: vec![
+                Metric::new("foo", 1.0),
+                Metric::new("foo", 1.0).with_tag("bar", "baz"),
+            ],
+        };
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command

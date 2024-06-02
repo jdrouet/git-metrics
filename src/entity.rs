@@ -13,6 +13,7 @@ pub(crate) struct Commit {
 }
 
 #[derive(Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(test, derive(Clone))]
 pub(crate) struct MetricHeader {
     pub name: String,
     #[serde(default)]
@@ -47,6 +48,7 @@ impl Display for MetricHeader {
 }
 
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(test, derive(Clone))]
 pub struct Metric {
     #[serde(flatten)]
     pub header: MetricHeader,

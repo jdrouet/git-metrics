@@ -51,7 +51,6 @@ impl std::error::Error for Error {
     }
 }
 
-#[cfg_attr(test, mockall::automock)]
 pub(crate) trait Backend {
     fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
