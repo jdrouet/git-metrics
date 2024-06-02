@@ -32,14 +32,16 @@ impl Hash for MetricHeader {
 impl Display for MetricHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name.as_str())?;
-        f.write_char('{')?;
-        for (index, (key, value)) in self.tags.iter().enumerate() {
-            if index > 0 {
-                f.write_str(", ")?;
+        if !self.tags.is_empty() {
+            f.write_char('{')?;
+            for (index, (key, value)) in self.tags.iter().enumerate() {
+                if index > 0 {
+                    f.write_str(", ")?;
+                }
+                write!(f, "{key}={value:?}")?;
             }
-            write!(f, "{key}={value:?}")?;
+            f.write_char('}')?;
         }
-        f.write_char('}')?;
         Ok(())
     }
 }
@@ -74,7 +76,7 @@ impl Metric {
 
 impl Display for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} = {:?}", self.header, self.value)
+        write!(f, "{} {:?}", self.header, self.value)
     }
 }
 
@@ -94,7 +96,7 @@ mod tests {
     #[test]
     fn should_display_metric_with_single_tag() {
         let item = super::Metric::new("name", 12.34).with_tag("foo", "bar");
-        assert_eq!(item.to_string(), "name{foo=\"bar\"} = 12.34");
+        assert_eq!(item.to_string(), "name{foo=\"bar\"} 12.34");
     }
 
     #[test]
@@ -102,12 +104,12 @@ mod tests {
         let item = super::Metric::new("name", 12.34)
             .with_tag("foo", "bar")
             .with_tag("ab", "cd");
-        assert_eq!(item.to_string(), "name{foo=\"bar\", ab=\"cd\"} = 12.34");
+        assert_eq!(item.to_string(), "name{foo=\"bar\", ab=\"cd\"} 12.34");
     }
 
     #[test]
     fn should_display_metric_with_empty_tags() {
         let item = super::Metric::new("name", 12.34);
-        assert_eq!(item.to_string(), "name{} = 12.34");
+        assert_eq!(item.to_string(), "name 12.34");
     }
 }

@@ -17,16 +17,16 @@ fn execute(backend: &'static str) {
     //
     first.metrics(["pull"], assert_success!());
     first.metrics(["add", "my-metric", "1.0"], assert_success!());
-    first.metrics(["show"], assert_success!("my-metric{} = 1.0\n"));
+    first.metrics(["show"], assert_success!("my-metric 1.0\n"));
     first.metrics(["push"], assert_success!());
     //
     second.metrics(["add", "other-metric", "1.0"], assert_success!());
     second.metrics(["push"], assert_failure!("unable to push metrics\n"));
     //
-    second.metrics(["show"], assert_success!("other-metric{} = 1.0\n"));
+    second.metrics(["show"], assert_success!("other-metric 1.0\n"));
     second.metrics(["pull"], assert_success!());
     second.metrics(
         ["show"],
-        assert_success!("my-metric{} = 1.0\nother-metric{} = 1.0\n"),
+        assert_success!("my-metric 1.0\nother-metric 1.0\n"),
     );
 }

@@ -78,6 +78,6 @@ mod tests {
         assert!(stderr.is_empty());
 
         let stdout = String::from_utf8_lossy(&stdout);
-        assert_eq!(stdout, "foo{} = 1.0\nfoo{bar=\"baz\"} = 1.0\n");
+        assert_eq!(stdout, "foo 1.0\nfoo{bar=\"baz\"} 1.0\n");
     }
 }
