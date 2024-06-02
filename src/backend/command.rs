@@ -58,6 +58,75 @@ impl CommandBackend {
 }
 
 impl super::Backend for CommandBackend {
+    fn read_note<T: serde::de::DeserializeOwned>(
+        &self,
+        target: &str,
+        note_ref: &str,
+    ) -> Result<Option<T>, Error> {
+        tracing::trace!("getting note for target {target:?} and note {note_ref:?}");
+        let output = self
+            .cmd()
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_ref)
+            .arg("show")
+            .arg(target)
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let note: T = toml::from_str(&stdout).map_err(|err| {
+                tracing::error!("unable to deserialize: {err:?}");
+                Error::new("unable to deserialize note", err)
+            })?;
+            Ok(Some(note))
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            if stderr.starts_with("error: no note found for object") {
+                return Ok(None);
+            }
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
+            ))
+        }
+    }
+
+    fn write_note<T: serde::Serialize>(
+        &self,
+        target: &str,
+        note_ref: &str,
+        value: &T,
+    ) -> Result<(), Error> {
+        tracing::trace!("setting note for target {target:?} and note {note_ref:?}",);
+        let message = toml::to_string(value).map_err(|err| {
+            tracing::error!("unable to serialize metrics: {err:?}");
+            Error::new("unable to serialize metrics", err)
+        })?;
+        let output = self
+            .cmd()
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_ref)
+            .arg("add")
+            .arg("-f")
+            .arg("-m")
+            .arg(message.as_str())
+            .arg(target)
+            .output()
+            .map_err(unable_execute_git_command)?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
+            ))
+        }
+    }
+
     fn pull(&self, remote: &str) -> Result<(), Error> {
         tracing::trace!("pulling metrics");
         self.fetch_remote_metrics(remote)?;
@@ -91,75 +160,6 @@ impl super::Backend for CommandBackend {
             ))
         } else {
             Ok(())
-        }
-    }
-
-    fn get_metrics_for_ref(&self, target: &str, ref_note: &str) -> Result<Vec<Metric>, Error> {
-        tracing::trace!("getting metrics for target {target:?} and note {ref_note:?}");
-        let output = self
-            .cmd()
-            .arg("notes")
-            .arg("--ref")
-            .arg(ref_note)
-            .arg("show")
-            .arg(target)
-            .output()
-            .map_err(unable_execute_git_command)?;
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let note: super::Note = toml::from_str(&stdout).map_err(|err| {
-                tracing::error!("unable to deserialize: {err:?}");
-                Error::new("unable to deserialize note", err)
-            })?;
-            Ok(note.metrics)
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            if stderr.starts_with("error: no note found for object") {
-                return Ok(Vec::new());
-            }
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
-        }
-    }
-
-    fn set_metrics_for_ref(
-        &self,
-        target: &str,
-        ref_note: &str,
-        metrics: Vec<Metric>,
-    ) -> Result<(), Error> {
-        tracing::trace!(
-            "settings {} metrics for target {target:?} and note {ref_note:?}",
-            metrics.len()
-        );
-        let note = super::Note { metrics };
-        let message = toml::to_string(&note).map_err(|err| {
-            tracing::error!("unable to serialize metrics: {err:?}");
-            Error::new("unable to serialize metrics", err)
-        })?;
-        let output = self
-            .cmd()
-            .arg("notes")
-            .arg("--ref")
-            .arg(ref_note)
-            .arg("add")
-            .arg("-f")
-            .arg("-m")
-            .arg(message.as_str())
-            .arg(target)
-            .output()
-            .map_err(unable_execute_git_command)?;
-
-        if output.status.success() {
-            Ok(())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
         }
     }
 

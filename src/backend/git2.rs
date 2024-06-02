@@ -95,6 +95,52 @@ impl Git2Backend {
 }
 
 impl Backend for Git2Backend {
+    fn read_note<T: serde::de::DeserializeOwned>(
+        &self,
+        target: &str,
+        note_ref: &str,
+    ) -> Result<Option<T>, Error> {
+        tracing::trace!("reading note for target {target:?} and ref {note_ref:?}");
+        let rev_id = self.revision_id(target)?;
+
+        let Ok(note) = self.repo.find_note(Some(note_ref), rev_id) else {
+            tracing::debug!("no note found for revision {rev_id:?}");
+            return Ok(None);
+        };
+
+        note.message()
+            .map(|msg| {
+                tracing::trace!("deserializing note content");
+                toml::from_str::<T>(msg)
+                    .map(Some)
+                    .map_err(with_error!("unable to deserialize not"))
+            })
+            .unwrap_or_else(|| {
+                tracing::debug!("no message found for note {:?}", note.id());
+                Ok(None)
+            })
+    }
+
+    fn write_note<T: serde::Serialize>(
+        &self,
+        target: &str,
+        note_ref: &str,
+        value: &T,
+    ) -> Result<(), Error> {
+        tracing::trace!("setting note for target {target:?} and ref {note_ref:?}",);
+        let head_id = self.revision_id(target)?;
+        let sig = self.signature()?;
+
+        tracing::trace!("serializing metrics");
+        let note =
+            toml::to_string_pretty(value).map_err(with_error!("unable to serialize metrics"))?;
+        self.repo
+            .note(&sig, &sig, Some(note_ref), head_id, &note, true)
+            .map_err(with_error!("unable to persist metrics"))?;
+
+        Ok(())
+    }
+
     fn pull(&self, remote: &str) -> Result<(), Error> {
         let config = self
             .repo
@@ -156,50 +202,6 @@ impl Backend for Git2Backend {
         remote
             .push(&[REMOTE_METRICS_MAP], Some(&mut push_opts))
             .map_err(with_error!("unable to push metrics"))
-    }
-
-    fn get_metrics_for_ref(&self, target: &str, ref_name: &str) -> Result<Vec<Metric>, Error> {
-        tracing::trace!("getting metrics for target {target:?} and ref {ref_name:?}");
-        let rev_id = self.revision_id(target)?;
-
-        let Ok(note) = self.repo.find_note(Some(ref_name), rev_id) else {
-            tracing::debug!("no note found for revision");
-            return Ok(Default::default());
-        };
-
-        note.message()
-            .map(|msg| {
-                tracing::trace!("deserializing note content");
-                toml::from_str::<super::Note>(msg).map_err(with_error!("unable to deserialize not"))
-            })
-            .unwrap_or_else(|| {
-                tracing::debug!("no message found for note {:?}", note.id());
-                Ok(super::Note::default())
-            })
-            .map(|res| res.metrics)
-    }
-
-    fn set_metrics_for_ref(
-        &self,
-        target: &str,
-        ref_name: &str,
-        metrics: Vec<Metric>,
-    ) -> Result<(), Error> {
-        tracing::trace!(
-            "settings {} metrics for target {target:?} and ref {ref_name:?}",
-            metrics.len()
-        );
-        let head_id = self.revision_id(target)?;
-        let sig = self.signature()?;
-
-        tracing::trace!("serializing metrics");
-        let note = toml::to_string_pretty(&super::Note { metrics })
-            .map_err(with_error!("unable to serialize metrics"))?;
-        self.repo
-            .note(&sig, &sig, Some(ref_name), head_id, &note, true)
-            .map_err(with_error!("unable to persist metrics"))?;
-
-        Ok(())
     }
 
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {

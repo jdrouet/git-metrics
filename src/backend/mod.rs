@@ -55,13 +55,28 @@ impl std::error::Error for Error {
 pub(crate) trait Backend {
     fn pull(&self, remote: &str) -> Result<(), Error>;
     fn push(&self, remote: &str) -> Result<(), Error>;
+    fn read_note<T: serde::de::DeserializeOwned>(
+        &self,
+        target: &str,
+        note_ref: &str,
+    ) -> Result<Option<T>, Error>;
+    fn write_note<T: serde::Serialize>(
+        &self,
+        target: &str,
+        note_ref: &str,
+        value: &T,
+    ) -> Result<(), Error>;
     fn get_remote_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
         self.get_metrics_for_ref(target, REMOTE_METRICS_REF)
     }
     fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
         self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
     }
-    fn get_metrics_for_ref(&self, target: &str, note_ref: &str) -> Result<Vec<Metric>, Error>;
+    fn get_metrics_for_ref(&self, target: &str, note_ref: &str) -> Result<Vec<Metric>, Error> {
+        self.read_note(target, note_ref)
+            .map(|v: Option<Note>| v.unwrap_or_default())
+            .map(|v| v.metrics)
+    }
     fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
         self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
     }
@@ -70,6 +85,9 @@ pub(crate) trait Backend {
         target: &str,
         note_ref: &str,
         metrics: Vec<Metric>,
-    ) -> Result<(), Error>;
+    ) -> Result<(), Error> {
+        self.write_note(target, note_ref, &Note { metrics })
+    }
+
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error>;
 }
