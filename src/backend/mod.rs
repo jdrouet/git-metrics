@@ -13,10 +13,10 @@ pub(crate) use git2::Git2Backend;
 use serde::Serializer;
 
 const HEAD: &str = "HEAD";
-const LOCAL_METRICS_REF: &str = "refs/notes/local-metrics";
-const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
-const REMOTE_METRICS_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
-const REMOTE_METRICS_MAP_FORCE: &str = "+refs/notes/metrics:refs/notes/metrics";
+pub(crate) const LOCAL_METRICS_REF: &str = "refs/notes/local-metrics";
+pub(crate) const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
+pub(crate) const REMOTE_METRICS_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
+pub(crate) const REMOTE_METRICS_MAP_FORCE: &str = "+refs/notes/metrics:refs/notes/metrics";
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Note {

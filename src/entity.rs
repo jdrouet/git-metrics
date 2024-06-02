@@ -12,6 +12,66 @@ pub(crate) struct Commit {
     pub summary: String,
 }
 
+pub(crate) struct MetricStackIterator {
+    inner: indexmap::map::IntoIter<MetricHeader, f64>,
+}
+
+impl Iterator for MetricStackIterator {
+    type Item = Metric;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner
+            .next()
+            .map(|(header, value)| Metric { header, value })
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct MetricStack {
+    inner: IndexMap<MetricHeader, f64>,
+}
+
+impl MetricStack {
+    #[inline]
+    pub(crate) fn from_iter(iter: impl Iterator<Item = Metric>) -> Self {
+        Self {
+            inner: IndexMap::from_iter(iter.map(|Metric { header, value }| (header, value))),
+        }
+    }
+
+    pub(crate) fn with_change(mut self, change: MetricChange) -> Self {
+        match change {
+            MetricChange::Add(Metric { header, value }) => {
+                self.inner.insert(header, value);
+            }
+            MetricChange::Remove(Metric { header, value }) => match self.inner.get(&header) {
+                Some(existing) if *existing == value => {
+                    self.inner.swap_remove(&header);
+                }
+                _ => {}
+            },
+        };
+        self
+    }
+
+    pub(crate) fn with_changes(self, iter: impl Iterator<Item = MetricChange>) -> Self {
+        iter.fold(self, |this, change| this.with_change(change))
+    }
+
+    pub(crate) fn into_metric_iter(self) -> MetricStackIterator {
+        MetricStackIterator {
+            inner: self.inner.into_iter(),
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "action")]
+pub(crate) enum MetricChange {
+    Add(Metric),
+    Remove(Metric),
+}
+
 #[derive(Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(Clone))]
 pub(crate) struct MetricHeader {
