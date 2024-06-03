@@ -1,4 +1,4 @@
-use crate::backend::Backend;
+use crate::backend::{Backend, NoteRef};
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -7,7 +7,8 @@ pub(crate) struct Options {
 
 impl<B: Backend> super::Service<B> {
     pub(crate) fn pull(&self, opts: &Options) -> Result<(), super::Error> {
-        self.backend.pull(opts.remote.as_str())?;
+        let note_ref = NoteRef::remote_metrics(&opts.remote);
+        self.backend.pull(opts.remote.as_str(), &note_ref)?;
         Ok(())
     }
 }

@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fmt::{Display, Write},
     hash::{Hash, Hasher},
 };
@@ -7,6 +6,7 @@ use std::{
 use indexmap::IndexMap;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub(crate) struct Commit {
     pub sha: String,
     pub summary: String,
@@ -63,17 +63,30 @@ impl MetricStack {
             inner: self.inner.into_iter(),
         }
     }
+
+    pub(crate) fn into_vec(self) -> Vec<Metric> {
+        self.into_metric_iter().collect()
+    }
+
+    pub(crate) fn at(&self, index: usize) -> Option<(&MetricHeader, f64)> {
+        self.inner
+            .get_index(index)
+            .map(|(header, value)| (header, *value))
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-#[serde(tag = "action")]
+#[serde(tag = "action", rename_all = "lowercase")]
 pub(crate) enum MetricChange {
     Add(Metric),
     Remove(Metric),
 }
 
-#[derive(Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(Clone))]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MetricHeader {
     pub name: String,
     #[serde(default)]
@@ -140,17 +153,6 @@ impl Display for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {:?}", self.header, self.value)
     }
-}
-
-pub(crate) fn merge_metrics(mut remote: Vec<Metric>, local: Vec<Metric>) -> Vec<Metric> {
-    let existing: HashSet<&MetricHeader, std::hash::RandomState> =
-        HashSet::from_iter(remote.iter().map(|m| &m.header));
-    let missing = local
-        .into_iter()
-        .filter(|item| !existing.contains(&item.header))
-        .collect::<Vec<_>>();
-    remote.extend(missing);
-    remote
 }
 
 #[cfg(test)]

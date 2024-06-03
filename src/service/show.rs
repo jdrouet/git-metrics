@@ -13,7 +13,7 @@ impl<B: Backend> super::Service<B> {
         stdout: &mut Out,
         opts: &Options,
     ) -> Result<(), super::Error> {
-        let metrics = self.get_metrics(&opts.target)?;
+        let metrics = self.get_metrics(&opts.target, "origin")?;
         for m in metrics.into_metric_iter() {
             writeln!(stdout, "{m}")?;
         }

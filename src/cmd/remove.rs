@@ -31,67 +31,18 @@ impl super::Executor for CommandRemove {
 mod tests {
     use clap::Parser;
 
-    use crate::entity::Metric;
-
-    struct MockBackend;
-
-    impl crate::backend::Backend for MockBackend {
-        fn pull(&self, _remote: &str) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-
-        fn push(&self, _remote: &str) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-
-        fn read_note<T: serde::de::DeserializeOwned>(
-            &self,
-            _target: &str,
-            _note_ref: &str,
-        ) -> Result<Option<T>, crate::backend::Error> {
-            todo!()
-        }
-
-        fn write_note<T: serde::Serialize>(
-            &self,
-            _target: &str,
-            _note_ref: &str,
-            _value: &T,
-        ) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-
-        fn get_commits(
-            &self,
-            _range: &str,
-        ) -> Result<Vec<crate::entity::Commit>, crate::backend::Error> {
-            todo!()
-        }
-
-        fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, crate::backend::Error> {
-            assert_eq!(target, "HEAD");
-            Ok(Vec::new())
-        }
-
-        fn set_metrics(
-            &self,
-            target: &str,
-            metrics: Vec<Metric>,
-        ) -> Result<(), crate::backend::Error> {
-            assert_eq!(target, "HEAD");
-            assert!(metrics.is_empty());
-            Ok(())
-        }
-    }
+    use crate::backend::mock::MockBackend;
 
     #[test]
     fn should_remove_metric() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
+        let backend = MockBackend::default();
+
         let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(MockBackend, &mut stdout, &mut stderr);
+            .execute(backend, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

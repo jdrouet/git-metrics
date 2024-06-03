@@ -1,4 +1,7 @@
-use crate::backend::Backend;
+use crate::{
+    backend::Backend,
+    entity::{Metric, MetricChange},
+};
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -7,10 +10,14 @@ pub(crate) struct Options {
 
 impl<B: Backend> super::Service<B> {
     pub(crate) fn remove(&self, index: usize, opts: &Options) -> Result<(), super::Error> {
-        let mut metrics = self.backend.get_metrics(&opts.target)?;
-        if index < metrics.len() {
-            metrics.remove(index);
-            self.backend.set_metrics(&opts.target, metrics)?;
+        let metrics = self.get_metrics(&opts.target, "remote")?;
+        if let Some((header, value)) = metrics.at(index) {
+            let mut changes = self.get_metric_changes(&opts.target)?;
+            changes.push(MetricChange::Remove(Metric {
+                header: header.clone(),
+                value,
+            }));
+            self.set_metric_changes(&opts.target, changes)?;
         }
 
         Ok(())

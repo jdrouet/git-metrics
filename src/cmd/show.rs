@@ -29,57 +29,15 @@ impl super::Executor for CommandShow {
 mod tests {
     use clap::Parser;
 
-    use crate::entity::Metric;
-
-    struct MockBackend {
-        get_metrics_expected: &'static str,
-        get_metrics_returns: Vec<Metric>,
-    }
-
-    impl crate::backend::Backend for MockBackend {
-        fn pull(&self, _remote: &str) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-        fn push(&self, _remote: &str) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-        fn read_note<T: serde::de::DeserializeOwned>(
-            &self,
-            _target: &str,
-            _note_ref: &str,
-        ) -> Result<Option<T>, crate::backend::Error> {
-            todo!()
-        }
-        fn write_note<T: serde::Serialize>(
-            &self,
-            _target: &str,
-            _note_ref: &str,
-            _value: &T,
-        ) -> Result<(), crate::backend::Error> {
-            todo!()
-        }
-        fn get_commits(
-            &self,
-            _range: &str,
-        ) -> Result<Vec<crate::entity::Commit>, crate::backend::Error> {
-            todo!()
-        }
-
-        fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, crate::backend::Error> {
-            assert_eq!(self.get_metrics_expected, target);
-            Ok(self.get_metrics_returns.clone())
-        }
-    }
+    use crate::backend::NoteRef;
 
     #[test]
     fn should_read_head_and_return_nothing() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let repo = MockBackend {
-            get_metrics_expected: "HEAD",
-            get_metrics_returns: Vec::new(),
-        };
+        let mut repo = crate::backend::mock::MockBackend::default();
+        repo.set_note("HEAD", NoteRef::remote_metrics("origin"), String::new());
 
         let code =
             crate::Args::parse_from(["_", "show"])
@@ -98,19 +56,35 @@ mod tests {
 
         let sha = "aaaaaaa";
 
-        let repo = MockBackend {
-            get_metrics_expected: sha,
-            get_metrics_returns: vec![
-                Metric::new("foo", 1.0),
-                Metric::new("foo", 1.0).with_tag("bar", "baz"),
-            ],
-        };
+        let mut repo = crate::backend::mock::MockBackend::default();
+        repo.set_note(
+            sha,
+            NoteRef::remote_metrics("origin"),
+            String::from(
+                r#"[[metrics]]
+name = "foo"
+value = 1.0
+"#,
+            ),
+        );
+        repo.set_note(
+            sha,
+            crate::backend::NoteRef::Changes,
+            String::from(
+                r#"[[changes]]
+action = "add"
+name = "foo"
+tags = { bar = "baz" }
+value = 1.0
+"#,
+            ),
+        );
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
             .execute(repo, &mut stdout, &mut stderr);
 
-        assert!(code.is_success());
+        assert!(code.is_success(), "{:?}", String::from_utf8_lossy(&stderr));
         assert!(!stdout.is_empty());
         assert!(stderr.is_empty());
 

@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
-use crate::backend::REMOTE_METRICS_REF;
-use crate::entity::Commit;
+use crate::{backend::REMOTE_METRICS_REF, entity::Commit};
 
-use super::Error;
-use super::{HEAD, LOCAL_METRICS_REF, REMOTE_METRICS_MAP, REMOTE_METRICS_MAP_FORCE};
+use super::{Error, NoteRef};
 
 #[inline]
 fn unable_execute_git_command(err: std::io::Error) -> Error {
@@ -31,44 +29,72 @@ impl CommandBackend {
         }
         cmd
     }
+}
 
-    fn fetch_remote_metrics(&self, remote: &str) -> Result<(), Error> {
-        tracing::trace!("fetch remote metrics from {remote:?}");
+impl super::Backend for CommandBackend {
+    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<super::Note>, Error> {
+        tracing::trace!("listing notes for ref {note_ref:?}");
         let output = self
             .cmd()
-            .args(["fetch", remote, REMOTE_METRICS_MAP_FORCE])
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_ref.to_string())
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout
+                .split('\n')
+                .filter_map(|line| {
+                    line.split_once(' ')
+                        .map(|(note_id, commit_id)| super::Note {
+                            note_id: note_id.to_string(),
+                            commit_id: commit_id.to_string(),
+                        })
+                })
+                .collect())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
+            ))
+        }
+    }
+
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Error> {
+        tracing::trace!("removing note for target {target:?} and {note_ref:?}");
+        let output = self
+            .cmd()
+            .arg("notes")
+            .arg("--ref")
+            .arg(note_ref.to_string())
+            .arg("remove")
+            .arg(target)
             .output()
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
             Ok(())
         } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-
-            if stderr.starts_with("fatal: couldn't find remote ref") {
-                Ok(())
-            } else {
-                tracing::error!("something went wrong when fetching metrics");
-                Err(Error::new(
-                    "something went wrong when fetching metrics",
-                    std::io::Error::new(std::io::ErrorKind::Other, stderr),
-                ))
-            }
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::Other, stderr),
+            ))
         }
     }
-}
 
-impl super::Backend for CommandBackend {
     fn read_note<T: serde::de::DeserializeOwned>(
         &self,
         target: &str,
-        note_ref: &str,
+        note_ref: &NoteRef,
     ) -> Result<Option<T>, Error> {
         tracing::trace!("getting note for target {target:?} and note {note_ref:?}");
         let output = self
             .cmd()
             .arg("notes")
             .arg("--ref")
-            .arg(note_ref)
+            .arg(note_ref.to_string())
             .arg("show")
             .arg(target)
             .output()
@@ -95,7 +121,7 @@ impl super::Backend for CommandBackend {
     fn write_note<T: serde::Serialize>(
         &self,
         target: &str,
-        note_ref: &str,
+        note_ref: &NoteRef,
         value: &T,
     ) -> Result<(), Error> {
         tracing::trace!("setting note for target {target:?} and note {note_ref:?}",);
@@ -107,7 +133,7 @@ impl super::Backend for CommandBackend {
             .cmd()
             .arg("notes")
             .arg("--ref")
-            .arg(note_ref)
+            .arg(note_ref.to_string())
             .arg("add")
             .arg("-f")
             .arg("-m")
@@ -127,26 +153,40 @@ impl super::Backend for CommandBackend {
         }
     }
 
-    fn pull(&self, remote: &str) -> Result<(), Error> {
+    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error> {
         tracing::trace!("pulling metrics");
-        self.fetch_remote_metrics(remote)?;
-        let remote_metrics = self.get_metrics_for_ref(HEAD, REMOTE_METRICS_REF)?;
-        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        let metrics = crate::entity::merge_metrics(remote_metrics, local_metrics);
-        self.set_metrics_for_ref(HEAD, LOCAL_METRICS_REF, metrics)?;
-        Ok(())
+        let output = self
+            .cmd()
+            .arg("fetch")
+            .arg(remote)
+            .arg(format!("+{REMOTE_METRICS_REF}:{local_ref}",))
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if stderr.starts_with("fatal: couldn't find remote ref") {
+                Ok(())
+            } else {
+                tracing::error!("something went wrong when fetching metrics");
+                Err(Error::new(
+                    "something went wrong when fetching metrics",
+                    std::io::Error::new(std::io::ErrorKind::Other, stderr),
+                ))
+            }
+        }
     }
 
-    fn push(&self, remote: &str) -> Result<(), Error> {
+    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error> {
         tracing::trace!("pushing metrics");
-        let local_metrics = self.get_metrics_for_ref(HEAD, LOCAL_METRICS_REF)?;
-        self.set_metrics_for_ref(HEAD, REMOTE_METRICS_REF, local_metrics)?;
 
         let output = self
             .cmd()
             .arg("push")
             .arg(remote)
-            .arg(REMOTE_METRICS_MAP)
+            .arg(format!("{local_ref}:{REMOTE_METRICS_REF}",))
             .output()
             .map_err(unable_execute_git_command)?;
 

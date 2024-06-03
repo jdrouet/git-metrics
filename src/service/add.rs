@@ -1,4 +1,7 @@
-use crate::{backend::Backend, entity::Metric};
+use crate::{
+    backend::Backend,
+    entity::{Metric, MetricChange},
+};
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -7,9 +10,9 @@ pub(crate) struct Options {
 
 impl<B: Backend> super::Service<B> {
     pub(crate) fn add(&self, metric: Metric, opts: &Options) -> Result<(), super::Error> {
-        let mut metrics = self.backend.get_metrics(&opts.target)?;
-        metrics.push(metric);
-        self.backend.set_metrics(&opts.target, metrics)?;
+        let mut changes = self.get_metric_changes(&opts.target)?;
+        changes.push(MetricChange::Add(metric));
+        self.set_metric_changes(&opts.target, changes)?;
 
         Ok(())
     }
