@@ -79,14 +79,14 @@ impl<B: Backend> Service<B> {
             .with_changes(diff_metrics.into_iter()))
     }
 
-    pub(crate) fn set_metrics_cache(
+    pub(crate) fn set_metrics_for_ref(
         &self,
         commit_sha: &str,
+        note_ref: &NoteRef,
         metrics: Vec<Metric>,
     ) -> Result<(), Error> {
         let payload = MetricList { metrics };
-        self.backend
-            .write_note(commit_sha, &NoteRef::Cache, &payload)?;
+        self.backend.write_note(commit_sha, note_ref, &payload)?;
         Ok(())
     }
 }
