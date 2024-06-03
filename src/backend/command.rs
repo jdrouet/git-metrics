@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use crate::{backend::REMOTE_METRICS_REF, entity::Commit};
-
 use super::{Error, NoteRef};
+use crate::backend::REMOTE_METRICS_REF;
+use crate::entity::Commit;
 
 #[inline]
 fn unable_execute_git_command(err: std::io::Error) -> Error {

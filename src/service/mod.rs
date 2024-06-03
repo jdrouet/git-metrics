@@ -1,7 +1,5 @@
-use crate::{
-    backend::{Backend, NoteRef},
-    entity::{Metric, MetricChange, MetricStack},
-};
+use crate::backend::{Backend, NoteRef};
+use crate::entity::{Metric, MetricChange, MetricStack};
 
 pub(crate) mod add;
 pub(crate) mod log;

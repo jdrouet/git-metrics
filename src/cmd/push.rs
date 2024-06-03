@@ -1,5 +1,7 @@
-use crate::{backend::Backend, service::Service};
 use std::io::Write;
+
+use crate::backend::Backend;
+use crate::service::Service;
 
 /// Pushes the metrics
 #[derive(clap::Parser, Debug, Default)]

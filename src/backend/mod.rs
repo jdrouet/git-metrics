@@ -7,12 +7,13 @@ mod git2;
 #[cfg(test)]
 pub(crate) mod mock;
 
-use crate::entity::{Commit, Metric};
 #[cfg(feature = "impl-command")]
 pub(crate) use command::CommandBackend;
 #[cfg(feature = "impl-git2")]
 pub(crate) use git2::Git2Backend;
 use serde::Serializer;
+
+use crate::entity::{Commit, Metric};
 
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
 

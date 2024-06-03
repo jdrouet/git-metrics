@@ -1,7 +1,5 @@
-use std::{
-    fmt::{Display, Write},
-    hash::{Hash, Hasher},
-};
+use std::fmt::{Display, Write};
+use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
 

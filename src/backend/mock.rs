@@ -1,8 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use crate::entity::Commit;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use super::NoteRef;
+use crate::entity::Commit;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct MockBackend(Rc<MockBackendInner>);
