@@ -50,7 +50,7 @@ jobs:
           ./git-metrics_win-x86_64.exe --backend command pull
           ./git-metrics_win-x86_64.exe add binary-size --tag "build.target: x86_64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-x86_64.exe)
           ./git-metrics_win-x86_64.exe add binary-size --tag "build.target: aarch64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-aarch64.exe)
-          ./git-metrics_win-x86_64.exe --backend command push
+          ./git-metrics_win-x86_64.exe --backend command -vvvvv push
 
       - uses: actions/upload-artifact@v4
         with:
