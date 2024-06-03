@@ -1,5 +1,7 @@
-use crate::{backend::Backend, service::Service};
 use std::io::Write;
+
+use crate::backend::Backend;
+use crate::service::Service;
 
 /// Display the metrics related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -29,18 +31,15 @@ impl super::Executor for CommandShow {
 mod tests {
     use clap::Parser;
 
-    use crate::backend::MockBackend;
-    use crate::entity::Metric;
+    use crate::backend::NoteRef;
 
     #[test]
     fn should_read_head_and_return_nothing() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
+        let mut repo = crate::backend::mock::MockBackend::default();
+        repo.set_note("HEAD", NoteRef::remote_metrics("origin"), String::new());
 
         let code =
             crate::Args::parse_from(["_", "show"])
@@ -59,21 +58,35 @@ mod tests {
 
         let sha = "aaaaaaa";
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq(sha))
-            .return_once(|_| {
-                Ok(vec![
-                    Metric::new("foo", 1.0),
-                    Metric::new("foo", 1.0).with_tag("bar", "baz"),
-                ])
-            });
+        let mut repo = crate::backend::mock::MockBackend::default();
+        repo.set_note(
+            sha,
+            NoteRef::remote_metrics("origin"),
+            String::from(
+                r#"[[metrics]]
+name = "foo"
+value = 1.0
+"#,
+            ),
+        );
+        repo.set_note(
+            sha,
+            crate::backend::NoteRef::Changes,
+            String::from(
+                r#"[[changes]]
+action = "add"
+name = "foo"
+tags = { bar = "baz" }
+value = 1.0
+"#,
+            ),
+        );
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
             .execute(repo, &mut stdout, &mut stderr);
 
-        assert!(code.is_success());
+        assert!(code.is_success(), "{:?}", String::from_utf8_lossy(&stderr));
         assert!(!stdout.is_empty());
         assert!(stderr.is_empty());
 

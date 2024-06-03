@@ -1,5 +1,7 @@
-use crate::{backend::Backend, service::Service};
 use std::io::Write;
+
+use crate::backend::Backend;
+use crate::service::Service;
 
 /// Remove a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -31,27 +33,18 @@ impl super::Executor for CommandRemove {
 mod tests {
     use clap::Parser;
 
-    use crate::{backend::MockBackend, entity::Metric};
+    use crate::backend::mock::MockBackend;
 
     #[test]
     fn should_remove_metric() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
-        repo.expect_set_metrics()
-            .with(
-                mockall::predicate::eq("HEAD"),
-                mockall::predicate::function(|v: &Vec<Metric>| v.is_empty()),
-            )
-            .return_once(|_, _| Ok(()));
+        let backend = MockBackend::default();
 
         let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(repo, &mut stdout, &mut stderr);
+            .execute(backend, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

@@ -1,4 +1,5 @@
-use crate::{assert_failure, assert_success, tests::GitRepo};
+use crate::tests::GitRepo;
+use crate::{assert_failure, assert_success};
 
 #[test_case::test_case("git2"; "with git2 backend")]
 #[test_case::test_case("command"; "with command backend")]

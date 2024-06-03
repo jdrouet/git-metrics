@@ -4,22 +4,42 @@ use std::fmt::Display;
 mod command;
 #[cfg(feature = "impl-git2")]
 mod git2;
+#[cfg(test)]
+pub(crate) mod mock;
 
-use crate::entity::{Commit, Metric};
 #[cfg(feature = "impl-command")]
 pub(crate) use command::CommandBackend;
 #[cfg(feature = "impl-git2")]
 pub(crate) use git2::Git2Backend;
 use serde::Serializer;
 
-const HEAD: &str = "HEAD";
-const LOCAL_METRICS_REF: &str = "refs/notes/local-metrics";
+use crate::entity::{Commit, Metric};
+
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
-const REMOTE_METRICS_MAP: &str = "refs/notes/metrics:refs/notes/metrics";
-const REMOTE_METRICS_MAP_FORCE: &str = "+refs/notes/metrics:refs/notes/metrics";
+
+#[derive(Clone, Debug)]
+pub(crate) enum NoteRef {
+    Changes,
+    RemoteMetrics { name: String },
+}
+
+impl NoteRef {
+    pub(crate) fn remote_metrics(name: impl Into<String>) -> Self {
+        Self::RemoteMetrics { name: name.into() }
+    }
+}
+
+impl std::fmt::Display for NoteRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Changes => write!(f, "refs/notes/metrics-changes"),
+            Self::RemoteMetrics { name } => write!(f, "refs/notes/metrics-remote-{name}"),
+        }
+    }
+}
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
-struct Note {
+struct NoteContent {
     metrics: Vec<Metric>,
 }
 
@@ -51,25 +71,28 @@ impl std::error::Error for Error {
     }
 }
 
-#[cfg_attr(test, mockall::automock)]
+#[derive(Debug)]
+pub(crate) struct Note {
+    #[allow(dead_code)]
+    pub note_id: String,
+    pub commit_id: String,
+}
+
 pub(crate) trait Backend {
-    fn pull(&self, remote: &str) -> Result<(), Error>;
-    fn push(&self, remote: &str) -> Result<(), Error>;
-    fn get_remote_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
-        self.get_metrics_for_ref(target, REMOTE_METRICS_REF)
-    }
-    fn get_metrics(&self, target: &str) -> Result<Vec<Metric>, Error> {
-        self.get_metrics_for_ref(target, LOCAL_METRICS_REF)
-    }
-    fn get_metrics_for_ref(&self, target: &str, note_ref: &str) -> Result<Vec<Metric>, Error>;
-    fn set_metrics(&self, target: &str, metrics: Vec<Metric>) -> Result<(), Error> {
-        self.set_metrics_for_ref(target, LOCAL_METRICS_REF, metrics)
-    }
-    fn set_metrics_for_ref(
+    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
+    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
+    fn read_note<T: serde::de::DeserializeOwned>(
         &self,
         target: &str,
-        note_ref: &str,
-        metrics: Vec<Metric>,
+        note_ref: &NoteRef,
+    ) -> Result<Option<T>, Error>;
+    fn write_note<T: serde::Serialize>(
+        &self,
+        target: &str,
+        note_ref: &NoteRef,
+        value: &T,
     ) -> Result<(), Error>;
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Error>;
+    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Error>;
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error>;
 }

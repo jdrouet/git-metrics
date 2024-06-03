@@ -1,4 +1,5 @@
-use std::{path::PathBuf, process::Command};
+use std::path::PathBuf;
+use std::process::Command;
 
 mod conflict_different;
 mod simple_use_case;

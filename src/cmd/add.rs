@@ -49,27 +49,14 @@ impl super::Executor for CommandAdd {
 mod tests {
     use clap::Parser;
 
-    use crate::backend::MockBackend;
+    use crate::backend::mock::MockBackend;
 
     #[test]
     fn should_add_metric_with_one_attribute() {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
-        repo.expect_set_metrics()
-            .withf_st(|target, metrics| {
-                target == "HEAD"
-                    && metrics.len() == 1
-                    && metrics[0].header.name == "my-metric"
-                    && metrics[0].header.tags.len() == 1
-                    && metrics[0].header.tags["foo"] == "bar"
-                    && metrics[0].value == 12.34
-            })
-            .return_once(|_, _| Ok(()));
+        let repo = MockBackend::default();
 
         let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
@@ -85,21 +72,7 @@ mod tests {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = MockBackend::new();
-        repo.expect_get_metrics()
-            .with(mockall::predicate::eq("HEAD"))
-            .return_once(|_| Ok(Vec::new()));
-        repo.expect_set_metrics()
-            .withf_st(|target, metrics| {
-                target == "HEAD"
-                    && metrics.len() == 1
-                    && metrics[0].header.name == "my-metric"
-                    && metrics[0].header.tags.len() == 2
-                    && metrics[0].header.tags["foo"] == "bar"
-                    && metrics[0].header.tags["yolo"] == "pouwet"
-                    && metrics[0].value == 12.34
-            })
-            .return_once(|_, _| Ok(()));
+        let repo = MockBackend::default();
 
         let code = crate::Args::parse_from([
             "_",
@@ -112,10 +85,25 @@ mod tests {
             "12.34",
         ])
         .command
-        .execute(repo, &mut stdout, &mut stderr);
+        .execute(repo.clone(), &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
         assert!(stderr.is_empty());
+
+        assert_eq!(
+            repo.get_note("HEAD", crate::backend::NoteRef::Changes),
+            Some(String::from(
+                r#"[[changes]]
+action = "add"
+name = "my-metric"
+value = 12.34
+
+[changes.tags]
+foo = "bar"
+yolo = "pouwet"
+"#
+            ))
+        );
     }
 }

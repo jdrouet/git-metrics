@@ -1,6 +1,7 @@
+use std::io::Write;
+
 use crate::backend::Backend;
 use crate::ExitCode;
-use std::io::Write;
 
 pub(crate) mod add;
 pub(crate) mod log;

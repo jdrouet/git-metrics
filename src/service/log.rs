@@ -16,12 +16,12 @@ impl<B: Backend> super::Service<B> {
     ) -> Result<(), super::Error> {
         let commits = self.backend.get_commits(&opts.target)?;
         for commit in commits.iter() {
-            let metrics = self.backend.get_remote_metrics(commit.sha.as_str())?;
+            let metrics = self.get_metrics(&commit.sha, "origin")?;
             if opts.hide_empty && metrics.is_empty() {
                 continue;
             }
             writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
-            for metric in metrics {
+            for metric in metrics.into_metric_iter() {
                 writeln!(stdout, "\t{metric}")?;
             }
         }

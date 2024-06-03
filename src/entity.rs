@@ -1,18 +1,90 @@
-use std::{
-    collections::HashSet,
-    fmt::{Display, Write},
-    hash::{Hash, Hasher},
-};
+use std::fmt::{Display, Write};
+use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub(crate) struct Commit {
     pub sha: String,
     pub summary: String,
 }
 
-#[derive(Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct MetricStackIterator {
+    inner: indexmap::map::IntoIter<MetricHeader, f64>,
+}
+
+impl Iterator for MetricStackIterator {
+    type Item = Metric;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner
+            .next()
+            .map(|(header, value)| Metric { header, value })
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct MetricStack {
+    inner: IndexMap<MetricHeader, f64>,
+}
+
+impl MetricStack {
+    #[inline]
+    pub(crate) fn from_iter(iter: impl Iterator<Item = Metric>) -> Self {
+        Self {
+            inner: IndexMap::from_iter(iter.map(|Metric { header, value }| (header, value))),
+        }
+    }
+
+    pub(crate) fn with_change(mut self, change: MetricChange) -> Self {
+        match change {
+            MetricChange::Add(Metric { header, value }) => {
+                self.inner.insert(header, value);
+            }
+            MetricChange::Remove(Metric { header, value }) => match self.inner.get(&header) {
+                Some(existing) if *existing == value => {
+                    self.inner.swap_remove(&header);
+                }
+                _ => {}
+            },
+        };
+        self
+    }
+
+    pub(crate) fn with_changes(self, iter: impl Iterator<Item = MetricChange>) -> Self {
+        iter.fold(self, |this, change| this.with_change(change))
+    }
+
+    pub(crate) fn into_metric_iter(self) -> MetricStackIterator {
+        MetricStackIterator {
+            inner: self.inner.into_iter(),
+        }
+    }
+
+    pub(crate) fn into_vec(self) -> Vec<Metric> {
+        self.into_metric_iter().collect()
+    }
+
+    pub(crate) fn at(&self, index: usize) -> Option<(&MetricHeader, f64)> {
+        self.inner
+            .get_index(index)
+            .map(|(header, value)| (header, *value))
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "action", rename_all = "lowercase")]
+pub(crate) enum MetricChange {
+    Add(Metric),
+    Remove(Metric),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MetricHeader {
     pub name: String,
     #[serde(default)]
@@ -47,6 +119,7 @@ impl Display for MetricHeader {
 }
 
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(test, derive(Clone))]
 pub struct Metric {
     #[serde(flatten)]
     pub header: MetricHeader,
@@ -78,17 +151,6 @@ impl Display for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {:?}", self.header, self.value)
     }
-}
-
-pub(crate) fn merge_metrics(mut remote: Vec<Metric>, local: Vec<Metric>) -> Vec<Metric> {
-    let existing: HashSet<&MetricHeader, std::hash::RandomState> =
-        HashSet::from_iter(remote.iter().map(|m| &m.header));
-    let missing = local
-        .into_iter()
-        .filter(|item| !existing.contains(&item.header))
-        .collect::<Vec<_>>();
-    remote.extend(missing);
-    remote
 }
 
 #[cfg(test)]
