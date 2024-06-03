@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::MetricList;
 use crate::backend::{Backend, NoteRef};
 use crate::entity::MetricStack;
@@ -23,27 +21,22 @@ pub(crate) struct Options {
 impl<B: Backend> super::Service<B> {
     pub(crate) fn push(&self, opts: &Options) -> Result<(), super::Error> {
         let remote_ref = NoteRef::remote_metrics(&opts.remote);
-        let remote_notes = self.backend.list_notes(&remote_ref)?;
         let local_notes = self.backend.list_notes(&NoteRef::Changes)?;
-        let commit_shas = remote_notes
-            .iter()
-            .map(|note| note.commit_id.as_str())
-            .chain(local_notes.iter().map(|note| note.commit_id.as_str()))
-            .collect::<HashSet<&str>>();
-        for commit_sha in commit_shas {
+
+        for commit_sha in local_notes.into_iter().map(|item| item.commit_id) {
             let remote_metrics = self
                 .backend
-                .read_note::<MetricList>(commit_sha, &remote_ref)?
+                .read_note::<MetricList>(commit_sha.as_str(), &remote_ref)?
                 .map(|list| list.metrics)
                 .unwrap_or_default();
 
-            let diff_metrics = self.get_metric_changes(commit_sha)?;
+            let diff_metrics = self.get_metric_changes(commit_sha.as_str())?;
 
             if !diff_metrics.is_empty() {
                 let new_metrics = MetricStack::from_iter(remote_metrics.into_iter())
                     .with_changes(diff_metrics.into_iter())
                     .into_vec();
-                self.set_metrics_for_ref(commit_sha, &remote_ref, new_metrics)?;
+                self.set_metrics_for_ref(commit_sha.as_str(), &remote_ref, new_metrics)?;
             }
         }
 
