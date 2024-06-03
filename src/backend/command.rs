@@ -171,6 +171,7 @@ impl super::Backend for CommandBackend {
                 Ok(())
             } else {
                 tracing::error!("something went wrong when fetching metrics");
+                tracing::trace!("{stderr}");
                 Err(Error::new(
                     "something went wrong when fetching metrics",
                     std::io::Error::new(std::io::ErrorKind::Other, stderr),

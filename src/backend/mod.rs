@@ -33,9 +33,9 @@ impl NoteRef {
 impl std::fmt::Display for NoteRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Cache => write!(f, "refs/notes/metrics/cache"),
-            Self::Changes => write!(f, "refs/notes/metrics/changes"),
-            Self::RemoteMetrics { name } => write!(f, "refs/notes/metrics/remote/{name}"),
+            Self::Cache => write!(f, "refs/notes/metrics-cache"),
+            Self::Changes => write!(f, "refs/notes/metrics-changes"),
+            Self::RemoteMetrics { name } => write!(f, "refs/notes/metrics-remote-{name}"),
         }
     }
 }
