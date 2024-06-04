@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/jdrouet/git-metrics/compare/v0.1.1...v0.1.2) - 2024-06-04
+
+### Added
+- create diff command ([#31](https://github.com/jdrouet/git-metrics/pull/31))
+
+### Fixed
+- update metric format to follow prometheus
+
+### Other
+- update local refs and service ([#30](https://github.com/jdrouet/git-metrics/pull/30))
+- move cli logic to service
+- rename Bakend proto
+- remove stderr from executor
+- rename repository to backend
+
 ## [0.1.1](https://github.com/jdrouet/git-metrics/compare/v0.1.0...v0.1.1) - 2024-05-27
 
 ### Added
