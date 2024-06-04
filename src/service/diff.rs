@@ -48,7 +48,6 @@ impl<B: Backend> super::Service<B> {
         commits.reverse();
         for commit_sha in commits {
             let metrics = self.get_metrics(commit_sha.as_str(), remote_name)?;
-            println!("metrics = {metrics:?}");
             stack.extend(metrics);
         }
         Ok(stack)

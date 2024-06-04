@@ -122,7 +122,7 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
-            let to = revspec.from().ok_or_else(|| {
+            let to = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
                 Error::new(
                     "unable to get range ending",
@@ -130,7 +130,7 @@ impl Backend for Git2Backend {
                 )
             })?;
             revwalk
-                .push(from.id())
+                .push(to.id())
                 .map_err(with_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 let base = self
@@ -165,30 +165,33 @@ impl Backend for Git2Backend {
             .revparse(range.as_ref())
             .map_err(with_error!("unable to parse commit range"))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
-            let from = revspec.from().ok_or_else(|| {
+            let commit = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
                 Error::new(
                     "unable to get range beginning",
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
-            Ok(super::RevParse::Single(from.id().to_string()))
+            Ok(super::RevParse::Single(commit.id().to_string()))
         } else {
-            let from = revspec.from().ok_or_else(|| {
+            let first = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
                 Error::new(
                     "unable to get range beginning",
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
-            let to = revspec.from().ok_or_else(|| {
+            let second = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
                 Error::new(
                     "unable to get range ending",
                     git2::Error::from_str("revspec.to is None"),
                 )
             })?;
-            Ok(RevParse::Range(from.id().to_string(), to.id().to_string()))
+            Ok(RevParse::Range(
+                first.id().to_string(),
+                second.id().to_string(),
+            ))
         }
     }
 
@@ -374,7 +377,7 @@ impl Backend for Git2Backend {
                 )
             })?;
             revwalk
-                .push(from.id())
+                .push(to.id())
                 .map_err(with_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 let base = self

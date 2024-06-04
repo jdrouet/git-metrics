@@ -45,7 +45,6 @@ impl MockBackend {
 
 impl super::Backend for MockBackend {
     fn rev_list(&self, range: &str) -> Result<Vec<String>, super::Error> {
-        println!("rev_list({range:?})");
         Ok(self
             .0
             .rev_lists
@@ -56,7 +55,6 @@ impl super::Backend for MockBackend {
     }
 
     fn rev_parse(&self, range: &str) -> Result<super::RevParse, super::Error> {
-        println!("rev_parse({range:?})");
         self.0
             .rev_parses
             .borrow()
