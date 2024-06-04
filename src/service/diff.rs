@@ -78,10 +78,9 @@ impl<B: Backend> super::Service<B> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        backend::{mock::MockBackend, NoteRef, RevParse},
-        service::Service,
-    };
+    use crate::backend::mock::MockBackend;
+    use crate::backend::{NoteRef, RevParse};
+    use crate::service::Service;
 
     #[test]
     fn should_render_diff_with_single_target() {

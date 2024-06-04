@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
 use super::{Backend, Error, Note, NoteRef, REMOTE_METRICS_REF};
-use crate::{backend::RevParse, entity::Commit};
+use crate::backend::RevParse;
+use crate::entity::Commit;
 
 macro_rules! with_error {
     ($msg:expr) => {

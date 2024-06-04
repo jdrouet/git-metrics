@@ -50,7 +50,7 @@ impl super::Backend for MockBackend {
             .rev_lists
             .borrow()
             .get(range)
-            .map(Clone::clone)
+            .cloned()
             .unwrap_or_default())
     }
 
@@ -59,7 +59,7 @@ impl super::Backend for MockBackend {
             .rev_parses
             .borrow()
             .get(range)
-            .map(Clone::clone)
+            .cloned()
             .ok_or_else(|| {
                 super::Error::new(
                     "invalid range for rev_parse",
