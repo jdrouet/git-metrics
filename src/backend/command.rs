@@ -70,8 +70,8 @@ impl super::Backend for CommandBackend {
             if let Some(first) = iter.next() {
                 if let Some(second) = iter.next().and_then(|v| v.strip_prefix('^')) {
                     Ok(super::RevParse::Range(
-                        first.to_string(),
                         second.to_string(),
+                        first.to_string(),
                     ))
                 } else {
                     Ok(super::RevParse::Single(first.to_string()))
