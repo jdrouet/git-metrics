@@ -39,5 +39,5 @@ git metrics show
 - [x] `git-metrics fetch` fetches the metrics
 - [x] `git-metrics push` pushes the metrics
 - [x] `git-metrics log` displays the metrics for the last commits
-- [ ] `git-metrics diff` computes the diff of the metrics between 2 commits
+- [x] `git-metrics diff` computes the diff of the metrics between 2 commits
 - [ ] `git-metrics page` generates a web page with charts for every metrics
