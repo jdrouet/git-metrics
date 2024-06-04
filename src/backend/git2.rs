@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use super::{Backend, Error, Note, NoteRef, REMOTE_METRICS_REF};
+use crate::backend::RevParse;
 use crate::entity::Commit;
 
 macro_rules! with_error {
@@ -91,6 +92,110 @@ impl Git2Backend {
 }
 
 impl Backend for Git2Backend {
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
+        let mut revwalk = self
+            .repo
+            .revwalk()
+            .map_err(with_error!("unable to lookup commits"))?;
+        revwalk
+            .set_sorting(git2::Sort::TOPOLOGICAL)
+            .map_err(with_error!("unable to set sorting direction"))?;
+        let revspec = self
+            .repo
+            .revparse(range.as_ref())
+            .map_err(with_error!("unable to parse commit range"))?;
+        if revspec.mode().contains(git2::RevparseMode::SINGLE) {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            revwalk
+                .push(from.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+        } else {
+            let from = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            let to = revspec.to().ok_or_else(|| {
+                tracing::error!("unable to get range ending");
+                Error::new(
+                    "unable to get range ending",
+                    git2::Error::from_str("revspec.to is None"),
+                )
+            })?;
+            revwalk
+                .push(to.id())
+                .map_err(with_error!("unable to push commit id in revwalk"))?;
+            if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
+                let base = self
+                    .repo
+                    .merge_base(from.id(), to.id())
+                    .map_err(with_error!("unable to get merge base"))?;
+                let o = self
+                    .repo
+                    .find_object(base, Some(git2::ObjectType::Commit))
+                    .map_err(with_error!("unable to get commit"))?;
+                revwalk
+                    .push(o.id())
+                    .map_err(with_error!("unable to push commit id in revwalk"))?;
+            }
+            revwalk
+                .hide(from.id())
+                .map_err(with_error!("unable to hide commit id in revwalk"))?;
+        }
+
+        let mut res = Vec::new();
+        for commit in revwalk {
+            let commit_id = commit.map_err(with_error!("unable to get commit from revwalk"))?;
+            res.push(commit_id.to_string());
+        }
+
+        Ok(res)
+    }
+
+    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Error> {
+        let revspec = self
+            .repo
+            .revparse(range.as_ref())
+            .map_err(with_error!("unable to parse commit range"))?;
+        if revspec.mode().contains(git2::RevparseMode::SINGLE) {
+            let commit = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            Ok(super::RevParse::Single(commit.id().to_string()))
+        } else {
+            let first = revspec.from().ok_or_else(|| {
+                tracing::error!("unable to get range beginning");
+                Error::new(
+                    "unable to get range beginning",
+                    git2::Error::from_str("revspec.from is None"),
+                )
+            })?;
+            let second = revspec.to().ok_or_else(|| {
+                tracing::error!("unable to get range ending");
+                Error::new(
+                    "unable to get range ending",
+                    git2::Error::from_str("revspec.to is None"),
+                )
+            })?;
+            Ok(RevParse::Range(
+                first.id().to_string(),
+                second.id().to_string(),
+            ))
+        }
+    }
+
     fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Error> {
         tracing::trace!("listing notes for ref {note_ref}");
         let notes = match self.repo.notes(Some(&note_ref.to_string())) {
@@ -265,7 +370,7 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
-            let to = revspec.from().ok_or_else(|| {
+            let to = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
                 Error::new(
                     "unable to get range ending",
@@ -273,7 +378,7 @@ impl Backend for Git2Backend {
                 )
             })?;
             revwalk
-                .push(from.id())
+                .push(to.id())
                 .map_err(with_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 let base = self

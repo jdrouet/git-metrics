@@ -17,18 +17,23 @@ cargo install --git https://github.com/jdrouet/git-metrics
 
 ```bash
 # fetch the remote metrics
-git metrics pull
+$ git metrics pull
 # add a new metric
-git metrics add binary-size \
+$ git metrics add binary-size \
     --tag "platform.arch: amd64" \
     --tag "unit: byte" \
-    1234.0
+    1024.0
 # push the metrics to remote
-git metrics push
+$ git metrics push
 # log all the metrics for the past commits
-git metrics log --filter-empty
+$ git metrics log --filter-empty
 # display the metrics on current commit
-git metrics show
+$ git metrics show
+binary-size{platform.arch="amd64", unit="byte"} 1024.0
+# display the metrics difference between commits
+$ git metrics diff HEAD~2..HEAD
+- binary-size{platform.arch="amd64", unit="byte"} 512.0
++ binary-size{platform.arch="amd64", unit="byte"} 1024.0 (+200.00 %)
 ```
 
 ## Project goals
@@ -39,5 +44,5 @@ git metrics show
 - [x] `git-metrics fetch` fetches the metrics
 - [x] `git-metrics push` pushes the metrics
 - [x] `git-metrics log` displays the metrics for the last commits
-- [ ] `git-metrics diff` computes the diff of the metrics between 2 commits
+- [x] `git-metrics diff` computes the diff of the metrics between 2 commits
 - [ ] `git-metrics page` generates a web page with charts for every metrics

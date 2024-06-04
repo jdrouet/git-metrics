@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 mod conflict_different;
+mod display_diff;
 mod simple_use_case;
 
 fn init_logs() {
@@ -102,6 +103,35 @@ impl GitRepo {
             "stderr: {:?}",
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+
+    fn metrics_exec<'a, I>(&'a self, backend: &'a str, iter: I) -> Result<String, String>
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        use clap::Parser;
+
+        let mut args = vec![
+            "git-metrics",
+            "--root-dir",
+            self.path_str(),
+            "--backend",
+            backend,
+        ];
+        args.extend(iter);
+
+        let mut stdout = Vec::<u8>::new();
+        let mut stderr = Vec::<u8>::new();
+        let result = crate::Args::parse_from(args).execute(&mut stdout, &mut stderr);
+
+        let stdout = String::from_utf8_lossy(&stdout).to_string();
+        let stderr = String::from_utf8_lossy(&stderr).to_string();
+
+        if result.is_success() {
+            Ok(stdout)
+        } else {
+            Err(stderr)
+        }
     }
 
     fn metrics<'a, I, F>(&'a self, iter: I, callback: F)
