@@ -38,7 +38,7 @@ mod tests {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
 
-        let mut repo = crate::backend::mock::MockBackend::default();
+        let repo = crate::backend::mock::MockBackend::default();
         repo.set_note("HEAD", NoteRef::remote_metrics("origin"), String::new());
 
         let code =
@@ -58,7 +58,7 @@ mod tests {
 
         let sha = "aaaaaaa";
 
-        let mut repo = crate::backend::mock::MockBackend::default();
+        let repo = crate::backend::mock::MockBackend::default();
         repo.set_note(
             sha,
             NoteRef::remote_metrics("origin"),

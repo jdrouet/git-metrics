@@ -2,6 +2,7 @@ use crate::backend::{Backend, NoteRef};
 use crate::entity::{Metric, MetricChange, MetricStack};
 
 pub(crate) mod add;
+pub(crate) mod diff;
 pub(crate) mod log;
 pub(crate) mod pull;
 pub(crate) mod push;

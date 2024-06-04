@@ -78,7 +78,24 @@ pub(crate) struct Note {
     pub commit_id: String,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) enum RevParse {
+    Single(String),
+    Range(String, String),
+}
+
+impl Display for RevParse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Single(inner) => f.write_str(inner.as_str()),
+            Self::Range(first, second) => write!(f, "{first}..{second}"),
+        }
+    }
+}
+
 pub(crate) trait Backend {
+    fn rev_parse(&self, range: &str) -> Result<RevParse, Error>;
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error>;
     fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
     fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
     fn read_note<T: serde::de::DeserializeOwned>(

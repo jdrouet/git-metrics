@@ -32,6 +32,65 @@ impl CommandBackend {
 }
 
 impl super::Backend for CommandBackend {
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
+        tracing::trace!("listing revisions in range {range:?}");
+        let output = self
+            .cmd()
+            .arg("rev-list")
+            .arg(range)
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout
+                .split('\n')
+                .filter(|v| !v.is_empty())
+                .map(String::from)
+                .collect())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
+            ))
+        }
+    }
+
+    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Error> {
+        tracing::trace!("parse revision range {range:?}");
+        let output = self
+            .cmd()
+            .arg("rev-parse")
+            .arg(range)
+            .output()
+            .map_err(unable_execute_git_command)?;
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut iter = stdout.split('\n').filter(|v| !v.is_empty());
+            if let Some(first) = iter.next() {
+                if let Some(second) = iter.next().and_then(|v| v.strip_prefix('^')) {
+                    Ok(super::RevParse::Range(
+                        first.to_string(),
+                        second.to_string(),
+                    ))
+                } else {
+                    Ok(super::RevParse::Single(first.to_string()))
+                }
+            } else {
+                Err(Error::new(
+                    "invalid range",
+                    std::io::Error::new(std::io::ErrorKind::InvalidInput, stdout),
+                ))
+            }
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(Error::new(
+                "git error",
+                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
+            ))
+        }
+    }
+
     fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<super::Note>, Error> {
         tracing::trace!("listing notes for ref {note_ref:?}");
         let output = self

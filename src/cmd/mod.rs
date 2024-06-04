@@ -4,6 +4,7 @@ use crate::backend::Backend;
 use crate::ExitCode;
 
 pub(crate) mod add;
+pub(crate) mod diff;
 pub(crate) mod log;
 pub(crate) mod pull;
 pub(crate) mod push;
@@ -23,6 +24,7 @@ pub(crate) trait Executor {
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum Command {
     Add(add::CommandAdd),
+    Diff(diff::CommandDiff),
     Log(log::CommandLog),
     Pull(pull::CommandPull),
     Push(push::CommandPush),
@@ -45,6 +47,7 @@ impl Command {
     ) -> ExitCode {
         let result = match self {
             Self::Add(inner) => inner.execute(repo, stdout),
+            Self::Diff(inner) => inner.execute(repo, stdout),
             Self::Log(inner) => inner.execute(repo, stdout),
             Self::Pull(inner) => inner.execute(repo, stdout),
             Self::Push(inner) => inner.execute(repo, stdout),
