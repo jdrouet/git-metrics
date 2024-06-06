@@ -15,6 +15,8 @@ cargo install --git https://github.com/jdrouet/git-metrics
 
 ## How to use it
 
+### Locally
+
 ```bash
 # fetch the remote metrics
 $ git metrics pull
@@ -34,6 +36,32 @@ binary-size{platform.arch="amd64", unit="byte"} 1024.0
 $ git metrics diff HEAD~2..HEAD
 - binary-size{platform.arch="amd64", unit="byte"} 512.0
 + binary-size{platform.arch="amd64", unit="byte"} 1024.0 (+200.00 %)
+```
+
+### With a github action
+
+```yaml
+name: monitoring metrics
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  building:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jdrouet/action-install-git-metrics@main
+      - name: getting binary size and pushing
+        run: |
+          git-metrics --backend command pull
+          git-metrics add binary-size \
+            --tag "platform.os: linux" \
+            --tag "platform.arch: x86_64" \
+            $(stat --printf="%s" path/to/binary)
+          git-metrics --backend command push
 ```
 
 ## Project goals
