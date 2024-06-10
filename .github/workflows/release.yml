@@ -38,7 +38,7 @@ jobs:
     name: build windows binaries
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: aarch64-pc-windows-msvc
@@ -73,7 +73,7 @@ jobs:
     needs:
       - build-windows-binaries
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: aarch64-apple-darwin
@@ -121,7 +121,7 @@ jobs:
       - build-macos-binaries
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: set up qemu
         uses: docker/setup-qemu-action@v3
       - name: set up docker buildx
@@ -168,6 +168,39 @@ jobs:
           name: binary-linux
           path: ./git-metrics_linux-*
           if-no-files-found: error
+
+  comment-metrics:
+    name: comment metrics on pull request
+    runs-on: ubuntu-latest
+    if: ${{ github.ref != 'refs/heads/main' && github.event_name == 'pull_request' }}
+    needs:
+      - build-windows-binaries
+      - build-macos-binaries
+      - build-linux-binaries
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-linux
+      - name: set git user
+        uses: ./.github/actions/git-user
+      - name: prepare git-metrics
+        run: |
+          chmod +x ./git-metrics_linux-x86_64
+          ./git-metrics_linux-x86_64 --backend command pull
+      - name: output git-metrics
+        id: diff
+        run: metrics=$(./git-metrics_linux-x86_64 diff) >> "$GITHUB_OUTPUT"
+      - name: commenting pull request
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            🦀 This is how your metrics evolved
+
+            ```
+            ${{ steps.diff.outputs.metrics }}
+            ```
 
   publish:
     name: publish
