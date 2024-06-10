@@ -189,6 +189,7 @@ jobs:
         run: |
           chmod +x ./git-metrics_linux-x86_64
           ./git-metrics_linux-x86_64 --backend command pull
+          ./git-metrics_linux-x86_64 diff main..HEAD
       - name: output git-metrics
         id: diff
         run: metrics=$(./git-metrics_linux-x86_64 diff main..HEAD) >> "$GITHUB_OUTPUT"
