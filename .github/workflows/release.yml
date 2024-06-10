@@ -70,8 +70,8 @@ jobs:
   build-macos-binaries:
     name: build macos binaries
     runs-on: macos-latest
-    needs:
-      - build-windows-binaries
+    # needs:
+    #   - build-windows-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -117,8 +117,8 @@ jobs:
   build-linux-binaries:
     name: build linux binaries
     runs-on: ubuntu-latest
-    needs:
-      - build-macos-binaries
+    # needs:
+    #   - build-macos-binaries
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -191,7 +191,7 @@ jobs:
           ./git-metrics_linux-x86_64 --backend command pull
       - name: output git-metrics
         id: diff
-        run: metrics=$(./git-metrics_linux-x86_64 diff) >> "$GITHUB_OUTPUT"
+        run: metrics=$(./git-metrics_linux-x86_64 diff main..HEAD) >> "$GITHUB_OUTPUT"
       - name: commenting pull request
         uses: thollander/actions-comment-pull-request@v2
         with:
