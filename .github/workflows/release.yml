@@ -196,15 +196,11 @@ jobs:
           metrics=$(./git-metrics_linux-x86_64 diff origin/$GITHUB_BASE_REF..HEAD)
           echo "🦀 This is how your metrics evolved" >> $GITHUB_STEP_SUMMARY
           echo >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          echo $metrics >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "```\n$metrics\n```" >> $GITHUB_STEP_SUMMARY
 
-          {
-            echo metrics<<EOF
-            echo $metrics
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
+          echo "metrics<<EOF" >> $GITHUB_OUTPUT
+          echo $metrics >> $GITHUB_OUTPUT
+          echo EOF >> $GITHUB_OUTPUT
       - name: commenting pull request
         uses: thollander/actions-comment-pull-request@v2
         with:
