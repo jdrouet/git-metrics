@@ -192,7 +192,19 @@ jobs:
         run: ./git-metrics_linux-x86_64 --backend command pull
       - name: output git-metrics
         id: diff
-        run: echo "metrics=$(./git-metrics_linux-x86_64 diff origin/$GITHUB_BASE_REF..HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          metrics=$(./git-metrics_linux-x86_64 diff origin/$GITHUB_BASE_REF..HEAD)
+          echo "🦀 This is how your metrics evolved" >> $GITHUB_STEP_SUMMARY
+          echo >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo $metrics >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+
+          {
+            echo metrics<<EOF
+            echo $metrics
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
       - name: commenting pull request
         uses: thollander/actions-comment-pull-request@v2
         with:
