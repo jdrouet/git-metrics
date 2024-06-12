@@ -191,7 +191,7 @@ jobs:
         run: ./git-metrics_linux-x86_64 --backend command pull
       - name: output git-metrics
         id: diff
-        run: metrics=$(./git-metrics_linux-x86_64 --backend command -vvvv diff main..HEAD) >> "$GITHUB_OUTPUT"
+        run: metrics=$(./git-metrics_linux-x86_64 --backend command -vvvvv diff main..HEAD) >> "$GITHUB_OUTPUT"
       - name: commenting pull request
         uses: thollander/actions-comment-pull-request@v2
         with:

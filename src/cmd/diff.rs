@@ -14,6 +14,7 @@ pub(crate) struct CommandDiff {
 }
 
 impl super::Executor for CommandDiff {
+    #[tracing::instrument(name = "diff", skip_all, fields(target = self.target.as_str()))]
     fn execute<B: Backend, Out: Write>(
         self,
         backend: B,
