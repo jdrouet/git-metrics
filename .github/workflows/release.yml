@@ -178,8 +178,7 @@ jobs:
       - build-macos-binaries
       - build-linux-binaries
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
@@ -194,7 +193,7 @@ jobs:
       - name: listing available branches
         run: git branch
       - name: try to diff
-        run: ./git-metrics_linux-x86_64 -vvvvv diff $GITHUB_BASE_REF..HEAD
+        run: ./git-metrics_linux-x86_64 -vvvvv diff origin/$GITHUB_BASE_REF..HEAD
       - name: output git-metrics
         id: diff
         run: metrics=$(./git-metrics_linux-x86_64 diff $GITHUB_BASE_REF..HEAD) >> "$GITHUB_OUTPUT"
