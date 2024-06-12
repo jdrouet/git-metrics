@@ -185,14 +185,13 @@ jobs:
           name: binary-linux
       - name: set git user
         uses: ./.github/actions/git-user
-      - name: prepare git-metrics
-        run: |
-          chmod +x ./git-metrics_linux-x86_64
-          ./git-metrics_linux-x86_64 --backend command pull
-          ./git-metrics_linux-x86_64 diff main..HEAD
+      - name: make git-metrics executable
+        run: chmod +x ./git-metrics_linux-x86_64
+      - name: pull git-metrics
+        run: ./git-metrics_linux-x86_64 --backend command pull
       - name: output git-metrics
         id: diff
-        run: metrics=$(./git-metrics_linux-x86_64 diff main..HEAD) >> "$GITHUB_OUTPUT"
+        run: metrics=$(./git-metrics_linux-x86_64 --backend command -vvvv diff main..HEAD) >> "$GITHUB_OUTPUT"
       - name: commenting pull request
         uses: thollander/actions-comment-pull-request@v2
         with:
