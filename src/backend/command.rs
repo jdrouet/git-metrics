@@ -42,6 +42,7 @@ impl super::Backend for CommandBackend {
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
             Ok(stdout
                 .split('\n')
                 .filter(|v| !v.is_empty())
@@ -49,6 +50,7 @@ impl super::Backend for CommandBackend {
                 .collect())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "git error",
                 std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
@@ -66,6 +68,7 @@ impl super::Backend for CommandBackend {
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
             let mut iter = stdout.split('\n').filter(|v| !v.is_empty());
             if let Some(first) = iter.next() {
                 if let Some(second) = iter.next().and_then(|v| v.strip_prefix('^')) {
@@ -84,6 +87,7 @@ impl super::Backend for CommandBackend {
             }
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "git error",
                 std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
@@ -102,6 +106,7 @@ impl super::Backend for CommandBackend {
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
             Ok(stdout
                 .split('\n')
                 .filter_map(|line| {
@@ -114,6 +119,7 @@ impl super::Backend for CommandBackend {
                 .collect())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "git error",
                 std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
@@ -136,6 +142,7 @@ impl super::Backend for CommandBackend {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "git error",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),
@@ -160,6 +167,7 @@ impl super::Backend for CommandBackend {
             .map_err(unable_execute_git_command)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
             let note: T = toml::from_str(&stdout).map_err(|err| {
                 tracing::error!("unable to deserialize: {err:?}");
                 Error::new("unable to deserialize note", err)
@@ -167,6 +175,7 @@ impl super::Backend for CommandBackend {
             Ok(Some(note))
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             if stderr.starts_with("error: no note found for object") {
                 return Ok(None);
             }
@@ -205,6 +214,7 @@ impl super::Backend for CommandBackend {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "git error",
                 std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
@@ -225,6 +235,7 @@ impl super::Backend for CommandBackend {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::trace!("stderr {stderr:?}");
 
             if stderr.starts_with("fatal: couldn't find remote ref") {
                 Ok(())
@@ -253,7 +264,7 @@ impl super::Backend for CommandBackend {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("unable to push metrics");
-            tracing::trace!("{stderr}");
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "unable to push metrics",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),
@@ -275,12 +286,14 @@ impl super::Backend for CommandBackend {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("something went wrong when getting commits");
+            tracing::trace!("stderr {stderr:?}");
             Err(Error::new(
                 "something went wrong when getting commits",
                 std::io::Error::new(std::io::ErrorKind::Other, stderr),
             ))
         } else {
             let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
             Ok(stdout
                 .split('\n')
                 .map(|item| item.trim())

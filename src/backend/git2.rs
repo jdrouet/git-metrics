@@ -93,6 +93,7 @@ impl Git2Backend {
 
 impl Backend for Git2Backend {
     fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
+        tracing::trace!("listing revisions in range {range:?}");
         let mut revwalk = self
             .repo
             .revwalk()
@@ -112,6 +113,7 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
+            tracing::trace!("using from {:?}", from.id());
             revwalk
                 .push(from.id())
                 .map_err(with_error!("unable to push commit id in revwalk"))?;
@@ -130,10 +132,12 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.to is None"),
                 )
             })?;
+            tracing::trace!("using range {:?}..{:?}", from.id(), to.id());
             revwalk
                 .push(to.id())
                 .map_err(with_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
+                tracing::trace!("using mode MERGE_BASE");
                 let base = self
                     .repo
                     .merge_base(from.id(), to.id())
@@ -161,6 +165,7 @@ impl Backend for Git2Backend {
     }
 
     fn rev_parse(&self, range: &str) -> Result<super::RevParse, Error> {
+        tracing::trace!("parse revision range {range:?}");
         let revspec = self
             .repo
             .revparse(range.as_ref())
@@ -173,6 +178,7 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.from is None"),
                 )
             })?;
+            tracing::trace!("using from {:?}", commit.id());
             Ok(super::RevParse::Single(commit.id().to_string()))
         } else {
             let first = revspec.from().ok_or_else(|| {
@@ -189,6 +195,7 @@ impl Backend for Git2Backend {
                     git2::Error::from_str("revspec.to is None"),
                 )
             })?;
+            tracing::trace!("using range {:?}..{:?}", first.id(), second.id());
             Ok(RevParse::Range(
                 first.id().to_string(),
                 second.id().to_string(),
