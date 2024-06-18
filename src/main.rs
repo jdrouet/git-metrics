@@ -68,7 +68,7 @@ struct Args {
     )]
     backend: Backend,
     /// Enables verbosity
-    #[clap(short, long, action = clap::ArgAction::Count)]
+    #[clap(short, long, action = clap::ArgAction::Count, env = "VERBOSITY")]
     verbose: u8,
     #[command(subcommand)]
     command: cmd::Command,
