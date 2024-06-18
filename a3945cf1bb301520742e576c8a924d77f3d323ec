@@ -1,6 +1,6 @@
 [[metrics]]
 name = "binary-size"
-value = 2897640.0
+value = 2914744.0
 
 [metrics.tags]
 "build.target" = "x86_64-apple-darwin"
@@ -10,7 +10,7 @@ unit = "byte"
 
 [[metrics]]
 name = "binary-size"
-value = 2897640.0
+value = 2914744.0
 
 [metrics.tags]
 "build.target" = "aarch64-apple-darwin"
