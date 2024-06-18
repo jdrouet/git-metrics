@@ -4,6 +4,7 @@ pub(crate) mod tests;
 mod backend;
 mod cmd;
 mod entity;
+mod error;
 mod service;
 
 use std::path::PathBuf;

@@ -18,7 +18,7 @@ macro_rules! with_git2_error {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-    #[error("{message}\n\n{source}")]
+    #[error("{message}")]
     Git2 {
         message: &'static str,
         #[source]
@@ -26,16 +26,29 @@ pub(crate) enum Error {
     },
     #[error("{message}")]
     Race { message: &'static str },
-    #[error("unable to deserialize metrics\n\n{source}")]
+    #[error("unable to deserialize metrics")]
     Deserialize {
+        #[from]
         #[source]
         source: toml::de::Error,
     },
-    #[error("unable to serialize metrics\n\n{source}")]
+    #[error("unable to serialize metrics")]
     Serialize {
+        #[from]
         #[source]
         source: toml::ser::Error,
     },
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            Self::Git2 { message: _, source } => Some(source.to_string()),
+            Self::Deserialize { source } => Some(source.to_string()),
+            Self::Serialize { source } => Some(source.to_string()),
+            _ => None,
+        }
+    }
 }
 
 impl Error {
@@ -131,7 +144,7 @@ impl Git2Backend {
 impl Backend for Git2Backend {
     type Err = Error;
 
-    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         tracing::trace!("listing revisions in range {range:?}");
         let mut revwalk = self
             .repo
@@ -195,7 +208,7 @@ impl Backend for Git2Backend {
         Ok(res)
     }
 
-    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Error> {
+    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Self::Err> {
         tracing::trace!("parse revision range {range:?}");
         let revspec = self
             .repo
@@ -225,7 +238,7 @@ impl Backend for Git2Backend {
         }
     }
 
-    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Error> {
+    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Self::Err> {
         tracing::trace!("listing notes for ref {note_ref}");
         let notes = match self.repo.notes(Some(&note_ref.to_string())) {
             Ok(notes) => notes,
@@ -246,7 +259,7 @@ impl Backend for Git2Backend {
             .collect())
     }
 
-    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Error> {
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Self::Err> {
         tracing::trace!("removing note for target {target:?} and {note_ref:?}");
         let rev_id = self.revision_id(target)?;
         let sig = self.signature()?;
@@ -261,7 +274,7 @@ impl Backend for Git2Backend {
         &self,
         target: &str,
         note_ref: &NoteRef,
-    ) -> Result<Option<T>, Error> {
+    ) -> Result<Option<T>, Self::Err> {
         tracing::trace!("reading note for target {target:?} and ref {note_ref:?}");
         let rev_id = self.revision_id(target)?;
 
@@ -289,7 +302,7 @@ impl Backend for Git2Backend {
         target: &str,
         note_ref: &NoteRef,
         value: &T,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Self::Err> {
         tracing::trace!("setting note for target {target:?} and ref {note_ref:?}",);
         let head_id = self.revision_id(target)?;
         let sig = self.signature()?;
@@ -313,7 +326,7 @@ impl Backend for Git2Backend {
         Ok(())
     }
 
-    fn pull(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Error> {
+    fn pull(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
         let config = self
             .repo
             .config()
@@ -340,7 +353,7 @@ impl Backend for Git2Backend {
         Ok(())
     }
 
-    fn push(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Error> {
+    fn push(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
         let config = self
             .repo
             .config()
@@ -366,9 +379,10 @@ impl Backend for Git2Backend {
                 Some(&mut push_opts),
             )
             .map_err(with_git2_error!("unable to push metrics"))
+            .map_err(Self::Err::from)
     }
 
-    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Self::Err> {
         let mut revwalk = self
             .repo
             .revwalk()

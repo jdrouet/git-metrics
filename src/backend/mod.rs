@@ -16,6 +16,32 @@ use crate::entity::{Commit, Metric};
 
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
 
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Error {
+    #[cfg(feature = "impl-command")]
+    #[error(transparent)]
+    Command(#[from] crate::backend::command::Error),
+    #[cfg(feature = "impl-git2")]
+    #[error(transparent)]
+    Git2(#[from] crate::backend::git2::Error),
+    #[cfg(test)]
+    #[error(transparent)]
+    Mock(#[from] crate::backend::mock::Error),
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            #[cfg(feature = "impl-command")]
+            Self::Command(inner) => inner.details(),
+            #[cfg(feature = "impl-git2")]
+            Self::Git2(inner) => inner.details(),
+            #[cfg(test)]
+            Self::Mock(inner) => inner.details(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum NoteRef {
     Changes,
@@ -40,19 +66,6 @@ impl std::fmt::Display for NoteRef {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 struct NoteContent {
     metrics: Vec<Metric>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
-    #[cfg(feature = "impl-command")]
-    #[error(transparent)]
-    Command(#[from] command::Error),
-    #[cfg(feature = "impl-git2")]
-    #[error(transparent)]
-    Git2(#[from] git2::Error),
-    #[cfg(test)]
-    #[error(transparent)]
-    Mock(#[from] mock::Error),
 }
 
 #[derive(Debug)]

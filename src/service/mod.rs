@@ -11,7 +11,7 @@ pub(crate) mod show;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-    #[error("unable to write to stdout or stderr\n\n{0}")]
+    #[error("unable to write output")]
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Backend(crate::backend::Error),
@@ -20,6 +20,15 @@ pub(crate) enum Error {
 impl<E: Into<crate::backend::Error>> From<E> for Error {
     fn from(value: E) -> Self {
         Self::Backend(value.into())
+    }
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            Self::Io(inner) => Some(inner.to_string()),
+            Self::Backend(inner) => inner.details(),
+        }
     }
 }
 
@@ -95,20 +104,5 @@ impl<B: Backend> Service<B> {
         let payload = MetricList { metrics };
         self.backend.write_note(commit_sha, note_ref, &payload)?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn should_display_nice_error() {
-        let err = super::Error::Io(std::io::Error::new(
-            std::io::ErrorKind::AlreadyExists,
-            "whatever",
-        ));
-        assert_eq!(
-            format!("{err}"),
-            "unable to write to stdout or stderr\n\nwhatever"
-        );
     }
 }

@@ -5,19 +5,44 @@ use crate::backend::REMOTE_METRICS_REF;
 use crate::entity::Commit;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("unable to execute git commange\n\n{0}")]
-    UnableToExecute(#[from] std::io::Error),
-    #[error("{0}")]
+pub(crate) enum Error {
+    #[error("unable to execute")]
+    UnableToExecute {
+        #[from]
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("execution failed")]
     Failed(String),
-    #[error("invalid range\n\n{0}")]
+    #[error("invalid git range")]
     InvalidRange(String),
-    #[error("unable to deserialize note\n\n{0}")]
-    Deserializing(toml::de::Error),
-    #[error("unable to serialize note\n\n{0}")]
-    Serializing(toml::ser::Error),
-    #[error("unable to push metrics\n\n{0}")]
+    #[error("unable to deserialize metrics")]
+    Deserialize {
+        #[from]
+        #[source]
+        source: toml::de::Error,
+    },
+    #[error("unable to serialize metrics")]
+    Serialize {
+        #[from]
+        #[source]
+        source: toml::ser::Error,
+    },
+    #[error("unable to push metrics")]
     UnableToPush(String),
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            Self::Deserialize { source } => Some(source.to_string()),
+            Self::Failed(inner) | Self::InvalidRange(inner) | Self::UnableToPush(inner) => {
+                Some(inner.clone())
+            }
+            Self::Serialize { source } => Some(source.to_string()),
+            Self::UnableToExecute { source } => Some(source.to_string()),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -46,12 +71,7 @@ impl super::Backend for CommandBackend {
 
     fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         tracing::trace!("listing revisions in range {range:?}");
-        let output = self
-            .cmd()
-            .arg("rev-list")
-            .arg(range)
-            .output()
-            .map_err(Error::from)?;
+        let output = self.cmd().arg("rev-list").arg(range).output()?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -69,12 +89,7 @@ impl super::Backend for CommandBackend {
 
     fn rev_parse(&self, range: &str) -> Result<super::RevParse, Self::Err> {
         tracing::trace!("parse revision range {range:?}");
-        let output = self
-            .cmd()
-            .arg("rev-parse")
-            .arg(range)
-            .output()
-            .map_err(Error::from)?;
+        let output = self.cmd().arg("rev-parse").arg(range).output()?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -105,8 +120,7 @@ impl super::Backend for CommandBackend {
             .arg("notes")
             .arg("--ref")
             .arg(note_ref.to_string())
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -136,8 +150,7 @@ impl super::Backend for CommandBackend {
             .arg(note_ref.to_string())
             .arg("remove")
             .arg(target)
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
         if output.status.success() {
             Ok(())
         } else {
@@ -160,15 +173,11 @@ impl super::Backend for CommandBackend {
             .arg(note_ref.to_string())
             .arg("show")
             .arg(target)
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
-            let note: T = toml::from_str(&stdout).map_err(|err| {
-                tracing::error!("unable to deserialize: {err:?}");
-                Error::Deserializing(err)
-            })?;
+            let note: T = toml::from_str(&stdout)?;
             Ok(Some(note))
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -187,10 +196,7 @@ impl super::Backend for CommandBackend {
         value: &T,
     ) -> Result<(), Self::Err> {
         tracing::trace!("setting note for target {target:?} and note {note_ref:?}",);
-        let message = toml::to_string(value).map_err(|err| {
-            tracing::error!("unable to serialize metrics: {err:?}");
-            Error::Serializing(err)
-        })?;
+        let message = toml::to_string(value)?;
         let output = self
             .cmd()
             .arg("notes")
@@ -201,8 +207,7 @@ impl super::Backend for CommandBackend {
             .arg("-m")
             .arg(message.as_str())
             .arg(target)
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
 
         if output.status.success() {
             Ok(())
@@ -220,8 +225,7 @@ impl super::Backend for CommandBackend {
             .arg("fetch")
             .arg(remote)
             .arg(format!("+{REMOTE_METRICS_REF}:{local_ref}",))
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
         if output.status.success() {
             Ok(())
         } else {
@@ -246,8 +250,7 @@ impl super::Backend for CommandBackend {
             .arg("push")
             .arg(remote)
             .arg(format!("{local_ref}:{REMOTE_METRICS_REF}",))
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -265,8 +268,7 @@ impl super::Backend for CommandBackend {
             .arg("log")
             .arg("--format=format:%H:%s")
             .arg(range)
-            .output()
-            .map_err(Error::from)?;
+            .output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

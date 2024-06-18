@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use super::Error;
 use crate::backend::{Backend, RevParse};
 use crate::entity::MetricStack;
 
@@ -14,7 +13,7 @@ fn show_diff<Out: Write>(
     output: &mut Out,
     before: MetricStack,
     mut after: MetricStack,
-) -> Result<(), Error> {
+) -> Result<(), super::Error> {
     for previous in before.into_metric_iter() {
         match after.remove_entry(&previous.header) {
             Some(next) if next.value == previous.value => {
@@ -42,7 +41,7 @@ fn show_diff<Out: Write>(
 }
 
 impl<B: Backend> super::Service<B> {
-    fn stack_metrics(&self, remote_name: &str, range: &str) -> Result<MetricStack, Error> {
+    fn stack_metrics(&self, remote_name: &str, range: &str) -> Result<MetricStack, super::Error> {
         let mut stack = MetricStack::default();
         let mut commits = self.backend.rev_list(range)?;
         commits.reverse();
