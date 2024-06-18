@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "git-metrics"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "auth-git2",
  "clap",
