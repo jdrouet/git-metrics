@@ -1,13 +1,23 @@
 use std::path::PathBuf;
 
-use super::{Error, NoteRef};
+use super::NoteRef;
 use crate::backend::REMOTE_METRICS_REF;
 use crate::entity::Commit;
 
-#[inline]
-fn unable_execute_git_command(err: std::io::Error) -> Error {
-    tracing::error!("unable to execute git command: {err:?}");
-    Error::new("unable to execute git command", err)
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("unable to execute git commange\n\n{0}")]
+    UnableToExecute(#[from] std::io::Error),
+    #[error("{0}")]
+    Failed(String),
+    #[error("invalid range\n\n{0}")]
+    InvalidRange(String),
+    #[error("unable to deserialize note\n\n{0}")]
+    Deserializing(toml::de::Error),
+    #[error("unable to serialize note\n\n{0}")]
+    Serializing(toml::ser::Error),
+    #[error("unable to push metrics\n\n{0}")]
+    UnableToPush(String),
 }
 
 #[derive(Debug)]
@@ -32,14 +42,16 @@ impl CommandBackend {
 }
 
 impl super::Backend for CommandBackend {
-    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
+    type Err = Error;
+
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         tracing::trace!("listing revisions in range {range:?}");
         let output = self
             .cmd()
             .arg("rev-list")
             .arg(range)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -51,21 +63,18 @@ impl super::Backend for CommandBackend {
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
-    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Error> {
+    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Self::Err> {
         tracing::trace!("parse revision range {range:?}");
         let output = self
             .cmd()
             .arg("rev-parse")
             .arg(range)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -80,22 +89,16 @@ impl super::Backend for CommandBackend {
                     Ok(super::RevParse::Single(first.to_string()))
                 }
             } else {
-                Err(Error::new(
-                    "invalid range",
-                    std::io::Error::new(std::io::ErrorKind::InvalidInput, stdout),
-                ))
+                Err(Error::InvalidRange(stdout.into()))
             }
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
-    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<super::Note>, Error> {
+    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<super::Note>, Self::Err> {
         tracing::trace!("listing notes for ref {note_ref:?}");
         let output = self
             .cmd()
@@ -103,7 +106,7 @@ impl super::Backend for CommandBackend {
             .arg("--ref")
             .arg(note_ref.to_string())
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
@@ -120,14 +123,11 @@ impl super::Backend for CommandBackend {
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
-    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Error> {
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Self::Err> {
         tracing::trace!("removing note for target {target:?} and {note_ref:?}");
         let output = self
             .cmd()
@@ -137,16 +137,13 @@ impl super::Backend for CommandBackend {
             .arg("remove")
             .arg(target)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::Other, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
@@ -154,7 +151,7 @@ impl super::Backend for CommandBackend {
         &self,
         target: &str,
         note_ref: &NoteRef,
-    ) -> Result<Option<T>, Error> {
+    ) -> Result<Option<T>, Self::Err> {
         tracing::trace!("getting note for target {target:?} and note {note_ref:?}");
         let output = self
             .cmd()
@@ -164,13 +161,13 @@ impl super::Backend for CommandBackend {
             .arg("show")
             .arg(target)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
             let note: T = toml::from_str(&stdout).map_err(|err| {
                 tracing::error!("unable to deserialize: {err:?}");
-                Error::new("unable to deserialize note", err)
+                Error::Deserializing(err)
             })?;
             Ok(Some(note))
         } else {
@@ -179,10 +176,7 @@ impl super::Backend for CommandBackend {
             if stderr.starts_with("error: no note found for object") {
                 return Ok(None);
             }
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
@@ -191,11 +185,11 @@ impl super::Backend for CommandBackend {
         target: &str,
         note_ref: &NoteRef,
         value: &T,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Self::Err> {
         tracing::trace!("setting note for target {target:?} and note {note_ref:?}",);
         let message = toml::to_string(value).map_err(|err| {
             tracing::error!("unable to serialize metrics: {err:?}");
-            Error::new("unable to serialize metrics", err)
+            Error::Serializing(err)
         })?;
         let output = self
             .cmd()
@@ -208,21 +202,18 @@ impl super::Backend for CommandBackend {
             .arg(message.as_str())
             .arg(target)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
 
         if output.status.success() {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "git error",
-                std::io::Error::new(std::io::ErrorKind::InvalidData, stderr),
-            ))
+            Err(Error::Failed(stderr))
         }
     }
 
-    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error> {
+    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
         tracing::trace!("pulling metrics");
         let output = self
             .cmd()
@@ -230,7 +221,7 @@ impl super::Backend for CommandBackend {
             .arg(remote)
             .arg(format!("+{REMOTE_METRICS_REF}:{local_ref}",))
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
         if output.status.success() {
             Ok(())
         } else {
@@ -242,15 +233,12 @@ impl super::Backend for CommandBackend {
             } else {
                 tracing::error!("something went wrong when fetching metrics");
                 tracing::trace!("{stderr}");
-                Err(Error::new(
-                    "something went wrong when fetching metrics",
-                    std::io::Error::new(std::io::ErrorKind::Other, stderr),
-                ))
+                Err(Error::Failed(stderr.into()))
             }
         }
     }
 
-    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error> {
+    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
         tracing::trace!("pushing metrics");
 
         let output = self
@@ -259,38 +247,32 @@ impl super::Backend for CommandBackend {
             .arg(remote)
             .arg(format!("{local_ref}:{REMOTE_METRICS_REF}",))
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("unable to push metrics");
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "unable to push metrics",
-                std::io::Error::new(std::io::ErrorKind::Other, stderr),
-            ))
+            Err(Error::UnableToPush(stderr.into()))
         } else {
             Ok(())
         }
     }
 
-    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Self::Err> {
         let output = self
             .cmd()
             .arg("log")
             .arg("--format=format:%H:%s")
             .arg(range)
             .output()
-            .map_err(unable_execute_git_command)?;
+            .map_err(Error::from)?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("something went wrong when getting commits");
             tracing::trace!("stderr {stderr:?}");
-            Err(Error::new(
-                "something went wrong when getting commits",
-                std::io::Error::new(std::io::ErrorKind::Other, stderr),
-            ))
+            Err(Error::Failed(stderr.into()))
         } else {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");

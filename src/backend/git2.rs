@@ -1,16 +1,53 @@
 use std::path::PathBuf;
 
-use super::{Backend, Error, Note, NoteRef, REMOTE_METRICS_REF};
+use super::{Backend, Note, NoteRef, REMOTE_METRICS_REF};
 use crate::backend::RevParse;
 use crate::entity::Commit;
 
-macro_rules! with_error {
+macro_rules! with_git2_error {
     ($msg:expr) => {
         |err| {
             tracing::error!(concat!($msg, ": {:?}"), err);
-            Error::new($msg, err)
+            Error::Git2 {
+                message: $msg,
+                source: err,
+            }
         }
     };
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Error {
+    #[error("{message}\n\n{source}")]
+    Git2 {
+        message: &'static str,
+        #[source]
+        source: git2::Error,
+    },
+    #[error("{message}")]
+    Race { message: &'static str },
+    #[error("unable to deserialize metrics\n\n{source}")]
+    Deserialize {
+        #[source]
+        source: toml::de::Error,
+    },
+    #[error("unable to serialize metrics\n\n{source}")]
+    Serialize {
+        #[source]
+        source: toml::ser::Error,
+    },
+}
+
+impl Error {
+    #[inline]
+    fn git2(message: &'static str, source: git2::Error) -> Self {
+        Self::Git2 { message, source }
+    }
+
+    #[inline]
+    fn race(message: &'static str) -> Self {
+        Self::Race { message }
+    }
 }
 
 #[derive(Default)]
@@ -64,7 +101,7 @@ impl Git2Backend {
             .map(|rev| rev.id())
             .map_err(|err| {
                 tracing::error!("unable to find revision id for target {target:?}: {err:?}");
-                Error::new("target not found", err)
+                Error::git2("unable to find revision id", err)
             })
     }
 
@@ -72,7 +109,7 @@ impl Git2Backend {
         tracing::trace!("fetching signature");
         self.repo.signature().map_err(|err| {
             tracing::error!("unable to get signature: {err:?}");
-            Error::new("unable to get signature", err)
+            Error::git2("unable to get signature", err)
         })
     }
 
@@ -92,72 +129,66 @@ impl Git2Backend {
 }
 
 impl Backend for Git2Backend {
+    type Err = Error;
+
     fn rev_list(&self, range: &str) -> Result<Vec<String>, Error> {
         tracing::trace!("listing revisions in range {range:?}");
         let mut revwalk = self
             .repo
             .revwalk()
-            .map_err(with_error!("unable to lookup commits"))?;
+            .map_err(with_git2_error!("unable to lookup commits"))?;
         revwalk
             .set_sorting(git2::Sort::TOPOLOGICAL)
-            .map_err(with_error!("unable to set sorting direction"))?;
+            .map_err(with_git2_error!("unable to set sorting direction"))?;
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_error!("unable to parse commit range"))?;
+            .map_err(with_git2_error!("unable to parse commit range"))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::race("unable to get range beginning: revspec.from is None")
             })?;
             tracing::trace!("using from {:?}", from.id());
             revwalk
                 .push(from.id())
-                .map_err(with_error!("unable to push commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
         } else {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::race("unable to get range beginning: revspec.from is None")
             })?;
             let to = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
-                Error::new(
-                    "unable to get range ending",
-                    git2::Error::from_str("revspec.to is None"),
-                )
+                Error::race("unable to get range ending: revspec.to is None")
             })?;
             tracing::trace!("using range {:?}..{:?}", from.id(), to.id());
             revwalk
                 .push(to.id())
-                .map_err(with_error!("unable to push commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 tracing::trace!("using mode MERGE_BASE");
                 let base = self
                     .repo
                     .merge_base(from.id(), to.id())
-                    .map_err(with_error!("unable to get merge base"))?;
+                    .map_err(with_git2_error!("unable to get merge base"))?;
                 let o = self
                     .repo
                     .find_object(base, Some(git2::ObjectType::Commit))
-                    .map_err(with_error!("unable to get commit"))?;
+                    .map_err(with_git2_error!("unable to get commit"))?;
                 revwalk
                     .push(o.id())
-                    .map_err(with_error!("unable to push commit id in revwalk"))?;
+                    .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
             }
             revwalk
                 .hide(from.id())
-                .map_err(with_error!("unable to hide commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to hide commit id in revwalk"))?;
         }
 
         let mut res = Vec::new();
         for commit in revwalk {
-            let commit_id = commit.map_err(with_error!("unable to get commit from revwalk"))?;
+            let commit_id =
+                commit.map_err(with_git2_error!("unable to get commit from revwalk"))?;
             res.push(commit_id.to_string());
         }
 
@@ -169,31 +200,22 @@ impl Backend for Git2Backend {
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_error!("unable to parse commit range"))?;
+            .map_err(with_git2_error!("unable to parse commit range"))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let commit = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::race("unable to get range beginning: revspec.from is None")
             })?;
             tracing::trace!("using from {:?}", commit.id());
             Ok(super::RevParse::Single(commit.id().to_string()))
         } else {
             let first = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::race("unable to get range beginning: revspec.from is None")
             })?;
             let second = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
-                Error::new(
-                    "unable to get range ending",
-                    git2::Error::from_str("revspec.to is None"),
-                )
+                Error::race("unable to get range ending: revspec.to is None")
             })?;
             tracing::trace!("using range {:?}..{:?}", first.id(), second.id());
             Ok(RevParse::Range(
@@ -212,7 +234,7 @@ impl Backend for Git2Backend {
                 if error.message() == not_found_msg {
                     return Ok(Vec::with_capacity(0));
                 }
-                return Err(with_error!("unable to list notes")(error));
+                return Err(with_git2_error!("unable to list notes")(error));
             }
         };
         Ok(notes
@@ -230,7 +252,7 @@ impl Backend for Git2Backend {
         let sig = self.signature()?;
         self.repo
             .note_delete(rev_id, Some(&note_ref.to_string()), &sig, &sig)
-            .map_err(with_error!("unable to remove note"))?;
+            .map_err(with_git2_error!("unable to remove note"))?;
 
         Ok(())
     }
@@ -251,9 +273,10 @@ impl Backend for Git2Backend {
         note.message()
             .map(|msg| {
                 tracing::trace!("deserializing note content");
-                toml::from_str::<T>(msg)
-                    .map(Some)
-                    .map_err(with_error!("unable to deserialize not"))
+                toml::from_str::<T>(msg).map(Some).map_err(|err| {
+                    tracing::error!("unable to deserialize metrics: {err:?}");
+                    Error::Deserialize { source: err }
+                })
             })
             .unwrap_or_else(|| {
                 tracing::debug!("no message found for note {:?}", note.id());
@@ -272,8 +295,10 @@ impl Backend for Git2Backend {
         let sig = self.signature()?;
 
         tracing::trace!("serializing metrics");
-        let note =
-            toml::to_string_pretty(value).map_err(with_error!("unable to serialize metrics"))?;
+        let note = toml::to_string_pretty(value).map_err(|err| {
+            tracing::error!("unable to serialize metrics: {err:?}");
+            Error::Serialize { source: err }
+        })?;
         self.repo
             .note(
                 &sig,
@@ -283,7 +308,7 @@ impl Backend for Git2Backend {
                 &note,
                 true,
             )
-            .map_err(with_error!("unable to persist metrics"))?;
+            .map_err(with_git2_error!("unable to persist metrics"))?;
 
         Ok(())
     }
@@ -292,11 +317,11 @@ impl Backend for Git2Backend {
         let config = self
             .repo
             .config()
-            .map_err(with_error!("unable to read config"))?;
+            .map_err(with_git2_error!("unable to read config"))?;
         let mut remote = self
             .repo
             .find_remote(remote_name)
-            .map_err(with_error!("unable to find remote"))?;
+            .map_err(with_git2_error!("unable to find remote"))?;
 
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
@@ -310,23 +335,20 @@ impl Backend for Git2Backend {
                 Some(&mut fetch_opts),
                 None,
             )
-            .map_err(|err| {
-                tracing::error!("unable to pull metrics: {err:?}");
-                Error::new("unable to pull metrics", err)
-            })?;
+            .map_err(with_git2_error!("unable to pull metrics"))?;
 
         Ok(())
     }
 
     fn push(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Error> {
-        let config = self.repo.config().map_err(|err| {
-            tracing::error!("unable to read config: {err:?}");
-            Error::new("unable to read config", err)
-        })?;
+        let config = self
+            .repo
+            .config()
+            .map_err(with_git2_error!("unable to read config"))?;
         let mut remote = self
             .repo
             .find_remote(remote_name)
-            .map_err(with_error!("unable to find remote"))?;
+            .map_err(with_git2_error!("unable to find remote"))?;
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
@@ -343,75 +365,71 @@ impl Backend for Git2Backend {
                 &[format!("{local_ref}:{REMOTE_METRICS_REF}",)],
                 Some(&mut push_opts),
             )
-            .map_err(with_error!("unable to push metrics"))
+            .map_err(with_git2_error!("unable to push metrics"))
     }
 
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error> {
         let mut revwalk = self
             .repo
             .revwalk()
-            .map_err(with_error!("unable to lookup commits"))?;
+            .map_err(with_git2_error!("unable to lookup commits"))?;
         revwalk
             .set_sorting(git2::Sort::TOPOLOGICAL)
-            .map_err(with_error!("unable to set sorting direction"))?;
+            .map_err(with_git2_error!("unable to set sorting direction"))?;
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_error!("unable to parse commit range"))?;
+            .map_err(with_git2_error!("unable to parse commit range"))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::Race {
+                    message: "unable to get range beginning: revspec.from is None",
+                }
             })?;
             revwalk
                 .push(from.id())
-                .map_err(with_error!("unable to push commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
         } else {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
-                Error::new(
-                    "unable to get range beginning",
-                    git2::Error::from_str("revspec.from is None"),
-                )
+                Error::Race {
+                    message: "unable to get range beginning",
+                }
             })?;
             let to = revspec.to().ok_or_else(|| {
                 tracing::error!("unable to get range ending");
-                Error::new(
-                    "unable to get range ending",
-                    git2::Error::from_str("revspec.to is None"),
-                )
+                Error::race("unable to get range ending: revspec.to is None")
             })?;
             revwalk
                 .push(to.id())
-                .map_err(with_error!("unable to push commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
             if revspec.mode().contains(git2::RevparseMode::MERGE_BASE) {
                 let base = self
                     .repo
                     .merge_base(from.id(), to.id())
-                    .map_err(with_error!("unable to get merge base"))?;
+                    .map_err(with_git2_error!("unable to get merge base"))?;
                 let o = self
                     .repo
                     .find_object(base, Some(git2::ObjectType::Commit))
-                    .map_err(with_error!("unable to get commit"))?;
+                    .map_err(with_git2_error!("unable to get commit"))?;
                 revwalk
                     .push(o.id())
-                    .map_err(with_error!("unable to push commit id in revwalk"))?;
+                    .map_err(with_git2_error!("unable to push commit id in revwalk"))?;
             }
             revwalk
                 .hide(from.id())
-                .map_err(with_error!("unable to hide commit id in revwalk"))?;
+                .map_err(with_git2_error!("unable to hide commit id in revwalk"))?;
         }
 
         let mut result = Vec::new();
         for commit_id in revwalk {
-            let commit_id = commit_id.map_err(with_error!("unable to get commit from revwalk"))?;
+            let commit_id =
+                commit_id.map_err(with_git2_error!("unable to get commit from revwalk"))?;
             let commit = self
                 .repo
                 .find_commit(commit_id)
-                .map_err(with_error!("unable to get commit"))?;
+                .map_err(with_git2_error!("unable to get commit"))?;
             let summary = commit.summary().map(String::from).unwrap_or_default();
             result.push(Commit {
                 sha: commit_id.to_string(),
