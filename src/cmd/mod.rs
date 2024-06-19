@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::backend::Backend;
-use crate::error::ErrorWriter;
+use crate::error::DetailedError;
 use crate::ExitCode;
 
 pub(crate) mod add;
@@ -57,9 +57,7 @@ impl Command {
         };
 
         if let Err(error) = result {
-            crate::error::SimpleErrorWriter
-                .write(stderr, error)
-                .expect("couldn't log error");
+            error.write(stderr).expect("couldn't log error");
             ExitCode::Failure
         } else {
             ExitCode::Success
