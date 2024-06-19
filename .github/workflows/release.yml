@@ -1,0 +1,67 @@
+name: release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "rust-toolchain.toml"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.rs"
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.release_for }}
+    strategy:
+      matrix:
+        platform:
+          # - release_for: windows-x86_64
+          #   os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   bin: git-metrics.exe
+          #   name: git-metrics-win-x86_64.zip
+          #   command: build
+          # - release_for: windows-arm64
+          #   os: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          #   bin: git-metrics.exe
+          #   name: git-metrics-win-arm64.zip
+          #   command: build
+
+          # - release_for: macos-x86_64
+          #   os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   bin: git-metrics
+          #   name: git-metrics-darwin-x86_64.zip
+          #   command: build
+          # - release_for: macos-arm64
+          #   os: macos-latest
+          #   target: aarch64-apple-darwin
+          #   bin: git-metrics
+          #   name: git-metrics-darwin-arm64.zip
+          #   command: build
+
+          - release_for: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: git-metrics
+            name: git-metrics-linux-x86_64.zip
+            command: build
+          - release_for: linux-arm64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            bin: git-metrics
+            name: git-metrics-linux-arm64.zip
+            command: build
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
