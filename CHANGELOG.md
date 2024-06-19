@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/jdrouet/git-metrics/compare/v0.1.3...v0.1.4) - 2024-06-19
+
+### Added
+- improve error message ([#35](https://github.com/jdrouet/git-metrics/pull/35))
+
 ## [0.1.3](https://github.com/jdrouet/git-metrics/compare/v0.1.2...v0.1.3) - 2024-06-18
 
 ### Added
