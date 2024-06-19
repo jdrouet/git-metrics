@@ -11,10 +11,25 @@ pub(crate) mod show;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-    #[error("unable to write to stdout or stderr")]
+    #[error("unable to write output")]
     Io(#[from] std::io::Error),
-    #[error("{0}")]
-    Backend(#[from] crate::backend::Error),
+    #[error(transparent)]
+    Backend(crate::backend::Error),
+}
+
+impl<E: Into<crate::backend::Error>> From<E> for Error {
+    fn from(value: E) -> Self {
+        Self::Backend(value.into())
+    }
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            Self::Io(inner) => Some(inner.to_string()),
+            Self::Backend(inner) => inner.details(),
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]

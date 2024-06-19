@@ -1,9 +1,34 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::{cell::RefCell, fmt::Display};
 
 use super::{NoteRef, RevParse};
 use crate::entity::Commit;
+
+#[derive(Debug)]
+pub(crate) struct Error {
+    message: &'static str,
+}
+
+impl Error {
+    fn new(message: &'static str) -> Self {
+        Self { message }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.message.fmt(f)
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        None
+    }
+}
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct MockBackend(Rc<MockBackendInner>);
@@ -44,7 +69,8 @@ impl MockBackend {
 }
 
 impl super::Backend for MockBackend {
-    fn rev_list(&self, range: &str) -> Result<Vec<String>, super::Error> {
+    type Err = Error;
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         Ok(self
             .0
             .rev_lists
@@ -54,38 +80,30 @@ impl super::Backend for MockBackend {
             .unwrap_or_default())
     }
 
-    fn rev_parse(&self, range: &str) -> Result<super::RevParse, super::Error> {
+    fn rev_parse(&self, range: &str) -> Result<super::RevParse, Self::Err> {
         self.0
             .rev_parses
             .borrow()
             .get(range)
             .cloned()
-            .ok_or_else(|| {
-                super::Error::new(
-                    "invalid range for rev_parse",
-                    Box::new(std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        range.to_string(),
-                    )),
-                )
-            })
+            .ok_or_else(|| Error::new("invalid range for rev_parse"))
     }
 
-    fn list_notes(&self, _note_ref: &NoteRef) -> Result<Vec<super::Note>, super::Error> {
+    fn list_notes(&self, _note_ref: &NoteRef) -> Result<Vec<super::Note>, Self::Err> {
         todo!()
     }
 
-    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), super::Error> {
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Self::Err> {
         let key = format!("{target}/{note_ref}");
         self.0.notes.borrow_mut().remove(&key);
         Ok(())
     }
 
-    fn pull(&self, _remote: &str, _local_ref: &NoteRef) -> Result<(), super::Error> {
+    fn pull(&self, _remote: &str, _local_ref: &NoteRef) -> Result<(), Self::Err> {
         todo!()
     }
 
-    fn push(&self, _remote: &str, _local_ref: &NoteRef) -> Result<(), super::Error> {
+    fn push(&self, _remote: &str, _local_ref: &NoteRef) -> Result<(), Self::Err> {
         todo!()
     }
 
@@ -93,13 +111,11 @@ impl super::Backend for MockBackend {
         &self,
         target: &str,
         note_ref: &NoteRef,
-    ) -> Result<Option<T>, super::Error> {
+    ) -> Result<Option<T>, Self::Err> {
         let key = format!("{target}/{note_ref}");
         if let Some(value) = self.0.notes.borrow().get(&key) {
-            let value: T = toml::from_str(value).map_err(|error| super::Error {
-                message: "unable to deserialize",
-                source: Box::new(error),
-            })?;
+            let value: T =
+                toml::from_str(value).map_err(|_| Error::new("unable to deserialize"))?;
             Ok(Some(value))
         } else {
             Ok(None)
@@ -111,17 +127,15 @@ impl super::Backend for MockBackend {
         target: &str,
         note_ref: &NoteRef,
         value: &T,
-    ) -> Result<(), super::Error> {
+    ) -> Result<(), Self::Err> {
         let key = format!("{target}/{note_ref}");
-        let value = toml::to_string_pretty(&value).map_err(|error| super::Error {
-            message: "unable to serialize",
-            source: Box::new(error),
-        })?;
+        let value =
+            toml::to_string_pretty(&value).map_err(|_| Error::new("unable to serialize"))?;
         self.0.notes.borrow_mut().insert(key, value);
         Ok(())
     }
 
-    fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::Commit>, super::Error> {
+    fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::Commit>, Self::Err> {
         Ok(self.0.commits.clone())
     }
 }

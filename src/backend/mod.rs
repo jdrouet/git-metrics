@@ -11,11 +11,36 @@ pub(crate) mod mock;
 pub(crate) use command::CommandBackend;
 #[cfg(feature = "impl-git2")]
 pub(crate) use git2::Git2Backend;
-use serde::Serializer;
 
 use crate::entity::{Commit, Metric};
 
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum Error {
+    #[cfg(feature = "impl-command")]
+    #[error(transparent)]
+    Command(#[from] crate::backend::command::Error),
+    #[cfg(feature = "impl-git2")]
+    #[error(transparent)]
+    Git2(#[from] crate::backend::git2::Error),
+    #[cfg(test)]
+    #[error(transparent)]
+    Mock(#[from] crate::backend::mock::Error),
+}
+
+impl crate::error::DetailedError for Error {
+    fn details(&self) -> Option<String> {
+        match self {
+            #[cfg(feature = "impl-command")]
+            Self::Command(inner) => inner.details(),
+            #[cfg(feature = "impl-git2")]
+            Self::Git2(inner) => inner.details(),
+            #[cfg(test)]
+            Self::Mock(inner) => inner.details(),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) enum NoteRef {
@@ -44,34 +69,6 @@ struct NoteContent {
 }
 
 #[derive(Debug)]
-pub(crate) struct Error {
-    message: &'static str,
-    source: Box<dyn std::error::Error + 'static>,
-}
-
-impl Error {
-    #[inline]
-    fn new<E: std::error::Error + 'static>(message: &'static str, err: E) -> Self {
-        Self {
-            message,
-            source: Box::new(err),
-        }
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.serialize_str(self.message)
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(self.source.as_ref())
-    }
-}
-
-#[derive(Debug)]
 pub(crate) struct Note {
     #[allow(dead_code)]
     pub note_id: String,
@@ -94,22 +91,24 @@ impl Display for RevParse {
 }
 
 pub(crate) trait Backend {
-    fn rev_parse(&self, range: &str) -> Result<RevParse, Error>;
-    fn rev_list(&self, range: &str) -> Result<Vec<String>, Error>;
-    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
-    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Error>;
+    type Err: Into<Error>;
+
+    fn rev_parse(&self, range: &str) -> Result<RevParse, Self::Err>;
+    fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err>;
+    fn pull(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Self::Err>;
+    fn push(&self, remote: &str, local_ref: &NoteRef) -> Result<(), Self::Err>;
     fn read_note<T: serde::de::DeserializeOwned>(
         &self,
         target: &str,
         note_ref: &NoteRef,
-    ) -> Result<Option<T>, Error>;
+    ) -> Result<Option<T>, Self::Err>;
     fn write_note<T: serde::Serialize>(
         &self,
         target: &str,
         note_ref: &NoteRef,
         value: &T,
-    ) -> Result<(), Error>;
-    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Error>;
-    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Error>;
-    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Error>;
+    ) -> Result<(), Self::Err>;
+    fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Self::Err>;
+    fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Self::Err>;
+    fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Self::Err>;
 }
