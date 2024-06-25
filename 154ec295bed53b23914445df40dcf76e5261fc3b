@@ -1,0 +1,19 @@
+[[metrics]]
+name = "binary-size"
+value = 2897016.0
+
+[metrics.tags]
+"build.target" = "x86_64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 2897000.0
+
+[metrics.tags]
+"build.target" = "aarch64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "aarch64"
+unit = "byte"
