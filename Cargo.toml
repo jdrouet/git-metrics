@@ -5,6 +5,7 @@ authors = ["Jeremie Drouet <jeremie.drouet@gmail.com>"]
 license = "MIT"
 version = "0.1.4"
 edition = "2021"
+repository = "https://github.com/jdrouet/git-metrics"
 
 [features]
 default = ["impl-command", "impl-git2"]
