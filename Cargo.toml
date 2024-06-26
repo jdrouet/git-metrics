@@ -15,7 +15,7 @@ impl-git2 = ["dep:git2", "dep:auth-git2"]
 [dependencies]
 auth-git2 = { version = "0.5.4", optional = true, features = ["log"] }
 clap = { version = "4.5.4", features = ["derive", "env"] }
-git2 = { version = "0.18.3", optional = true }
+git2 = { version = "0.18.3", optional = true, features = ["vendored-openssl"] }
 indexmap = { version = "2.2.6", features = ["serde"] }
 serde = { version = "1.0.200", features = ["derive"] }
 thiserror = { version = "1.0.60" }
