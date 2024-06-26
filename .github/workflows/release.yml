@@ -20,53 +20,36 @@ on:
       - "**.rs"
 
 jobs:
-  build-binaries:
-    name: build binaries
-
-    strategy:
-      fail-fast: false
-      matrix:
-        build:
-          # - platform: windows-latest
-          #   target: aarch64-pc-windows-msvc
-          #   generate: git-metrics.exe
-          #   filename: git-metrics_win-aarch64.exe
-          - platform: windows-latest
-            target: x86_64-pc-windows-msvc
-            generate: git-metrics.exe
-            filename: git-metrics_win-x86_64.exe
-
-          # - platform: macos-latest
-          #   target: aarch64-apple-darwin
-          #   generate: git-metrics
-          #   filename: git-metrics_darwin-aarch64
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-            generate: git-metrics
-            filename: git-metrics_darwin-x86_64
-
-          - platform: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            generate: git-metrics
-            filename: git-metrics_linux-x86_64
-
-    runs-on: ${{ matrix.build.platform }}
+  build-linux-x86_64:
+    name: build linux x86_64 binary
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: ${{ matrix.build.target }}
-      - name: install openssl on macos
-        if: ${{ matrix.build.platform == 'macos-latest' }}
-        run: brew install openssl
+          target: x86_64-unknown-linux-gnu
       - name: build binary
-        run: cargo build --release --target ${{ matrix.build.target }}
+        run: cargo build --release --target x86_64-unknown-linux-gnu
       - name: strip binary
-        run: strip target/${{ matrix.build.target }}/release/${{ matrix.build.generate }}
+        run: strip target/x86_64-unknown-linux-gnu/release/git-metrics
       - name: rename binary
-        run: mv target/${{ matrix.build.target }}/release/${{ matrix.build.generate }} ./${{ matrix.build.filename }}
-      - uses: actions/upload-artifact@v4
+        run: mv target/x86_64-unknown-linux-gnu/release/git-metrics ./git-metrics_linux-x86_64
+
+  build-linux-aarch64:
+    name: build linux aarch64 binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          name: binary-${{ matrix.build.target }}
-          path: ${{ matrix.build.filename }}
-          if-no-files-found: error
+          target: aarch64-unknown-linux-gnu
+      - run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get --assume-yes install libssl-dev:arm64
+      - name: build binary
+        run: cargo build --release --target aarch64-unknown-linux-gnu
+      - name: strip binary
+        run: strip target/aarch64-unknown-linux-gnu/release/git-metrics
+      - name: rename binary
+        run: mv target/aarch64-unknown-linux-gnu/release/git-metrics ./git-metrics_linux-aarch64
