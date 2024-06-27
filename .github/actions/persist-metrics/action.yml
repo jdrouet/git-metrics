@@ -1,0 +1,32 @@
+name: persist-metrics
+description: save binary sizes with git-metrics
+inputs:
+  push:
+    description: "Should we push metrics"
+    required: true
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - name: set git user
+      uses: ./.github/actions/git-user
+    - name: make git-metrics executable
+      shell: bash
+      run: chmod +x ./git-metrics_linux-x86_64
+
+    - name: pull metrics
+      shell: bash
+      run: ./git-metrics_linux-x86_64 --backend command pull
+    - name: set metrics
+      shell: bash
+      run: |
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-x86_64.exe)
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-aarch64.exe)
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-x86_64)
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-aarch64)
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-x86_64)
+        ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-aarch64)
+    - name: push metrics
+      if: ${{ inputs.push == 'true' }}
+      shell: bash
+      run: ./git-metrics_linux-x86_64 --backend command push

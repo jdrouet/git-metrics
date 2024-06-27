@@ -1,0 +1,14 @@
+name: download-binaries
+description: download the binaries that were previously built
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: binary-windows
+    - uses: actions/download-artifact@v4
+      with:
+        name: binary-darwin
+    - uses: actions/download-artifact@v4
+      with:
+        name: binary-linux

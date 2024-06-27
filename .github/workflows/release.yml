@@ -39,31 +39,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - name: download binaries
+        uses: ./.github/actions/download-binaries
+      - name: persist metrics
+        uses: ./.github/actions/persist-metrics
         with:
-          name: binary-windows
-      - uses: actions/download-artifact@v4
-        with:
-          name: binary-darwin
-      - uses: actions/download-artifact@v4
-        with:
-          name: binary-linux
-
-      - name: set git user
-        uses: ./.github/actions/git-user
-      - name: make git-metrics executable
-        run: chmod +x ./git-metrics_linux-x86_64
-
-      - name: publish metrics
-        run: |
-          ./git-metrics_linux-x86_64 --backend command pull
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-x86_64.exe)
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-aarch64.exe)
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-x86_64)
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-aarch64)
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-x86_64)
-          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-aarch64)
-          ./git-metrics_linux-x86_64 --backend command push
+          push: "true"
 
   publish:
     name: publish
@@ -72,15 +53,9 @@ jobs:
     needs:
       - execute-build
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: binary-windows
-      - uses: actions/download-artifact@v4
-        with:
-          name: binary-darwin
-      - uses: actions/download-artifact@v4
-        with:
-          name: binary-linux
+      - name: download binaries
+        uses: ./.github/actions/download-binaries
+
       - name: get release id from tag
         id: release_id
         run: |
