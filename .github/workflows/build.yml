@@ -1,14 +1,6 @@
 name: build
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/release.yml"
-      - "rust-toolchain.toml"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - "**.rs"
-
   workflow_call:
   workflow_dispatch:
 

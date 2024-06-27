@@ -1,0 +1,67 @@
+name: pr build
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "rust-toolchain.toml"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**.rs"
+
+jobs:
+  execute-build:
+    uses: ./.github/workflows/build.yml
+
+  persist-metrics:
+    name: persist metrics with git-metrics
+    runs-on: ubuntu-latest
+    needs:
+      - execute-build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-darwin
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-linux
+
+      - name: set git user
+        uses: ./.github/actions/git-user
+      - name: make git-metrics executable
+        run: chmod +x ./git-metrics_linux-x86_64
+
+      - name: publish metrics
+        run: |
+          ./git-metrics_linux-x86_64 --backend command pull
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-x86_64.exe)
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-pc-windows-msvc" --tag "platform.os: windows" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_win-aarch64.exe)
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-x86_64)
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-aarch64)
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-x86_64)
+          ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-aarch64)
+
+      - name: output git-metrics
+        id: diff
+        run: |
+          echo "metrics<<EOF" >> $GITHUB_OUTPUT
+          ./git-metrics_linux-x86_64 diff origin/$GITHUB_BASE_REF..HEAD >> $GITHUB_OUTPUT
+          echo EOF >> $GITHUB_OUTPUT
+
+      - name: commenting pull request
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          comment_tag: metrics
+          message: |
+            🦀 This is how your metrics evolved
+
+            ```
+            ${{ steps.diff.outputs.metrics }}
+            ```
