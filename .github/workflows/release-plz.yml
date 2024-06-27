@@ -1,0 +1,37 @@
+name: release-plz
+
+permissions:
+  pull-requests: write
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-plz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: run release-plz
+        id: release-plz
+        uses: MarcoIeni/release-plz-action@v0.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    outputs:
+      releases: ${{ steps.release-plz.outputs.releases }}
+
+  trigger-release:
+    needs:
+      - release-plz
+    if: ${{ needs.release-plz.outputs.releases != '[]' }}
+    uses: ./.github/workflows/release.yml
+    with:
+      release_tag: ${{ fromJSON(needs.release-plz.outputs.releases)[0].tag }}
