@@ -5,11 +5,13 @@ use crate::entity::MetricStack;
 
 #[derive(Debug)]
 pub(crate) struct Options {
+    pub keep_previous: bool,
     pub remote: String,
     pub target: String,
 }
 
 fn show_diff<Out: Write>(
+    keep_previous: bool,
     output: &mut Out,
     before: MetricStack,
     mut after: MetricStack,
@@ -29,9 +31,10 @@ fn show_diff<Out: Write>(
                     writeln!(output, "+ {next}")?;
                 }
             }
-            _ => {
+            _ if keep_previous => {
                 writeln!(output, "  {previous}")?;
             }
+            _ => {}
         }
     }
     for metric in after.into_metric_iter() {
@@ -71,7 +74,7 @@ impl<B: Backend> super::Service<B> {
             }
         };
 
-        show_diff(stdout, before, after)
+        show_diff(opts.keep_previous, stdout, before, after)
     }
 }
 
@@ -82,7 +85,7 @@ mod tests {
     use crate::service::Service;
 
     #[test]
-    fn should_render_diff_with_single_target() {
+    fn should_render_diff_with_single_target_keeping_previous() {
         let mut stdout = Vec::new();
         let backend = MockBackend::default();
         backend.set_rev_parse("HEAD", RevParse::Single("aaaaaaa".into()));
@@ -114,6 +117,7 @@ value = 1.0
             .diff(
                 &mut stdout,
                 &super::Options {
+                    keep_previous: true,
                     remote: "origin".into(),
                     target: "HEAD".into(),
                 },
@@ -124,6 +128,53 @@ value = 1.0
             r#"- first 1.0
 + first 2.0 (+100.00 %)
   second 1.0
+"#
+        );
+    }
+
+    #[test]
+    fn should_render_diff_with_single_target_without_previous() {
+        let mut stdout = Vec::new();
+        let backend = MockBackend::default();
+        backend.set_rev_parse("HEAD", RevParse::Single("aaaaaaa".into()));
+        backend.set_rev_list("aaaaaaa~1", ["aaaaaab", "aaaaaac", "aaaaaad", "aaaaaae"]);
+        backend.set_note(
+            "aaaaaaa",
+            NoteRef::remote_metrics("origin"),
+            r#"[[metrics]]
+name = "first"
+tags = {}
+value = 2.0
+"#,
+        );
+        backend.set_note(
+            "aaaaaac",
+            NoteRef::remote_metrics("origin"),
+            r#"[[metrics]]
+name = "first"
+tags = {}
+value = 1.0
+
+[[metrics]]
+name = "second"
+tags = {}
+value = 1.0
+"#,
+        );
+        Service::new(backend)
+            .diff(
+                &mut stdout,
+                &super::Options {
+                    keep_previous: false,
+                    remote: "origin".into(),
+                    target: "HEAD".into(),
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&stdout),
+            r#"- first 1.0
++ first 2.0 (+100.00 %)
 "#
         );
     }
@@ -184,6 +235,7 @@ value = 0.1
             .diff(
                 &mut stdout,
                 &super::Options {
+                    keep_previous: true,
                     remote: "origin".into(),
                     target: "HEAD~3..HEAD".into(),
                 },
