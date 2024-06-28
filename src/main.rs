@@ -11,6 +11,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+// Whatever, trigger
 pub(crate) enum ExitCode {
     Success,
     Failure,
