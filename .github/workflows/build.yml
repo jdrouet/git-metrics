@@ -1,0 +1,81 @@
+name: build
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-windows-binaries:
+    name: build windows binaries
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-pc-windows-msvc
+      - name: build binary for amd64
+        run: cargo build --release --target x86_64-pc-windows-msvc
+      - name: rename binary for amd64
+        run: mv target/x86_64-pc-windows-msvc/release/git-metrics.exe ./git-metrics_win-x86_64.exe
+      - name: build binary for arm64
+        run: cargo build --release --target aarch64-pc-windows-msvc
+      - name: rename binary for arm64
+        run: mv target/aarch64-pc-windows-msvc/release/git-metrics.exe ./git-metrics_win-aarch64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-windows
+          path: git-metrics_win-*
+          if-no-files-found: error
+
+  build-macos-binaries:
+    name: build macos binaries
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-apple-darwin
+      - name: build binary for amd64
+        run: |
+          cargo build --release
+          strip target/release/git-metrics
+      - run: mv ./target/release/git-metrics ./git-metrics_darwin-x86_64
+      - name: build binary for arm64
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          strip target/aarch64-apple-darwin/release/git-metrics
+      - run: mv ./target/aarch64-apple-darwin/release/git-metrics ./git-metrics_darwin-aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-darwin
+          path: git-metrics_darwin-*
+          if-no-files-found: error
+
+  build-linux-binaries:
+    name: build linux binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: set up qemu
+        uses: docker/setup-qemu-action@v3
+      - name: set up docker buildx
+        uses: docker/setup-buildx-action@v3
+      - name: build binaries using buildx
+        uses: docker/build-push-action@v5
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=local,dest=${{ github.workspace }}
+          platforms: linux/amd64,linux/arm64
+          push: false
+          target: binary
+      - name: move binaries
+        run: |
+          mv ./linux_amd64/git-metrics ./git-metrics_linux-x86_64
+          mv ./linux_arm64/git-metrics ./git-metrics_linux-aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux
+          path: ./git-metrics_linux-*
+          if-no-files-found: error

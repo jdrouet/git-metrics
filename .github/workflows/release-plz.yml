@@ -28,7 +28,7 @@ jobs:
     outputs:
       releases: ${{ steps.release-plz.outputs.releases }}
 
-  trigger-build:
+  trigger-release:
     needs:
       - release-plz
     if: ${{ needs.release-plz.outputs.releases != '[]' }}
