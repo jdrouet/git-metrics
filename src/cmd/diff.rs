@@ -6,6 +6,9 @@ use crate::service::Service;
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub(crate) struct CommandDiff {
+    /// When enabled, the metrics prior the provided range will be displayed
+    #[clap(long)]
+    keep_previous: bool,
     /// Commit range, default to HEAD
     ///
     /// Can use ranges like HEAD~2..HEAD
@@ -21,6 +24,7 @@ impl super::Executor for CommandDiff {
         stdout: &mut Out,
     ) -> Result<(), crate::service::Error> {
         let opts = crate::service::diff::Options {
+            keep_previous: self.keep_previous,
             remote: String::from("origin"),
             target: self.target,
         };
