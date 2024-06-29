@@ -3,6 +3,7 @@ pub(crate) mod tests;
 
 mod backend;
 mod cmd;
+mod config;
 mod entity;
 mod error;
 mod service;

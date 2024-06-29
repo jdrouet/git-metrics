@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::{cell::RefCell, fmt::Display};
 
@@ -35,6 +36,7 @@ pub(crate) struct MockBackend(Rc<MockBackendInner>);
 
 #[derive(Debug, Default)]
 pub(crate) struct MockBackendInner {
+    root_dir: PathBuf,
     commits: Vec<Commit>,
     notes: RefCell<HashMap<String, String>>,
     rev_parses: RefCell<HashMap<String, RevParse>>,
@@ -70,6 +72,7 @@ impl MockBackend {
 
 impl super::Backend for MockBackend {
     type Err = Error;
+
     fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         Ok(self
             .0
@@ -137,5 +140,9 @@ impl super::Backend for MockBackend {
 
     fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::Commit>, Self::Err> {
         Ok(self.0.commits.clone())
+    }
+
+    fn root_path(&self) -> Result<std::path::PathBuf, Self::Err> {
+        Ok(self.0.root_dir.clone())
     }
 }

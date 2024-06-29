@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 #[cfg(feature = "impl-command")]
 mod command;
@@ -111,4 +111,5 @@ pub(crate) trait Backend {
     fn remove_note(&self, target: &str, note_ref: &NoteRef) -> Result<(), Self::Err>;
     fn list_notes(&self, note_ref: &NoteRef) -> Result<Vec<Note>, Self::Err>;
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Self::Err>;
+    fn root_path(&self) -> Result<PathBuf, Self::Err>;
 }

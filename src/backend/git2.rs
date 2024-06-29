@@ -453,4 +453,12 @@ impl Backend for Git2Backend {
 
         Ok(result)
     }
+
+    fn root_path(&self) -> Result<PathBuf, Self::Err> {
+        let git_dir = self.repo.path();
+        git_dir.parent().map(PathBuf::from).ok_or_else(|| {
+            tracing::error!("unable to find parent directory for .git directory");
+            Error::race("unable to find parent directory for .git directory")
+        })
+    }
 }
