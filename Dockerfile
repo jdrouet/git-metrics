@@ -20,6 +20,8 @@ RUN apt-get update \
     && apt-get install -y git \
     && rm -rf /var/lib/apt/lists
 
+RUN cargo install cargo-deb
+
 ENV USER=root
 
 WORKDIR /code
@@ -33,6 +35,12 @@ COPY --from=vendor /code/vendor /code/vendor
 RUN cargo build --release --offline \
     && strip /code/target/release/git-metrics
 
+COPY LICENSE /code/LICENSE
+COPY readme.md /code/readme.md
+
+RUN cargo deb --no-build --package git-metrics
+
 FROM scratch AS binary
 
 COPY --from=builder /code/target/release/git-metrics /git-metrics
+COPY --from=builder /code/target/debian/git-metrics_*.deb /

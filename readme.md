@@ -81,6 +81,14 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
 ```
 
+## How to build
+
+Building the binary on linux leverages the docker multiarch feature. To build the binary and the `deb` file, you can do it using the following command.
+
+```bash
+docker build --target binary --output=. .
+```
+
 ## Project goals
 
 - [x] `git-metrics show` displays the metrics to the current commit

@@ -27,3 +27,24 @@ tracing-subscriber = { version = "0.3.18" }
 mockall = "0.12.1"
 tempfile = "3.10.1"
 test-case = "3.3.1"
+
+[package.metadata.deb]
+maintainer = "Jeremie Drouet <jeremie.drouet@gmail.com>"
+copyright = "20124, Jeremie Drouet <jeremie.drouet@gmail.com>"
+license-file = ["LICENSE", "4"]
+extended-description = "A git extension to store metrics directly in git, using the notes."
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    [
+        "target/release/git-metrics",
+        "usr/bin/",
+        "755",
+    ],
+    [
+        "readme.md",
+        "usr/share/doc/git-metrics/README",
+        "644",
+    ],
+]

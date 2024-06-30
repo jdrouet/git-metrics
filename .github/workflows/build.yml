@@ -73,9 +73,11 @@ jobs:
       - name: move binaries
         run: |
           mv ./linux_amd64/git-metrics ./git-metrics_linux-x86_64
+          mv ./linux_amd64/git-metrics_*.deb ./
           mv ./linux_arm64/git-metrics ./git-metrics_linux-aarch64
+          mv ./linux_arm64/git-metrics_*.deb ./
       - uses: actions/upload-artifact@v4
         with:
           name: binary-linux
-          path: ./git-metrics_linux-*
+          path: ./git-metrics_*
           if-no-files-found: error
