@@ -44,6 +44,9 @@ $ git metrics diff HEAD~2..HEAD
 name: monitoring metrics
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -53,15 +56,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          # this is needed for reporting metrics
+          fetch-depth: 0
+      # set the git identity to be able to save and push the metrics
+      - uses: jdrouet/action-git-identity@main
       - uses: jdrouet/action-install-git-metrics@main
-      - name: getting binary size and pushing
-        run: |
-          git-metrics --backend command pull
-          git-metrics add binary-size \
-            --tag "platform.os: linux" \
-            --tag "platform.arch: x86_64" \
-            $(stat --printf="%s" path/to/binary)
-          git-metrics --backend command push
+      - uses: jdrouet/action-execute-git-metrics@main
+        with:
+          pull: 'true'
+          # set that to true when not a pull request
+          push: ${{ github.event_name != 'pull_request' }}
+          script: git-metrics add binary-size --tag "platform: linux" 1024
+      # add a comment message to your pull request reporting the evolution
+      - uses: jdrouet/action-report-git-metrics@main
+        if: ${{ github.event_name == 'pull_request' }}
 ```
 
 ## Project goals
