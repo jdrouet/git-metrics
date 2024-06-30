@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/jdrouet/git-metrics/compare/v0.1.4...v0.2.0) - 2024-06-30
+
+### Added
+- [**breaking**] hide previous metrics by default and add option ([#43](https://github.com/jdrouet/git-metrics/pull/43))
+
+### Other
+- add image to readme
+- update readme to display report
+- extract build workflow ([#41](https://github.com/jdrouet/git-metrics/pull/41))
+- fix commit lint rules
+- Add the repository field to Cargo.toml ([#39](https://github.com/jdrouet/git-metrics/pull/39))
+- update condition for triggering deployment
+
 ## [0.1.4](https://github.com/jdrouet/git-metrics/compare/v0.1.3...v0.1.4) - 2024-06-19
 
 ### Added
