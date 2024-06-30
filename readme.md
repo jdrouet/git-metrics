@@ -40,6 +40,10 @@ $ git metrics diff HEAD~2..HEAD
 
 ### With a github action
 
+With `git-metrics`, using [the GitHub actions](https://github.com/jdrouet/action-report-git-metrics), you can even add a report to every pull request that opens on your project.
+
+![diff report](asset/report-comment.png)
+
 ```yaml
 name: monitoring metrics
 
@@ -72,6 +76,12 @@ jobs:
       - uses: jdrouet/action-report-git-metrics@main
         if: ${{ github.event_name == 'pull_request' }}
 ```
+
+## Related projects
+
+- GitHub action to install `git-metrics`: https://github.com/jdrouet/action-install-git-metrics
+- GitHub action to execute `git-metrics`: https://github.com/jdrouet/action-execute-git-metrics
+- GitHub action to report `git-metrics` diff: https://github.com/jdrouet/action-report-git-metrics
 
 ## Project goals
 
