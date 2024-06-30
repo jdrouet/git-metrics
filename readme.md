@@ -5,6 +5,14 @@ over time, you need an external tool to store those metrics. But these metrics
 could be stored withing the git repository. Git provides a mechanism of notes
 that `git-metrics` simplifies.
 
+## Features
+
+### Reporting metrics evolution
+
+With `git-metrics`, using [the GitHub actions](https://github.com/jdrouet/action-report-git-metrics), you can even add a report to every pull request that opens on your project.
+
+![diff report](asset/report-comment.png)
+
 ## How to install
 
 ### From sources
