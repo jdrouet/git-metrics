@@ -12,12 +12,8 @@ impl<B: Backend> super::Service<B> {
     fn open_config(&self) -> Result<crate::config::Config, super::Error> {
         let root = self.backend.root_path()?;
         let config_path = root.join(".git-metrics.toml");
-        println!("file={config_path:?}");
         let file = if config_path.is_file() {
-            crate::config::Config::from_path(&config_path).map_err(|err| {
-                eprintln!("unable to read config: {err:?}");
-                err
-            })?
+            crate::config::Config::from_path(&config_path)?
         } else {
             Default::default()
         };
@@ -46,13 +42,8 @@ impl<B: Backend> super::Service<B> {
         let mut failed_metrics: usize = 0;
         let mut success_metrics: usize = 0;
 
-        println!("CONFIG 1");
         let config = self.open_config()?;
-        println!("CONFIG 2");
         let mut before = before.into_inner();
-
-        println!("# before: {before:?}");
-        println!("# after: {after:?}");
 
         for (header, current) in after.into_inner().into_iter() {
             let previous = before.swap_remove(&header);
