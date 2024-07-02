@@ -1,65 +1,17 @@
 use std::io::Write;
 
 use crate::backend::{Backend, RevParse};
+use crate::config::RuleError;
 use crate::entity::MetricStack;
 
 #[derive(Debug)]
 pub(crate) struct Options {
-    pub keep_previous: bool,
     pub remote: String,
     pub target: String,
 }
 
-fn show_diff<Out: Write>(
-    keep_previous: bool,
-    output: &mut Out,
-    before: MetricStack,
-    mut after: MetricStack,
-) -> Result<(), super::Error> {
-    for previous in before.into_metric_iter() {
-        match after.remove_entry(&previous.header) {
-            Some(next) if next.value == previous.value => {
-                writeln!(output, "= {previous}")?;
-            }
-            Some(next) if next.value != previous.value => {
-                if previous.value != 0.0 {
-                    let delta = (next.value - previous.value) * 100.0 / previous.value;
-                    writeln!(output, "- {previous}")?;
-                    writeln!(output, "+ {next} ({delta:+.2} %)")?;
-                } else {
-                    writeln!(output, "- {previous}")?;
-                    writeln!(output, "+ {next}")?;
-                }
-            }
-            _ if keep_previous => {
-                writeln!(output, "  {previous}")?;
-            }
-            _ => {}
-        }
-    }
-    for metric in after.into_metric_iter() {
-        writeln!(output, "+ {metric}")?;
-    }
-    Ok(())
-}
-
 impl<B: Backend> super::Service<B> {
-    pub(super) fn stack_metrics(
-        &self,
-        remote_name: &str,
-        range: &str,
-    ) -> Result<MetricStack, super::Error> {
-        let mut stack = MetricStack::default();
-        let mut commits = self.backend.rev_list(range)?;
-        commits.reverse();
-        for commit_sha in commits {
-            let metrics = self.get_metrics(commit_sha.as_str(), remote_name)?;
-            stack.extend(metrics);
-        }
-        Ok(stack)
-    }
-
-    pub(crate) fn diff<Out: Write>(
+    pub(crate) fn check<Out: Write>(
         &self,
         stdout: &mut Out,
         opts: &Options,
@@ -78,7 +30,36 @@ impl<B: Backend> super::Service<B> {
             }
         };
 
-        show_diff(opts.keep_previous, stdout, before, after)
+        let mut failed_metrics: usize = 0;
+        let mut success_metrics: usize = 0;
+
+        let config = crate::config::Config::default();
+        let mut before = before.into_inner();
+        for (header, current) in after.into_inner().into_iter() {
+            let previous = before.swap_remove(&header);
+            let failed = config.check(&header, previous, current);
+            if failed.is_empty() {
+                writeln!(stdout, "[SUCCESS] {header}")?;
+                success_metrics += 1;
+            } else {
+                writeln!(stdout, "[FAILURE] {header} ({} errors)", failed.len())?;
+                for error in failed {
+                    writeln!(stdout, "\t- {error}")?;
+                }
+                failed_metrics += 1;
+            }
+        }
+
+        if failed_metrics > 0 {
+            Err(super::Error::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "{failed_metrics} metrics failed and {success_metrics} metrics are successful"
+                ),
+            )))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -118,10 +99,9 @@ value = 1.0
 "#,
         );
         Service::new(backend)
-            .diff(
+            .check(
                 &mut stdout,
                 &super::Options {
-                    keep_previous: true,
                     remote: "origin".into(),
                     target: "HEAD".into(),
                 },
@@ -166,10 +146,9 @@ value = 1.0
 "#,
         );
         Service::new(backend)
-            .diff(
+            .check(
                 &mut stdout,
                 &super::Options {
-                    keep_previous: false,
                     remote: "origin".into(),
                     target: "HEAD".into(),
                 },
@@ -236,10 +215,9 @@ value = 0.1
 "#,
         );
         Service::new(backend)
-            .diff(
+            .check(
                 &mut stdout,
                 &super::Options {
-                    keep_previous: true,
                     remote: "origin".into(),
                     target: "HEAD~3..HEAD".into(),
                 },

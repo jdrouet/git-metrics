@@ -4,7 +4,39 @@ use indexmap::IndexMap;
 
 use crate::entity::MetricHeader;
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+pub(crate) enum RuleError {
+    Max { value: f64, limit: f64 },
+    Min { value: f64, limit: f64 },
+    MaxIncrease { value: f64, limit: f64 },
+    MaxDecrease { value: f64, limit: f64 },
+}
+
+impl std::fmt::Display for RuleError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Max { value, limit } => {
+                write!(f, "{value} is greater than the max allowed {limit}")
+            }
+            Self::Min { value, limit } => write!(f, "{value} is less than the min allowed {limit}"),
+            Self::MaxDecrease { value, limit } => write!(
+                f,
+                "decreased of {:.1}%, with a limit at {:.1}%",
+                value * 100.0,
+                limit * 100.0
+            ),
+            Self::MaxIncrease { value, limit } => write!(
+                f,
+                "increased of {:.1}%, with a limit at {:.1}%",
+                value * 100.0,
+                limit * 100.0
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub(crate) enum Rule {
     Max { value: f64 },
@@ -14,18 +46,39 @@ pub(crate) enum Rule {
 }
 
 impl Rule {
-    fn satisfies(&self, previous: Option<f64>, current: f64) -> bool {
-        match self {
-            Self::Max { value } => current <= *value,
-            Self::Min { value } => current >= *value,
-            Self::MaxIncrease { ratio } => previous
-                .map(|prev| (current - prev) / prev)
-                .map(|value| value <= *ratio)
-                .unwrap_or(true),
-            Self::MaxDecrease { ratio } => previous
-                .map(|prev| (current - prev) / prev)
-                .map(|value| value >= *ratio * -1.0)
-                .unwrap_or(true),
+    fn check(&self, previous: Option<f64>, current: f64) -> Option<RuleError> {
+        match (previous, self) {
+            (_, Self::Max { value }) if current > *value => Some(RuleError::Max {
+                value: current,
+                limit: *value,
+            }),
+            (_, Self::Min { value }) if current < *value => Some(RuleError::Min {
+                value: current,
+                limit: *value,
+            }),
+            (Some(previous), Self::MaxIncrease { ratio }) if previous != 0.0 => {
+                let value = (current - previous) / previous;
+                if value > *ratio {
+                    Some(RuleError::MaxIncrease {
+                        value,
+                        limit: *ratio,
+                    })
+                } else {
+                    None
+                }
+            }
+            (Some(previous), Self::MaxDecrease { ratio }) if previous != 0.0 => {
+                let value = (previous - current) / previous;
+                if value > *ratio {
+                    Some(RuleError::MaxDecrease {
+                        value,
+                        limit: *ratio,
+                    })
+                } else {
+                    None
+                }
+            }
+            _ => None,
         }
     }
 }
@@ -47,13 +100,23 @@ impl SubsetConfig {
             .all(|(key, value)| header.tags.get(key).map(|v| v == value).unwrap_or(false))
     }
 
-    fn satisfies(&self, header: &MetricHeader, previous: Option<f64>, current: f64) -> bool {
+    fn check(
+        &self,
+        header: &MetricHeader,
+        previous: Option<f64>,
+        current: f64,
+        failing: &mut Vec<RuleError>,
+    ) {
         // if they don't match all tags, then it satisfies
         if !self.match_all_tags(header) {
-            return true;
+            return;
         }
 
-        self.rules.iter().all(|r| r.satisfies(previous, current))
+        for rule in self.rules.iter() {
+            if let Some(error) = rule.check(previous, current) {
+                failing.push(error);
+            }
+        }
     }
 }
 
@@ -68,29 +131,43 @@ pub(crate) struct MetricConfig {
 }
 
 impl MetricConfig {
-    fn satisfies(&self, header: &MetricHeader, previous: Option<f64>, current: f64) -> bool {
-        if !self.rules.iter().all(|r| r.satisfies(previous, current)) {
-            return false;
+    fn check(
+        &self,
+        header: &MetricHeader,
+        previous: Option<f64>,
+        current: f64,
+        failing: &mut Vec<RuleError>,
+    ) {
+        for rule in self.rules.iter() {
+            if let Some(error) = rule.check(previous, current) {
+                failing.push(error);
+            }
         }
 
-        self.subsets
-            .values()
-            .all(|subset| subset.satisfies(header, previous, current))
+        for subset in self.subsets.values() {
+            subset.check(header, previous, current, failing);
+        }
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub(crate) struct Config {
     #[serde(default)]
     metrics: IndexMap<String, MetricConfig>,
 }
 
 impl Config {
-    fn satisfies(&self, header: &MetricHeader, previous: Option<f64>, current: f64) -> bool {
-        self.metrics
-            .get(&header.name)
-            .map(|m| m.satisfies(header, previous, current))
-            .unwrap_or(true)
+    pub(crate) fn check(
+        &self,
+        header: &MetricHeader,
+        previous: Option<f64>,
+        current: f64,
+    ) -> Vec<RuleError> {
+        let mut rules = Vec::new();
+        if let Some(m) = self.metrics.get(&header.name) {
+            m.check(header, previous, current, &mut rules);
+        }
+        rules
     }
 }
 
@@ -118,46 +195,110 @@ mod tests {
 
     use indexmap::IndexMap;
 
-    #[test_case::test_case(None, 5.0, true; "with smaller value")]
-    #[test_case::test_case(None, 10.0, true; "with same value")]
-    #[test_case::test_case(None, 12.0, false; "with bigger value")]
-    fn should_comply_max_rules(previous: Option<f64>, current: f64, expected: bool) {
+    #[test]
+    fn should_format_max() {
         assert_eq!(
-            super::Rule::Max { value: 10.0 }.satisfies(previous, current),
+            super::RuleError::Max {
+                value: 20.0,
+                limit: 10.0
+            }
+            .to_string(),
+            "20 is greater than the max allowed 10"
+        );
+    }
+
+    #[test]
+    fn should_format_min() {
+        assert_eq!(
+            super::RuleError::Min {
+                value: 10.0,
+                limit: 20.0
+            }
+            .to_string(),
+            "10 is less than the min allowed 20"
+        );
+    }
+
+    #[test]
+    fn should_format_max_decrease() {
+        assert_eq!(
+            super::RuleError::MaxDecrease {
+                value: 0.2,
+                limit: 0.1
+            }
+            .to_string(),
+            "decreased of 20.0%, with a limit at 10.0%"
+        );
+    }
+
+    #[test]
+    fn should_format_max_increase() {
+        assert_eq!(
+            super::RuleError::MaxIncrease {
+                value: 0.2,
+                limit: 0.1
+            }
+            .to_string(),
+            "increased of 20.0%, with a limit at 10.0%"
+        );
+    }
+
+    #[test_case::test_case(None, 5.0, None; "with smaller value")]
+    #[test_case::test_case(None, 10.0, None; "with same value")]
+    #[test_case::test_case(None, 12.0, Some(crate::config::RuleError::Max { value: 12.0, limit: 10.0 }); "with bigger value")]
+    fn should_comply_max_rules(
+        previous: Option<f64>,
+        current: f64,
+        expected: Option<super::RuleError>,
+    ) {
+        assert_eq!(
+            super::Rule::Max { value: 10.0 }.check(previous, current),
             expected
         );
     }
 
-    #[test_case::test_case(None, 5.0, false; "with smaller value")]
-    #[test_case::test_case(None, 10.0, true; "with same value")]
-    #[test_case::test_case(None, 15.0, true; "with bigger value")]
-    fn should_comply_min_rules(previous: Option<f64>, current: f64, expected: bool) {
+    #[test_case::test_case(None, 5.0, Some(crate::config::RuleError::Min { value: 5.0, limit: 10.0 }); "with smaller value")]
+    #[test_case::test_case(None, 10.0, None; "with same value")]
+    #[test_case::test_case(None, 15.0, None; "with bigger value")]
+    fn should_comply_min_rules(
+        previous: Option<f64>,
+        current: f64,
+        expected: Option<super::RuleError>,
+    ) {
         assert_eq!(
-            super::Rule::Min { value: 10.0 }.satisfies(previous, current),
+            super::Rule::Min { value: 10.0 }.check(previous, current),
             expected
         );
     }
 
-    #[test_case::test_case(None, 100.0, true; "without previous value")]
-    #[test_case::test_case(Some(120.0), 100.0, true; "with decrease")]
-    #[test_case::test_case(Some(100.0), 101.0, true; "with small increase")]
-    #[test_case::test_case(Some(100.0), 110.0, true; "with same increase")]
-    #[test_case::test_case(Some(100.0), 120.0, false; "with big increase")]
-    fn should_comply_max_increase_rules(previous: Option<f64>, current: f64, expected: bool) {
+    #[test_case::test_case(None, 100.0, None; "without previous value")]
+    #[test_case::test_case(Some(120.0), 100.0, None; "with decrease")]
+    #[test_case::test_case(Some(100.0), 101.0, None; "with small increase")]
+    #[test_case::test_case(Some(100.0), 110.0, None; "with same increase")]
+    #[test_case::test_case(Some(100.0), 120.0, Some(crate::config::RuleError::MaxIncrease { value: 0.2, limit: 0.1 }); "with big increase")]
+    fn should_comply_max_increase_rules(
+        previous: Option<f64>,
+        current: f64,
+        expected: Option<super::RuleError>,
+    ) {
         assert_eq!(
-            super::Rule::MaxIncrease { ratio: 0.1 }.satisfies(previous, current),
+            super::Rule::MaxIncrease { ratio: 0.1 }.check(previous, current),
             expected
         );
     }
 
-    #[test_case::test_case(None, 100.0, true; "without previous value")]
-    #[test_case::test_case(Some(100.0), 110.0, true; "with increase")]
-    #[test_case::test_case(Some(100.0), 99.0, true; "with small decrease")]
-    #[test_case::test_case(Some(100.0), 90.0, true; "with same decrease")]
-    #[test_case::test_case(Some(100.0), 80.0, false; "with big decrease")]
-    fn should_comply_max_decrease_rules(previous: Option<f64>, current: f64, expected: bool) {
+    #[test_case::test_case(None, 100.0, None; "without previous value")]
+    #[test_case::test_case(Some(100.0), 110.0, None; "with increase")]
+    #[test_case::test_case(Some(100.0), 99.0, None; "with small decrease")]
+    #[test_case::test_case(Some(100.0), 90.0, None; "with same decrease")]
+    #[test_case::test_case(Some(100.0), 80.0, Some(crate::config::RuleError::MaxDecrease { value: 0.2, limit: 0.1 }); "with big decrease")]
+    fn should_comply_max_decrease_rules(
+        previous: Option<f64>,
+        current: f64,
+        expected: Option<super::RuleError>,
+    ) {
         assert_eq!(
-            super::Rule::MaxDecrease { ratio: 0.1 }.satisfies(previous, current),
+            super::Rule::MaxDecrease { ratio: 0.1 }.check(previous, current),
             expected
         );
     }
@@ -212,9 +353,21 @@ value = 20.0
             name: "binary_size".into(),
             tags: Default::default(),
         };
-        assert!(config.satisfies(&header, None, 15.0));
-        assert!(!config.satisfies(&header, None, 8.0));
-        assert!(!config.satisfies(&header, None, 22.0));
+        assert!(config.check(&header, None, 15.0).is_empty());
+        assert_eq!(
+            config.check(&header, None, 8.0),
+            vec![super::RuleError::Min {
+                value: 8.0,
+                limit: 10.0
+            }]
+        );
+        assert_eq!(
+            config.check(&header, None, 22.0),
+            vec![super::RuleError::Max {
+                value: 22.0,
+                limit: 20.0
+            }]
+        );
     }
 
     #[test]
@@ -234,10 +387,22 @@ ratio = 0.1
             name: "binary_size".into(),
             tags: Default::default(),
         };
-        assert!(config.satisfies(&header, None, 100.0));
-        assert!(config.satisfies(&header, Some(100.0), 100.0));
-        assert!(!config.satisfies(&header, Some(100.0), 80.0));
-        assert!(!config.satisfies(&header, Some(100.0), 120.0));
+        assert!(config.check(&header, None, 100.0).is_empty());
+        assert!(config.check(&header, Some(100.0), 100.0).is_empty());
+        assert_eq!(
+            config.check(&header, Some(100.0), 80.0),
+            vec![super::RuleError::MaxDecrease {
+                value: 0.2,
+                limit: 0.1
+            }]
+        );
+        assert_eq!(
+            config.check(&header, Some(100.0), 120.0),
+            vec![super::RuleError::MaxIncrease {
+                value: 0.2,
+                limit: 0.1
+            }]
+        );
     }
 
     #[test]
@@ -268,10 +433,22 @@ ratio = 0.05
             name: "first".into(),
             tags: Default::default(),
         };
-        assert!(config.satisfies(&first, None, 100.0));
-        assert!(config.satisfies(&first, Some(100.0), 100.0));
-        assert!(!config.satisfies(&first, Some(100.0), 80.0));
-        assert!(!config.satisfies(&first, Some(100.0), 120.0));
+        assert!(config.check(&first, None, 100.0).is_empty());
+        assert!(config.check(&first, Some(100.0), 100.0).is_empty());
+        assert_eq!(
+            config.check(&first, Some(100.0), 80.0),
+            vec![super::RuleError::MaxDecrease {
+                value: 0.2,
+                limit: 0.1
+            }]
+        );
+        assert_eq!(
+            config.check(&first, Some(100.0), 120.0),
+            vec![super::RuleError::MaxIncrease {
+                value: 0.2,
+                limit: 0.1
+            }]
+        );
 
         let first_linux = crate::entity::MetricHeader {
             name: "first".into(),
@@ -281,16 +458,28 @@ ratio = 0.05
                 tags
             },
         };
-        assert!(config.satisfies(&first_linux, None, 100.0));
-        assert!(config.satisfies(&first_linux, Some(100.0), 100.0));
-        assert!(!config.satisfies(&first_linux, Some(100.0), 80.0));
-        assert!(config.satisfies(&first_linux, Some(100.0), 104.0));
-        assert!(!config.satisfies(&first_linux, Some(100.0), 106.0));
+        assert!(config.check(&first_linux, None, 100.0).is_empty());
+        assert!(config.check(&first_linux, Some(100.0), 100.0).is_empty());
+        assert_eq!(
+            config.check(&first_linux, Some(100.0), 80.0),
+            vec![super::RuleError::MaxDecrease {
+                value: 0.2,
+                limit: 0.1
+            }]
+        );
+        assert!(config.check(&first_linux, Some(100.0), 104.0).is_empty());
+        assert_eq!(
+            config.check(&first_linux, Some(100.0), 106.0),
+            vec![super::RuleError::MaxIncrease {
+                value: 0.06,
+                limit: 0.05
+            }]
+        );
 
         let second = crate::entity::MetricHeader {
             name: "second".into(),
             tags: Default::default(),
         };
-        assert!(config.satisfies(&second, None, 100.0));
+        assert!(config.check(&second, None, 100.0).is_empty());
     }
 }
