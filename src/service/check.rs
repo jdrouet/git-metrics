@@ -1,8 +1,6 @@
 use std::io::Write;
 
 use crate::backend::{Backend, RevParse};
-use crate::config::RuleError;
-use crate::entity::MetricStack;
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -11,6 +9,17 @@ pub(crate) struct Options {
 }
 
 impl<B: Backend> super::Service<B> {
+    fn open_config(&self) -> Result<crate::config::Config, super::Error> {
+        let root = self.backend.root_path()?;
+        let config_path = root.join(".git-metrics.toml");
+        let file = if config_path.is_file() {
+            crate::config::Config::from_path(&config_path)?
+        } else {
+            Default::default()
+        };
+        Ok(file)
+    }
+
     pub(crate) fn check<Out: Write>(
         &self,
         stdout: &mut Out,
@@ -33,7 +42,7 @@ impl<B: Backend> super::Service<B> {
         let mut failed_metrics: usize = 0;
         let mut success_metrics: usize = 0;
 
-        let config = crate::config::Config::default();
+        let config = self.open_config()?;
         let mut before = before.into_inner();
         for (header, current) in after.into_inner().into_iter() {
             let previous = before.swap_remove(&header);
