@@ -56,7 +56,6 @@ impl<B: Backend> super::Service<B> {
 
         for (header, current) in after.into_inner().into_iter() {
             let previous = before.swap_remove(&header);
-            println!("header={header} previous={previous:?} current={current}");
             let failed = config.check(&header, previous, current);
             if failed.is_empty() {
                 writeln!(stdout, "[SUCCESS] {header}")?;
