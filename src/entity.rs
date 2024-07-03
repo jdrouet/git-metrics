@@ -72,6 +72,10 @@ impl MetricStack {
         }
     }
 
+    pub(crate) fn into_inner(self) -> IndexMap<MetricHeader, f64> {
+        self.inner
+    }
+
     pub(crate) fn into_vec(self) -> Vec<Metric> {
         self.into_metric_iter().collect()
     }

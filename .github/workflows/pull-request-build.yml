@@ -47,3 +47,6 @@ jobs:
             ```
             ${{ steps.diff.outputs.metrics }}
             ```
+
+      - name: check metrics against the budget
+        run: ./git-metrics_linux-x86_64 check origin/$GITHUB_BASE_REF..HEAD

@@ -33,12 +33,25 @@ impl crate::error::DetailedError for Error {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct MockBackend(Rc<MockBackendInner>);
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct MockBackendInner {
+    temp_dir: tempfile::TempDir,
     commits: Vec<Commit>,
     notes: RefCell<HashMap<String, String>>,
     rev_parses: RefCell<HashMap<String, RevParse>>,
     rev_lists: RefCell<HashMap<String, Vec<String>>>,
+}
+
+impl Default for MockBackendInner {
+    fn default() -> Self {
+        Self {
+            temp_dir: tempfile::tempdir().unwrap(),
+            commits: Default::default(),
+            notes: Default::default(),
+            rev_parses: Default::default(),
+            rev_lists: Default::default(),
+        }
+    }
 }
 
 impl MockBackend {
@@ -66,10 +79,16 @@ impl MockBackend {
     pub(crate) fn set_rev_parse(&self, target: impl Into<String>, item: RevParse) {
         self.0.rev_parses.borrow_mut().insert(target.into(), item);
     }
+
+    pub(crate) fn set_config(&self, input: &str) {
+        let file = self.0.temp_dir.path().join(".git-metrics.toml");
+        std::fs::write(file, input).unwrap();
+    }
 }
 
 impl super::Backend for MockBackend {
     type Err = Error;
+
     fn rev_list(&self, range: &str) -> Result<Vec<String>, Self::Err> {
         Ok(self
             .0
@@ -137,5 +156,9 @@ impl super::Backend for MockBackend {
 
     fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::Commit>, Self::Err> {
         Ok(self.0.commits.clone())
+    }
+
+    fn root_path(&self) -> Result<std::path::PathBuf, Self::Err> {
+        Ok(self.0.temp_dir.path().to_path_buf())
     }
 }

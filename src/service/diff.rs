@@ -44,7 +44,11 @@ fn show_diff<Out: Write>(
 }
 
 impl<B: Backend> super::Service<B> {
-    fn stack_metrics(&self, remote_name: &str, range: &str) -> Result<MetricStack, super::Error> {
+    pub(super) fn stack_metrics(
+        &self,
+        remote_name: &str,
+        range: &str,
+    ) -> Result<MetricStack, super::Error> {
         let mut stack = MetricStack::default();
         let mut commits = self.backend.rev_list(range)?;
         commits.reverse();

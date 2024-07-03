@@ -291,4 +291,23 @@ impl super::Backend for CommandBackend {
                 .collect())
         }
     }
+
+    fn root_path(&self) -> Result<PathBuf, Self::Err> {
+        let output = self
+            .cmd()
+            .arg("rev-parse")
+            .arg("--show-toplevel")
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("something went wrong when getting commits");
+            tracing::trace!("stderr {stderr:?}");
+            Err(Error::Failed(stderr.into()))
+        } else {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            tracing::trace!("stdout {stdout:?}");
+            Ok(PathBuf::from(stdout.as_ref()))
+        }
+    }
 }
