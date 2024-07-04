@@ -43,6 +43,7 @@ $ git metrics diff HEAD~2..HEAD
 With `git-metrics`, using [the GitHub actions](https://github.com/jdrouet/action-report-git-metrics), you can even add a report to every pull request that opens on your project.
 
 ![diff report](asset/report-comment.png)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics?ref=badge_shield)
 
 ```yaml
 name: monitoring metrics
@@ -95,3 +96,7 @@ jobs:
 - [ ] `git-metrics page` generates a web page with charts for every metrics
 - [ ] add a way to create a budget and compare to it
 - [ ] create an action to comment a PR with the comparison to the main branch
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics?ref=badge_large)
