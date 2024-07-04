@@ -106,4 +106,33 @@ yolo = "pouwet"
             ))
         );
     }
+
+    #[test]
+    fn should_add_metric_to_different_target() {
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+
+        let repo = MockBackend::default();
+
+        let code = crate::Args::parse_from(["_", "add", "--target", "other", "my-metric", "12.34"])
+            .command
+            .execute(repo.clone(), &mut stdout, &mut stderr);
+
+        assert!(code.is_success());
+        assert!(stdout.is_empty());
+        assert!(stderr.is_empty());
+
+        assert_eq!(
+            repo.get_note("other", crate::backend::NoteRef::Changes),
+            Some(String::from(
+                r#"[[changes]]
+action = "add"
+name = "my-metric"
+value = 12.34
+
+[changes.tags]
+"#
+            ))
+        );
+    }
 }
