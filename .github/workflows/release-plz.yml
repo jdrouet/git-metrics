@@ -35,3 +35,28 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       release_tag: ${{ fromJSON(needs.release-plz.outputs.releases)[0].tag }}
+
+  notify:
+    runs-on: ubuntu-latest
+    needs:
+      - release-plz
+      - trigger-release
+
+    steps:
+      - name: notify mastodon
+        uses: cbrgm/mastodon-github-action@v2
+        with:
+          access-token: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+          url: ${{ secrets.MASTODON_URL }}
+          language: "en"
+          message: |
+            👋 Hey! I just released a new version of git-metrics!
+
+            🔥 If you want to monitor some metrics about the app you're building,
+            without depending on an external service, it's made for you. 📈
+
+            https://github.com/jdrouet/git-metrics/releases/tag/${{ fromJSON(needs.release-plz.outputs.releases)[0].tag }}
+
+            #rustlang #opensource
+          visibility: "public"
+        continue-on-error: true
