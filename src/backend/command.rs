@@ -307,7 +307,7 @@ impl super::Backend for CommandBackend {
         } else {
             let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::trace!("stdout {stdout:?}");
-            Ok(PathBuf::from(stdout.as_ref()))
+            Ok(PathBuf::from(stdout.trim()))
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+mod check_budget;
 mod conflict_different;
 mod display_diff;
 mod simple_use_case;
