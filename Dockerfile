@@ -20,6 +20,8 @@ RUN apt-get update \
     && apt-get install -y git \
     && rm -rf /var/lib/apt/lists
 
+RUN cargo install cargo-deb
+
 ENV USER=root
 
 WORKDIR /code
@@ -27,12 +29,15 @@ WORKDIR /code
 COPY Cargo.toml /code/Cargo.toml
 COPY Cargo.lock /code/Cargo.lock
 COPY src /code/src
+COPY LICENSE /code/LICENSE
 COPY --from=vendor /code/.cargo /code/.cargo
 COPY --from=vendor /code/vendor /code/vendor
 
 RUN cargo build --release --offline \
-    && strip /code/target/release/git-metrics
+    && strip /code/target/release/git-metrics \
+    && cargo deb --no-build
 
 FROM scratch AS binary
 
 COPY --from=builder /code/target/release/git-metrics /git-metrics
+COPY --from=builder /code/target/debian/*.deb /
