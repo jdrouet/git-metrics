@@ -1,5 +1,7 @@
 # Git Metrics
 
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics?ref=badge_shield)
+
 Right now, if you want to track the evolution of some metrics for your project
 over time, you need an external tool to store those metrics. But these metrics
 could be stored withing the git repository. Git provides a mechanism of notes
@@ -99,4 +101,5 @@ jobs:
 
 
 ## License
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjdrouet%2Fgit-metrics?ref=badge_large)

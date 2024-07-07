@@ -11,3 +11,19 @@ impl crate::cmd::Executor for CommandInit {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::cmd::Executor;
+
+    use super::CommandInit;
+    use clap::Parser;
+
+    #[test]
+    fn should_do_nothing_for_now() {
+        let backend = crate::backend::mock::MockBackend::default();
+        let mut stdout: Vec<u8> = Vec::new();
+        let cmd = CommandInit::parse_from(["_"]).execute(backend, &mut stdout);
+        assert!(cmd.is_ok());
+    }
+}
