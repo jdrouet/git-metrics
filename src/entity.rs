@@ -41,10 +41,8 @@ impl MetricStack {
         self.inner.extend(other.inner);
     }
 
-    pub(crate) fn remove_entry(&mut self, header: &MetricHeader) -> Option<Metric> {
-        self.inner
-            .shift_remove_entry(header)
-            .map(|(header, value)| Metric { header, value })
+    pub(crate) fn remove_entry(&mut self, header: &MetricHeader) -> Option<(MetricHeader, f64)> {
+        self.inner.shift_remove_entry(header)
     }
 
     pub(crate) fn with_change(mut self, change: MetricChange) -> Self {
