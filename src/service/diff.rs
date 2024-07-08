@@ -2,6 +2,7 @@ use crate::backend::{Backend, RevParse};
 use crate::entity::{MetricHeader, MetricStack};
 
 #[derive(Default)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) struct Delta {
     #[allow(dead_code)]
     pub(crate) absolute: f64,
@@ -21,6 +22,7 @@ impl Delta {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) enum Comparison {
     Created {
         current: f64,
@@ -58,12 +60,13 @@ impl Comparison {
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) struct MetricDiff {
     pub header: MetricHeader,
     pub comparison: Comparison,
 }
 
-pub(crate) struct MetricDiffList(Vec<MetricDiff>);
+pub(crate) struct MetricDiffList(pub(crate) Vec<MetricDiff>);
 
 impl MetricDiffList {
     pub fn new(previous: MetricStack, mut current: MetricStack) -> Self {
@@ -143,7 +146,7 @@ impl<B: Backend> super::Service<B> {
 mod tests {
     use crate::backend::mock::MockBackend;
     use crate::backend::{NoteRef, RevParse};
-    use crate::service::diff::Comparison;
+    use crate::service::diff::{Comparison, Delta};
     use crate::service::Service;
 
     #[test]
@@ -182,68 +185,21 @@ value = 1.0
             .unwrap();
         assert_eq!(list.0.len(), 2);
         assert_eq!(list.0[0].header.name, "first");
-        assert!(matches!(
+        assert_eq!(
             list.0[0].comparison,
             Comparison::Matching {
                 previous: 1.0,
                 current: 2.0,
-                delta: _,
+                delta: Delta {
+                    absolute: 1.0,
+                    relative: Some(1.0),
+                },
             }
-        ));
+        );
         assert_eq!(list.0[1].header.name, "second");
-        assert!(matches!(
-            list.0[1].comparison,
-            Comparison::Missing { previous: 1.0 }
-        ));
-        //         assert_eq!(
-        //             String::from_utf8_lossy(&stdout),
-        //             r#"- first 1.0
-        // + first 2.0 (+100.00 %)
-        //   second 1.0
-        // "#
-        //         );
-    }
-
-    #[test]
-    fn should_render_diff_with_single_target_without_previous() {
-        let backend = MockBackend::default();
-        backend.set_rev_parse("HEAD", RevParse::Single("aaaaaaa".into()));
-        backend.set_rev_list("aaaaaaa~1", ["aaaaaab", "aaaaaac", "aaaaaad", "aaaaaae"]);
-        backend.set_note(
-            "aaaaaaa",
-            NoteRef::remote_metrics("origin"),
-            r#"[[metrics]]
-name = "first"
-tags = {}
-value = 2.0
-"#,
-        );
-        backend.set_note(
-            "aaaaaac",
-            NoteRef::remote_metrics("origin"),
-            r#"[[metrics]]
-name = "first"
-tags = {}
-value = 1.0
-
-[[metrics]]
-name = "second"
-tags = {}
-value = 1.0
-"#,
-        );
-        Service::new(backend)
-            .diff(&super::Options {
-                remote: "origin",
-                target: "HEAD",
-            })
-            .unwrap();
-        //         assert_eq!(
-        //             String::from_utf8_lossy(&stdout),
-        //             r#"- first 1.0
-        // + first 2.0 (+100.00 %)
-        // "#
-        //         );
+        assert_eq!(list.0[1].comparison, Comparison::Missing { previous: 1.0 });
+        let list = list.remove_missing();
+        assert_eq!(list.inner().len(), 1);
     }
 
     #[test]
@@ -284,7 +240,7 @@ value = 1.0
             r#"[[metrics]]
 name = "first"
 tags = {}
-value = 0.8
+value = 0.5
 
 [[metrics]]
 name = "second"
@@ -297,19 +253,43 @@ tags = {}
 value = 0.1
 "#,
         );
-        Service::new(backend)
+        let list = Service::new(backend)
             .diff(&super::Options {
                 remote: "origin",
                 target: "HEAD~3..HEAD",
             })
             .unwrap();
-        //         assert_eq!(
-        //             String::from_utf8_lossy(&stdout),
-        //             r#"- first 0.8
-        // + first 2.0 (+150.00 %)
-        // = second 1.0
-        //   third 0.1
-        // "#
-        //         );
+        assert_eq!(list.0.len(), 3);
+        assert_eq!(list.0[0].header.name, "first");
+        assert_eq!(
+            list.0[0].comparison,
+            Comparison::Matching {
+                previous: 0.5,
+                current: 2.0,
+                delta: Delta {
+                    absolute: 1.5,
+                    relative: Some(3.0),
+                },
+            }
+        );
+        assert_eq!(list.0[1].header.name, "second");
+        assert_eq!(
+            list.0[1].comparison,
+            Comparison::Matching {
+                previous: 1.0,
+                current: 1.0,
+                delta: Delta {
+                    absolute: 0.0,
+                    relative: Some(0.0),
+                },
+            }
+        );
+        assert_eq!(list.0[2].header.name, "third");
+        assert_eq!(
+            list.0[2].comparison,
+            Comparison::Missing { previous: 0.1 },
+            "{:?}",
+            list.0[2].comparison
+        );
     }
 }

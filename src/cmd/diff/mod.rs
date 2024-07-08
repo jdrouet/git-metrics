@@ -12,14 +12,6 @@ pub(crate) enum Format {
     Text,
 }
 
-impl Format {
-    fn display<Out: Write>(&self, list: &MetricDiffList, stdout: &mut Out) -> std::io::Result<()> {
-        match self {
-            Self::Text => format::text::format(list, stdout),
-        }
-    }
-}
-
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub(crate) struct CommandDiff {
@@ -36,6 +28,14 @@ pub(crate) struct CommandDiff {
     /// Can use ranges like HEAD~2..HEAD
     #[clap(default_value = "HEAD")]
     target: String,
+}
+
+impl CommandDiff {
+    fn display<Out: Write>(&self, list: &MetricDiffList, stdout: &mut Out) -> std::io::Result<()> {
+        match self.format {
+            Format::Text => format::TextFormatter::format(list, stdout),
+        }
+    }
 }
 
 impl super::Executor for CommandDiff {
@@ -55,7 +55,7 @@ impl super::Executor for CommandDiff {
         } else {
             diff.remove_missing()
         };
-        self.format.display(&diff, stdout)?;
+        self.display(&diff, stdout)?;
         Ok(())
     }
 }
