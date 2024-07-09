@@ -21,9 +21,10 @@ impl super::Executor for CommandCheck {
         stdout: &mut Out,
     ) -> Result<(), crate::service::Error> {
         let opts = crate::service::check::Options {
-            remote: String::from("origin"),
-            target: self.target,
+            remote: "origin",
+            target: self.target.as_str(),
         };
-        Service::new(backend).check(stdout, &opts)
+        let checklist = Service::new(backend).check(&opts)?;
+        Ok(())
     }
 }

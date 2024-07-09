@@ -38,6 +38,18 @@ pub(crate) enum Comparison {
     },
 }
 
+#[cfg(test)]
+impl Comparison {
+    #[inline]
+    pub fn matching(previous: f64, current: f64) -> Self {
+        Self::Matching {
+            previous,
+            current,
+            delta: Delta::new(previous, current),
+        }
+    }
+}
+
 impl Comparison {
     pub fn has_current(&self) -> bool {
         matches!(self, Self::Created { .. } | Self::Matching { .. })
@@ -98,6 +110,10 @@ impl MetricDiffList {
 
     pub fn inner(&self) -> &[MetricDiff] {
         &self.0
+    }
+
+    pub fn into_inner(self) -> Vec<MetricDiff> {
+        self.0
     }
 }
 

@@ -103,6 +103,21 @@ pub(crate) struct MetricHeader {
     pub tags: IndexMap<String, String>,
 }
 
+#[cfg(test)]
+impl MetricHeader {
+    pub fn new<N: Into<String>>(name: N) -> Self {
+        Self {
+            name: name.into(),
+            tags: Default::default(),
+        }
+    }
+
+    pub fn with_tag<N: Into<String>, V: Into<String>>(mut self, name: N, value: V) -> Self {
+        self.tags.insert(name.into(), value.into());
+        self
+    }
+}
+
 impl Hash for MetricHeader {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);

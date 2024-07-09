@@ -1,11 +1,232 @@
-use std::io::Write;
+use crate::{
+    backend::Backend,
+    config::{Config, MetricConfig, Rule, SubsetConfig},
+};
+use indexmap::IndexMap;
 
-use crate::backend::{Backend, RevParse};
+use super::diff::{Comparison, Delta, MetricDiff};
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) enum Status {
+    Success,
+    Neutral,
+    Failed,
+}
+
+impl Rule {
+    fn check(&self, comparison: &Comparison) -> Status {
+        match self {
+            Self::Max { value } => match comparison {
+                Comparison::Created { current } | Comparison::Matching { current, .. }
+                    if current > value =>
+                {
+                    Status::Failed
+                }
+                Comparison::Missing { .. } => Status::Neutral,
+                _ => Status::Success,
+            },
+            Self::Min { value } => match comparison {
+                Comparison::Created { current } | Comparison::Matching { current, .. }
+                    if current < value =>
+                {
+                    Status::Failed
+                }
+                Comparison::Missing { .. } => Status::Neutral,
+                _ => Status::Success,
+            },
+            Self::MaxIncrease { ratio } => match comparison {
+                Comparison::Matching {
+                    delta:
+                        Delta {
+                            relative: Some(relative),
+                            ..
+                        },
+                    ..
+                } if relative > ratio => Status::Failed,
+                Comparison::Matching {
+                    delta:
+                        Delta {
+                            relative: Some(_), ..
+                        },
+                    ..
+                } => Status::Success,
+                _ => Status::Neutral,
+            },
+            Self::MaxDecrease { ratio } => match comparison {
+                Comparison::Matching {
+                    delta:
+                        Delta {
+                            relative: Some(relative),
+                            ..
+                        },
+                    ..
+                } if *relative < (*ratio) * -1.0 => Status::Failed,
+                Comparison::Matching {
+                    delta:
+                        Delta {
+                            relative: Some(_), ..
+                        },
+                    ..
+                } => Status::Success,
+                _ => Status::Neutral,
+            },
+        }
+    }
+}
+
+impl Status {
+    fn and(self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Failed, _) | (_, Self::Failed) => Self::Failed,
+            (Self::Success, _) | (_, Self::Success) => Self::Success,
+            _ => Self::Neutral,
+        }
+    }
+}
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) struct SubsetCheck {
+    pub matching: IndexMap<String, String>,
+    pub checks: Vec<(Rule, Status)>,
+    pub status: Status,
+}
+
+#[cfg(test)]
+impl SubsetCheck {
+    pub fn new(status: Status) -> Self {
+        Self {
+            matching: Default::default(),
+            checks: Default::default(),
+            status,
+        }
+    }
+
+    pub fn with_matching<N: Into<String>, V: Into<String>>(mut self, name: N, value: V) -> Self {
+        self.matching.insert(name.into(), value.into());
+        self
+    }
+
+    pub fn with_check(mut self, rule: Rule, status: Status) -> Self {
+        self.checks.push((rule, status));
+        self
+    }
+}
+
+impl SubsetCheck {
+    fn evaluate(config: &SubsetConfig, diff: &MetricDiff) -> Self {
+        let mut status = Status::Neutral;
+        let mut checks = Vec::with_capacity(config.rules.len());
+        if config.matches(&diff.header) {
+            for rule in config.rules.iter() {
+                let res = rule.check(&diff.comparison);
+                status = status.and(&res);
+                checks.push((*rule, res));
+            }
+        }
+        Self {
+            matching: config.matching.clone(),
+            checks,
+            status,
+        }
+    }
+}
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) struct MetricCheck {
+    pub diff: MetricDiff,
+    pub status: Status,
+    pub checks: Vec<(Rule, Status)>,
+    pub subsets: IndexMap<String, SubsetCheck>,
+}
+
+#[cfg(test)]
+impl MetricCheck {
+    pub fn new(diff: MetricDiff, status: Status) -> Self {
+        Self {
+            diff,
+            checks: Default::default(),
+            subsets: Default::default(),
+            status,
+        }
+    }
+
+    pub fn with_check(mut self, rule: Rule, status: Status) -> Self {
+        self.checks.push((rule, status));
+        self
+    }
+
+    pub fn with_subset<N: Into<String>>(mut self, name: N, subset: SubsetCheck) -> Self {
+        self.subsets.insert(name.into(), subset);
+        self
+    }
+}
+
+impl MetricCheck {
+    #[inline]
+    fn neutral(diff: MetricDiff) -> Self {
+        Self {
+            diff,
+            checks: Vec::with_capacity(0),
+            subsets: IndexMap::with_capacity(0),
+            status: Status::Neutral,
+        }
+    }
+
+    fn evaluate(config: &MetricConfig, diff: MetricDiff) -> Self {
+        let mut global_status = Status::Neutral;
+
+        let mut checks = Vec::with_capacity(config.rules.len());
+        for rule in config.rules.iter() {
+            let status = rule.check(&diff.comparison);
+            global_status = global_status.and(&status);
+            checks.push((*rule, status));
+        }
+
+        let mut subsets = IndexMap::with_capacity(config.subsets.len());
+        for (name, subset) in config.subsets.iter() {
+            let res = SubsetCheck::evaluate(subset, &diff);
+            global_status = global_status.and(&res.status);
+            subsets.insert(name.to_owned(), res);
+        }
+
+        Self {
+            diff,
+            checks,
+            subsets,
+            status: global_status,
+        }
+    }
+}
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) struct CheckList {
+    pub status: Status,
+    pub list: Vec<MetricCheck>,
+}
+
+impl CheckList {
+    fn evaluate(config: &Config, diff: Vec<MetricDiff>) -> Self {
+        let mut list = Vec::with_capacity(diff.len());
+        let mut status = Status::Neutral;
+
+        for item in diff.into_iter() {
+            if let Some(config) = config.metrics.get(&item.header.name) {
+                let check = MetricCheck::evaluate(config, item);
+                status = status.and(&check.status);
+                list.push(check);
+            } else {
+                list.push(MetricCheck::neutral(item));
+            }
+        }
+
+        Self { status, list }
+    }
+}
 
 #[derive(Debug)]
-pub(crate) struct Options {
-    pub remote: String,
-    pub target: String,
+pub(crate) struct Options<'a> {
+    pub remote: &'a str,
+    pub target: &'a str,
 }
 
 impl<B: Backend> super::Service<B> {
@@ -20,68 +241,30 @@ impl<B: Backend> super::Service<B> {
         Ok(file)
     }
 
-    pub(crate) fn check<Out: Write>(
-        &self,
-        stdout: &mut Out,
-        opts: &Options,
-    ) -> Result<(), super::Error> {
-        let rev_parse = self.backend.rev_parse(&opts.target)?;
-        let (before, after) = match rev_parse {
-            RevParse::Range(ref first, _) => {
-                let before = self.stack_metrics(&opts.remote, first.as_str())?;
-                let after = self.stack_metrics(&opts.remote, &rev_parse.to_string())?;
-                (before, after)
-            }
-            RevParse::Single(single) => {
-                let before = self.stack_metrics(&opts.remote, &format!("{single}~1"))?;
-                let after = self.get_metrics(single.as_str(), &opts.remote)?;
-                (before, after)
-            }
-        };
-
-        let mut failed_metrics: usize = 0;
-        let mut success_metrics: usize = 0;
+    pub(crate) fn check(&self, opts: &Options) -> Result<CheckList, super::Error> {
+        let diff = self
+            .diff(&super::diff::Options {
+                remote: opts.remote,
+                target: opts.target,
+            })?
+            .remove_missing()
+            .into_inner();
 
         let config = self.open_config()?;
-        let mut before = before.into_inner();
-
-        for (header, current) in after.into_inner().into_iter() {
-            let previous = before.swap_remove(&header);
-            let failed = config.check(&header, previous, current);
-            if failed.is_empty() {
-                writeln!(stdout, "[SUCCESS] {header}")?;
-                success_metrics += 1;
-            } else {
-                writeln!(stdout, "[FAILURE] {header} ({} errors)", failed.len())?;
-                for error in failed {
-                    writeln!(stdout, "\t- {error}")?;
-                }
-                failed_metrics += 1;
-            }
-        }
-
-        if failed_metrics > 0 {
-            Err(super::Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "{failed_metrics} metrics failed and {success_metrics} metrics are successful"
-                ),
-            )))
-        } else {
-            Ok(())
-        }
+        Ok(CheckList::evaluate(&config, diff))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::backend::mock::MockBackend;
     use crate::backend::{NoteRef, RevParse};
+    use crate::entity::MetricHeader;
     use crate::service::Service;
 
     #[test]
     fn should_success() {
-        let mut stdout = Vec::new();
         let backend = MockBackend::default();
         backend.set_config(
             r#"[[metrics.first.rules]]
@@ -117,24 +300,31 @@ tags = {}
 value = 80.0
 "#,
         );
-        let _err = Service::new(backend)
-            .check(
-                &mut stdout,
-                &super::Options {
-                    remote: "origin".into(),
-                    target: "main..HEAD".into(),
-                },
-            )
-            .unwrap_err();
-        assert_eq!(
-            String::from_utf8_lossy(&stdout),
-            "[FAILURE] first (2 errors)\n\t- 120 is greater than the max allowed 100\n\t- increased of 50.0%, with a limit at 10.0%\n"
+        let res = Service::new(backend)
+            .check(&super::Options {
+                remote: "origin",
+                target: "main..HEAD",
+            })
+            .unwrap();
+        similar_asserts::assert_eq!(
+            res,
+            CheckList {
+                status: Status::Failed,
+                list: vec![MetricCheck::new(
+                    MetricDiff {
+                        header: MetricHeader::new("first"),
+                        comparison: Comparison::matching(80.0, 120.0),
+                    },
+                    Status::Failed
+                )
+                .with_check(Rule::Max { value: 100.0 }, Status::Failed)
+                .with_check(Rule::MaxIncrease { ratio: 0.1 }, Status::Failed)]
+            }
         );
     }
 
     #[test]
     fn should_success_with_subsets() {
-        let mut stdout = Vec::new();
         let backend = MockBackend::default();
         backend.set_config(
             r#"[[metrics.first.rules]]
@@ -183,15 +373,45 @@ tags = { foo = "bar" }
 value = 50.0
 "#,
         );
-        let _err = Service::new(backend)
-            .check(
-                &mut stdout,
-                &super::Options {
-                    remote: "origin".into(),
-                    target: "main..HEAD".into(),
-                },
-            )
-            .unwrap_err();
-        assert_eq!(String::from_utf8_lossy(&stdout), "[SUCCESS] first\n[FAILURE] first{foo=\"bar\"} (1 errors)\n\t- increased of 80.0%, with a limit at 10.0%\n");
+        let res = Service::new(backend)
+            .check(&super::Options {
+                remote: "origin",
+                target: "main..HEAD",
+            })
+            .unwrap();
+        similar_asserts::assert_eq!(
+            res,
+            CheckList {
+                status: Status::Failed,
+                list: vec![
+                    MetricCheck::new(
+                        MetricDiff {
+                            header: MetricHeader::new("first"),
+                            comparison: Comparison::matching(50.0, 90.0),
+                        },
+                        Status::Success
+                    )
+                    .with_check(Rule::Max { value: 100.0 }, Status::Success)
+                    .with_subset(
+                        "foo",
+                        SubsetCheck::new(Status::Neutral).with_matching("foo", "bar")
+                    ),
+                    MetricCheck::new(
+                        MetricDiff {
+                            header: MetricHeader::new("first").with_tag("foo", "bar"),
+                            comparison: Comparison::matching(50.0, 90.0),
+                        },
+                        Status::Failed
+                    )
+                    .with_check(Rule::Max { value: 100.0 }, Status::Success)
+                    .with_subset(
+                        "foo",
+                        SubsetCheck::new(Status::Failed)
+                            .with_matching("foo", "bar")
+                            .with_check(Rule::MaxIncrease { ratio: 0.1 }, Status::Failed)
+                    ),
+                ]
+            }
+        );
     }
 }
