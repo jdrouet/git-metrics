@@ -3,13 +3,6 @@ use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
-pub(crate) struct Commit {
-    pub sha: String,
-    pub summary: String,
-}
-
 pub(crate) struct MetricStackIterator {
     inner: indexmap::map::IntoIter<MetricHeader, f64>,
 }

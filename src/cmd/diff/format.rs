@@ -46,7 +46,7 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use crate::{
-        entity::MetricHeader,
+        entity::metric::MetricHeader,
         service::diff::{Comparison, MetricDiff, MetricDiffList},
     };
 

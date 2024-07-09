@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::NoteRef;
 use crate::backend::REMOTE_METRICS_REF;
-use crate::entity::Commit;
+use crate::entity::git::Commit;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {

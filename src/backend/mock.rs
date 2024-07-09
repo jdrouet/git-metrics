@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::{cell::RefCell, fmt::Display};
 
 use super::{NoteRef, RevParse};
-use crate::entity::Commit;
+use crate::entity::git::Commit;
 
 #[derive(Debug)]
 pub(crate) struct Error {
@@ -154,7 +154,7 @@ impl super::Backend for MockBackend {
         Ok(())
     }
 
-    fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::Commit>, Self::Err> {
+    fn get_commits(&self, _range: &str) -> Result<Vec<crate::entity::git::Commit>, Self::Err> {
         Ok(self.0.commits.clone())
     }
 

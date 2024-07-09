@@ -26,8 +26,8 @@ impl super::Executor for CommandAdd {
         backend: B,
         _stdout: &mut Out,
     ) -> Result<(), crate::service::Error> {
-        let metric = crate::entity::Metric {
-            header: crate::entity::MetricHeader {
+        let metric = crate::entity::metric::Metric {
+            header: crate::entity::metric::MetricHeader {
                 name: self.name,
                 tags: self
                     .tag

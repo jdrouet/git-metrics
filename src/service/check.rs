@@ -260,7 +260,7 @@ mod tests {
     use super::*;
     use crate::backend::mock::MockBackend;
     use crate::backend::{NoteRef, RevParse};
-    use crate::entity::MetricHeader;
+    use crate::entity::metric::MetricHeader;
     use crate::service::Service;
 
     #[test]

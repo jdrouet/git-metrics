@@ -2,7 +2,7 @@ use std::{path::Path, str::FromStr};
 
 use indexmap::IndexMap;
 
-use crate::entity::MetricHeader;
+use crate::entity::metric::MetricHeader;
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
@@ -223,7 +223,7 @@ mod tests {
     // "#,
     //         )
     //         .unwrap();
-    //         let header = crate::entity::MetricHeader {
+    //         let header = crate::entity::metric::MetricHeader {
     //             name: "binary_size".into(),
     //             tags: Default::default(),
     //         };
@@ -257,7 +257,7 @@ mod tests {
     // "#,
     //         )
     //         .unwrap();
-    //         let header = crate::entity::MetricHeader {
+    //         let header = crate::entity::metric::MetricHeader {
     //             name: "binary_size".into(),
     //             tags: Default::default(),
     //         };
@@ -303,7 +303,7 @@ mod tests {
     // "#,
     //         )
     //         .unwrap();
-    //         let first = crate::entity::MetricHeader {
+    //         let first = crate::entity::metric::MetricHeader {
     //             name: "first".into(),
     //             tags: Default::default(),
     //         };
@@ -324,7 +324,7 @@ mod tests {
     //             }]
     //         );
 
-    //         let first_linux = crate::entity::MetricHeader {
+    //         let first_linux = crate::entity::metric::MetricHeader {
     //             name: "first".into(),
     //             tags: {
     //                 let mut tags: IndexMap<String, String> = Default::default();
@@ -350,7 +350,7 @@ mod tests {
     //             }]
     //         );
 
-    //         let second = crate::entity::MetricHeader {
+    //         let second = crate::entity::metric::MetricHeader {
     //             name: "second".into(),
     //             tags: Default::default(),
     //         };

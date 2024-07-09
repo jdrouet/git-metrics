@@ -1,5 +1,5 @@
 use crate::backend::{Backend, RevParse};
-use crate::entity::{MetricHeader, MetricStack};
+use crate::entity::metric::{MetricHeader, MetricStack};
 
 #[derive(Default)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
