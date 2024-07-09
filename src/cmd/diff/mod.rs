@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::backend::Backend;
-use crate::service::diff::MetricDiffList;
+use crate::entity::difference::MetricDiffList;
 use crate::service::Service;
 
 mod format;

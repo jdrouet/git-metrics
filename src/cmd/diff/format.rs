@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::service::diff::{Comparison, MetricDiff, MetricDiffList};
+use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
 
 pub(super) struct TextFormatter;
 
@@ -46,8 +46,8 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use crate::{
+        entity::difference::{Comparison, MetricDiff, MetricDiffList},
         entity::metric::MetricHeader,
-        service::diff::{Comparison, MetricDiff, MetricDiffList},
     };
 
     #[test]
