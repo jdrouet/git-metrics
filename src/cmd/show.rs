@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Display the metrics related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -17,13 +18,14 @@ impl super::Executor for CommandShow {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).show(
             stdout,
             &crate::service::show::Options {
                 target: self.target,
             },
-        )
+        )?;
+        Ok(ExitCode::Success)
     }
 }
 

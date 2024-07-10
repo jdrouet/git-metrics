@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -22,12 +23,13 @@ impl super::Executor for CommandLog {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         let opts = crate::service::log::Options {
             target: self.target,
             hide_empty: self.filter_empty,
         };
-        Service::new(backend).log(stdout, &opts)
+        Service::new(backend).log(stdout, &opts)?;
+        Ok(ExitCode::Success)
     }
 }
 

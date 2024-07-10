@@ -77,6 +77,13 @@ pub(crate) struct MetricDiff {
     pub comparison: Comparison,
 }
 
+#[cfg(test)]
+impl MetricDiff {
+    pub fn new(header: MetricHeader, comparison: Comparison) -> Self {
+        Self { header, comparison }
+    }
+}
+
 pub(crate) struct MetricDiffList(pub(crate) Vec<MetricDiff>);
 
 impl MetricDiffList {

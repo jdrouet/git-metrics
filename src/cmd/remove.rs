@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Remove a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -19,13 +20,14 @@ impl super::Executor for CommandRemove {
         self,
         backend: B,
         _stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).remove(
             self.index,
             &crate::service::remove::Options {
                 target: self.target,
             },
-        )
+        )?;
+        Ok(ExitCode::Success)
     }
 }
 

@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Pulls the metrics
 #[derive(clap::Parser, Debug, Default)]
@@ -17,9 +18,10 @@ impl super::Executor for CommandPull {
         self,
         backend: B,
         _stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).pull(&crate::service::pull::Options {
             remote: self.remote,
-        })
+        })?;
+        Ok(ExitCode::Success)
     }
 }

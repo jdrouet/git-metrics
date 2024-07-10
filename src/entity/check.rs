@@ -6,8 +6,53 @@ use crate::entity::difference::{Comparison, Delta, MetricDiff};
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) enum Status {
     Success,
-    Neutral,
+    Skip,
     Failed,
+}
+
+#[cfg(test)]
+impl Default for Status {
+    fn default() -> Self {
+        Self::Skip
+    }
+}
+
+#[derive(Default)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) struct StatusCount {
+    pub success: usize,
+    pub neutral: usize,
+    pub failed: usize,
+}
+
+impl StatusCount {
+    pub fn push(&mut self, status: &Status) {
+        match status {
+            Status::Success => self.success += 1,
+            Status::Skip => self.neutral += 1,
+            Status::Failed => self.failed += 1,
+        }
+    }
+
+    pub fn extend(&mut self, other: &StatusCount) {
+        self.success += other.success;
+        self.neutral += other.neutral;
+        self.failed += other.failed;
+    }
+
+    pub fn is_failed(&self) -> bool {
+        self.failed > 0
+    }
+
+    pub fn status(&self) -> Status {
+        if self.failed > 0 {
+            Status::Failed
+        } else if self.success > 0 {
+            Status::Success
+        } else {
+            Status::Skip
+        }
+    }
 }
 
 impl Rule {
@@ -19,7 +64,7 @@ impl Rule {
                 {
                     Status::Failed
                 }
-                Comparison::Missing { .. } => Status::Neutral,
+                Comparison::Missing { .. } => Status::Skip,
                 _ => Status::Success,
             },
             Self::Min { value } => match comparison {
@@ -28,7 +73,7 @@ impl Rule {
                 {
                     Status::Failed
                 }
-                Comparison::Missing { .. } => Status::Neutral,
+                Comparison::Missing { .. } => Status::Skip,
                 _ => Status::Success,
             },
             Self::MaxIncrease { ratio } => match comparison {
@@ -47,7 +92,7 @@ impl Rule {
                         },
                     ..
                 } => Status::Success,
-                _ => Status::Neutral,
+                _ => Status::Skip,
             },
             Self::MaxDecrease { ratio } => match comparison {
                 Comparison::Matching {
@@ -65,18 +110,8 @@ impl Rule {
                         },
                     ..
                 } => Status::Success,
-                _ => Status::Neutral,
+                _ => Status::Skip,
             },
-        }
-    }
-}
-
-impl Status {
-    fn and(self, other: &Self) -> Self {
-        match (self, other) {
-            (Self::Failed, _) | (_, Self::Failed) => Self::Failed,
-            (Self::Success, _) | (_, Self::Success) => Self::Success,
-            _ => Self::Neutral,
         }
     }
 }
@@ -87,29 +122,22 @@ pub struct RuleCheck {
     pub status: Status,
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Default, PartialEq))]
 pub(crate) struct SubsetCheck {
     pub matching: IndexMap<String, String>,
     pub checks: Vec<RuleCheck>,
-    pub status: Status,
+    pub status: StatusCount,
 }
 
 #[cfg(test)]
 impl SubsetCheck {
-    pub fn new(status: Status) -> Self {
-        Self {
-            matching: Default::default(),
-            checks: Default::default(),
-            status,
-        }
-    }
-
     pub fn with_matching<N: Into<String>, V: Into<String>>(mut self, name: N, value: V) -> Self {
         self.matching.insert(name.into(), value.into());
         self
     }
 
     pub fn with_check(mut self, rule: Rule, status: Status) -> Self {
+        self.status.push(&status);
         self.checks.push(RuleCheck { rule, status });
         self
     }
@@ -117,12 +145,12 @@ impl SubsetCheck {
 
 impl SubsetCheck {
     fn evaluate(config: &SubsetConfig, diff: &MetricDiff) -> Self {
-        let mut status = Status::Neutral;
+        let mut status = StatusCount::default();
         let mut checks = Vec::with_capacity(config.rules.len());
         if config.matches(&diff.header) {
             for rule in config.rules.iter() {
                 let res = rule.check(&diff.comparison);
-                status = status.and(&res);
+                status.push(&res);
                 checks.push(RuleCheck {
                     rule: *rule,
                     status: res,
@@ -140,28 +168,30 @@ impl SubsetCheck {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) struct MetricCheck {
     pub diff: MetricDiff,
-    pub status: Status,
     pub checks: Vec<RuleCheck>,
     pub subsets: IndexMap<String, SubsetCheck>,
+    pub status: StatusCount,
 }
 
 #[cfg(test)]
 impl MetricCheck {
-    pub fn new(diff: MetricDiff, status: Status) -> Self {
+    pub fn new(diff: MetricDiff) -> Self {
         Self {
             diff,
             checks: Default::default(),
             subsets: Default::default(),
-            status,
+            status: StatusCount::default(),
         }
     }
 
     pub fn with_check(mut self, rule: Rule, status: Status) -> Self {
+        self.status.push(&status);
         self.checks.push(RuleCheck { rule, status });
         self
     }
 
     pub fn with_subset<N: Into<String>>(mut self, name: N, subset: SubsetCheck) -> Self {
+        self.status.extend(&subset.status);
         self.subsets.insert(name.into(), subset);
         self
     }
@@ -174,17 +204,17 @@ impl MetricCheck {
             diff,
             checks: Vec::with_capacity(0),
             subsets: IndexMap::with_capacity(0),
-            status: Status::Neutral,
+            status: StatusCount::default(),
         }
     }
 
     fn evaluate(config: &MetricConfig, diff: MetricDiff) -> Self {
-        let mut global_status = Status::Neutral;
+        let mut global_status = StatusCount::default();
 
         let mut checks = Vec::with_capacity(config.rules.len());
         for rule in config.rules.iter() {
             let status = rule.check(&diff.comparison);
-            global_status = global_status.and(&status);
+            global_status.push(&status);
             checks.push(RuleCheck {
                 rule: *rule,
                 status,
@@ -194,7 +224,7 @@ impl MetricCheck {
         let mut subsets = IndexMap::with_capacity(config.subsets.len());
         for (name, subset) in config.subsets.iter() {
             let res = SubsetCheck::evaluate(subset, &diff);
-            global_status = global_status.and(&res.status);
+            global_status.extend(&res.status);
             subsets.insert(name.to_owned(), res);
         }
 
@@ -207,21 +237,30 @@ impl MetricCheck {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, Default, PartialEq))]
 pub(crate) struct CheckList {
-    pub status: Status,
+    pub status: StatusCount,
     pub list: Vec<MetricCheck>,
+}
+
+#[cfg(test)]
+impl CheckList {
+    pub fn with_check(mut self, check: MetricCheck) -> Self {
+        self.status.extend(&check.status);
+        self.list.push(check);
+        self
+    }
 }
 
 impl CheckList {
     pub fn evaluate(config: &Config, diff: Vec<MetricDiff>) -> Self {
         let mut list = Vec::with_capacity(diff.len());
-        let mut status = Status::Neutral;
+        let mut status = StatusCount::default();
 
         for item in diff.into_iter() {
             if let Some(config) = config.metrics.get(&item.header.name) {
                 let check = MetricCheck::evaluate(config, item);
-                status = status.and(&check.status);
+                status.extend(&check.status);
                 list.push(check);
             } else {
                 list.push(MetricCheck::neutral(item));

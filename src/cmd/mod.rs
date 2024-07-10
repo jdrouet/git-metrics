@@ -21,7 +21,7 @@ pub(crate) trait Executor {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error>;
+    ) -> Result<ExitCode, crate::service::Error>;
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -62,11 +62,12 @@ impl Command {
             Self::Show(inner) => inner.execute(repo, stdout),
         };
 
-        if let Err(error) = result {
-            error.write(stderr).expect("couldn't log error");
-            ExitCode::Failure
-        } else {
-            ExitCode::Success
+        match result {
+            Ok(res) => res,
+            Err(error) => {
+                error.write(stderr).expect("couldn't log error");
+                ExitCode::Failure
+            }
         }
     }
 }

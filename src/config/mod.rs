@@ -13,6 +13,25 @@ pub(crate) enum Rule {
     MaxDecrease { ratio: f64 },
 }
 
+#[cfg(test)]
+impl Rule {
+    pub fn max(value: f64) -> Self {
+        Self::Max { value }
+    }
+
+    pub fn max_increase(ratio: f64) -> Self {
+        Self::MaxIncrease { ratio }
+    }
+
+    pub fn min(value: f64) -> Self {
+        Self::Min { value }
+    }
+
+    pub fn max_decrease(ratio: f64) -> Self {
+        Self::MaxDecrease { ratio }
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub(crate) struct SubsetConfig {
     #[serde(default)]
