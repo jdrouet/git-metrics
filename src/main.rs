@@ -46,11 +46,26 @@ enum Backend {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Wether it's running on a CI
+    ///
+    /// Enabling this will disable the colors
+    #[clap(long, env = "CI")]
+    ci: bool,
+
+    /// Disable the colors in the output text
+    ///
+    /// The color will only be enabled if we detect that your environment is compatible.
+    /// If NO_COLOR is set or TERM=dumb, it will be disabled by default.
+    #[clap(global = true, long, env = "DISABLE_COLOR")]
+    disable_color: bool,
+
     /// Root directory of the git repository
     #[clap(long)]
     root_dir: Option<PathBuf>,
+
     #[clap(flatten)]
     auth: cmd::GitCredentials,
+
     /// Select the backend to use to interact with git.
     ///
     /// If running on the CI, you should use command to avoid authentication failures.
@@ -69,14 +84,40 @@ struct Args {
         clap(short, long, default_value = "git2", value_enum, env = "GIT_BACKEND")
     )]
     backend: Backend,
+
     /// Enables verbosity
     #[clap(short, long, action = clap::ArgAction::Count, env = "VERBOSITY")]
     verbose: u8,
+
     #[command(subcommand)]
     command: cmd::Command,
 }
 
+// This is a duplicate from `termcolor`
+fn can_color() -> bool {
+    match std::env::var_os("TERM") {
+        // If TERM isn't set, then we are in a weird environment that
+        // probably doesn't support colors.
+        None => return false,
+        Some(k) => {
+            if k == "dumb" {
+                return false;
+            }
+        }
+    }
+    // If TERM != dumb, then the only way we don't allow colors at this
+    // point is if NO_COLOR is set.
+    if std::env::var_os("NO_COLOR").is_some() {
+        return false;
+    }
+    true
+}
+
 impl Args {
+    fn color_enabled(&self) -> bool {
+        !self.ci && !self.disable_color && can_color()
+    }
+
     fn log_level(&self) -> Option<tracing::Level> {
         match self.verbose {
             0 => None,
@@ -116,7 +157,10 @@ fn main() {
     let args = Args::parse();
 
     if let Some(level) = args.log_level() {
-        tracing_subscriber::fmt().with_max_level(level).init();
+        tracing_subscriber::fmt()
+            .with_max_level(level)
+            .with_ansi(args.color_enabled())
+            .init();
     }
 
     let mut stdout = std::io::stdout();
