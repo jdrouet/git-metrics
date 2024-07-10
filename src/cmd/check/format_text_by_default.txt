@@ -1,4 +1,5 @@
 [FAILURE] first{platform.os="linux", platform.arch="amd64", unit="byte"} 10.0 => 20.0 Δ +10.0 (+100.0 %)
+    # "show_not_increase_too_much" matching tags {platform.os="linux"}
     increase should be less than 20.0% ... failed
 [SUCCESS] first{platform.os="linux", platform.arch="arm64", unit="byte"} 10.0 => 11.0 Δ +1.0 (+10.0 %)
 [SKIP] unknown 42.0 => 28.0 Δ -14.0 (-33.3 %)

@@ -123,6 +123,7 @@ value = 140.0
             r#"[SUCCESS] binary-size{platform.os="linux"} 100.0 => 100.0
 [FAILURE] binary-size{platform.os="darwin"} 100.0 => 150.0 Δ +50.0 (+50.0 %)
     increase should be less than 20.0% ... failed
+    # "for-darwin" matching tags {platform.os="darwin"}
     should be lower than 120.0 ... failed
 [FAILURE] binary-size{platform.os="win"} 100.0 => 130.0 Δ +30.0 (+30.0 %)
     increase should be less than 20.0% ... failed

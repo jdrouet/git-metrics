@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::cmd::format::text::{TextMetricHeader, TextPercent};
+use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent};
 use crate::config::Rule;
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::difference::{Comparison, Delta};
@@ -130,12 +130,20 @@ impl TextFormatter {
         for check in item.checks.iter() {
             self.format_check(check, stdout)?;
         }
-        for check in item
-            .subsets
-            .iter()
-            .flat_map(|(_name, subset)| subset.checks.iter())
-        {
-            self.format_check(check, stdout)?;
+        for (name, subset) in item.subsets.iter() {
+            if subset.status.is_failed()
+                || (self.0.show_skipped_rules && subset.status.neutral > 0)
+                || (self.0.show_success_rules && subset.status.success > 0)
+            {
+                writeln!(
+                    stdout,
+                    "{TAB}# {name:?} matching tags {}",
+                    TextMetricTags(&subset.matching)
+                )?;
+                for check in subset.checks.iter() {
+                    self.format_check(check, stdout)?;
+                }
+            }
         }
         Ok(())
     }
