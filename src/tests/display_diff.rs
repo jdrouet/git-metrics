@@ -99,11 +99,11 @@ fn execute() {
         assert_eq!(
             stdout,
             r#"- binary_size{build.os="linux"} 1500.0
-+ binary_size{build.os="linux"} 1000.0 (-33.33 %)
++ binary_size{build.os="linux"} 1000.0 (-33.3 %)
 - binary_size{build.os="windows"} 2500.0
-+ binary_size{build.os="windows"} 2000.0 (-20.00 %)
++ binary_size{build.os="windows"} 2000.0 (-20.0 %)
 - binary_size{build.os="macos"} 4000.0
-+ binary_size{build.os="macos"} 3000.0 (-25.00 %)
++ binary_size{build.os="macos"} 3000.0 (-25.0 %)
 "#
         );
         assert_eq!(stderr, "");
@@ -113,11 +113,11 @@ fn execute() {
         assert_eq!(
             stdout,
             r#"- binary_size{build.os="linux"} 1000.0
-+ binary_size{build.os="linux"} 1500.0 (+50.00 %)
++ binary_size{build.os="linux"} 1500.0 (+50.0 %)
 - binary_size{build.os="windows"} 2000.0
-+ binary_size{build.os="windows"} 2500.0 (+25.00 %)
++ binary_size{build.os="windows"} 2500.0 (+25.0 %)
 - binary_size{build.os="macos"} 3000.0
-+ binary_size{build.os="macos"} 4000.0 (+33.33 %)
++ binary_size{build.os="macos"} 4000.0 (+33.3 %)
 "#
         );
         assert_eq!(stderr, "");

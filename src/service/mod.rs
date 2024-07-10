@@ -1,5 +1,5 @@
 use crate::backend::{Backend, NoteRef};
-use crate::entity::{Metric, MetricChange, MetricStack};
+use crate::entity::metric::{Metric, MetricChange, MetricStack};
 
 pub(crate) mod add;
 pub(crate) mod check;

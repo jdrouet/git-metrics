@@ -1,5 +1,5 @@
 use crate::backend::Backend;
-use crate::entity::{Metric, MetricChange};
+use crate::entity::metric::{Metric, MetricChange};
 
 #[derive(Debug)]
 pub(crate) struct Options {

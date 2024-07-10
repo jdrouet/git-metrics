@@ -166,15 +166,15 @@ impl GitRepo {
 macro_rules! assert_success {
     () => {
         |stdout, stderr, code| {
-            assert_eq!(stdout, "", "unexpected stdout");
-            assert_eq!(stderr, "", "unexpected stderr");
+            similar_asserts::assert_eq!(stdout, "", "unexpected stdout");
+            similar_asserts::assert_eq!(stderr, "", "unexpected stderr");
             assert!(code.is_success());
         }
     };
     ($output:expr) => {
         |stdout, stderr, code| {
-            assert_eq!(stdout, $output, "unexpected stdout");
-            assert_eq!(stderr, "", "unexpected stderr");
+            similar_asserts::assert_eq!(stdout, $output, "unexpected stdout");
+            similar_asserts::assert_eq!(stderr, "", "unexpected stderr");
             assert!(code.is_success());
         }
     };
@@ -183,15 +183,15 @@ macro_rules! assert_success {
 macro_rules! assert_failure {
     () => {
         |stdout, stderr, code| {
-            assert_eq!(stdout, "", "unexpected stdout");
-            assert_eq!(stderr, "", "unexpected stderr");
+            similar_asserts::assert_eq!(stdout, "", "unexpected stdout");
+            similar_asserts::assert_eq!(stderr, "", "unexpected stderr");
             assert!(!code.is_success());
         }
     };
     ($output:expr) => {
         |stdout, stderr, code| {
-            assert_eq!(stdout, "", "unexpected stdout");
-            assert_eq!(stderr, $output, "unexpected stderr");
+            similar_asserts::assert_eq!(stdout, "", "unexpected stdout");
+            similar_asserts::assert_eq!(stderr, $output, "unexpected stderr");
             assert!(!code.is_success());
         }
     };

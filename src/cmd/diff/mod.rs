@@ -1,8 +1,9 @@
 use std::io::Write;
 
 use crate::backend::Backend;
-use crate::service::diff::MetricDiffList;
+use crate::entity::difference::MetricDiffList;
 use crate::service::Service;
+use crate::ExitCode;
 
 mod format;
 
@@ -44,7 +45,7 @@ impl super::Executor for CommandDiff {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         let opts = crate::service::diff::Options {
             remote: "origin",
             target: self.target.as_str(),
@@ -56,7 +57,7 @@ impl super::Executor for CommandDiff {
             diff.remove_missing()
         };
         self.display(&diff, stdout)?;
-        Ok(())
+        Ok(ExitCode::Success)
     }
 }
 

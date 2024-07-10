@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::{Backend, Note, NoteRef, REMOTE_METRICS_REF};
 use crate::backend::RevParse;
-use crate::entity::Commit;
+use crate::entity::git::Commit;
 
 macro_rules! with_git2_error {
     ($msg:expr) => {

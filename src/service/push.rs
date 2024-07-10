@@ -1,6 +1,6 @@
 use super::MetricList;
 use crate::backend::{Backend, NoteRef};
-use crate::entity::MetricStack;
+use crate::entity::metric::MetricStack;
 
 impl<B: Backend> super::Service<B> {
     #[inline]

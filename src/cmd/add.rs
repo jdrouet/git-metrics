@@ -3,6 +3,7 @@ use std::io::Write;
 use super::prelude::Tag;
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -25,9 +26,9 @@ impl super::Executor for CommandAdd {
         self,
         backend: B,
         _stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
-        let metric = crate::entity::Metric {
-            header: crate::entity::MetricHeader {
+    ) -> Result<ExitCode, crate::service::Error> {
+        let metric = crate::entity::metric::Metric {
+            header: crate::entity::metric::MetricHeader {
                 name: self.name,
                 tags: self
                     .tag
@@ -41,7 +42,8 @@ impl super::Executor for CommandAdd {
             target: self.target,
         };
 
-        Service::new(backend).add(metric, &opts)
+        Service::new(backend).add(metric, &opts)?;
+        Ok(ExitCode::Success)
     }
 }
 

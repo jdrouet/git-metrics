@@ -87,14 +87,14 @@ value = 140.0
         assert_success!(),
     );
     client.metrics(["check", "HEAD"], |stdout, stderr, exit| {
-        assert_eq!(
+        similar_asserts::assert_eq!(
             stdout,
-            r#"[SUCCESS] binary-size{platform.os="linux"}
-[SUCCESS] binary-size{platform.os="darwin"}
-[SUCCESS] binary-size{platform.os="win"}
+            r#"[SUCCESS] binary-size{platform.os="linux"} 100.0 => 100.0
+[SUCCESS] binary-size{platform.os="darwin"} 100.0 => 100.0
+[SUCCESS] binary-size{platform.os="win"} 100.0 => 100.0
 "#
         );
-        assert_eq!(stderr, "");
+        similar_asserts::assert_eq!(stderr, "");
         assert!(exit.is_success());
     });
     //
@@ -118,9 +118,16 @@ value = 140.0
         assert_success!(),
     );
     client.metrics(["check", "HEAD"], |stdout, _stderr, exit| {
-        assert_eq!(
+        similar_asserts::assert_eq!(
             stdout,
-            "[SUCCESS] binary-size{platform.os=\"linux\"}\n[FAILURE] binary-size{platform.os=\"darwin\"} (2 errors)\n\t- increased of 50.0%, with a limit at 20.0%\n\t- 150 is greater than the max allowed 120\n[FAILURE] binary-size{platform.os=\"win\"} (1 errors)\n\t- increased of 30.0%, with a limit at 20.0%\n"
+            r#"[SUCCESS] binary-size{platform.os="linux"} 100.0 => 100.0
+[FAILURE] binary-size{platform.os="darwin"} 100.0 => 150.0 Δ +50.0 (+50.0 %)
+    increase should be less than 20.0% ... failed
+    # "for-darwin" matching tags {platform.os="darwin"}
+    should be lower than 120.0 ... failed
+[FAILURE] binary-size{platform.os="win"} 100.0 => 130.0 Δ +30.0 (+30.0 %)
+    increase should be less than 20.0% ... failed
+"#
         );
         assert!(!exit.is_success());
     });

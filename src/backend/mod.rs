@@ -1,4 +1,5 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
+use std::path::PathBuf;
 
 #[cfg(feature = "impl-command")]
 mod command;
@@ -12,7 +13,8 @@ pub(crate) use command::CommandBackend;
 #[cfg(feature = "impl-git2")]
 pub(crate) use git2::Git2Backend;
 
-use crate::entity::{Commit, Metric};
+use crate::entity::git::Commit;
+use crate::entity::metric::Metric;
 
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
 

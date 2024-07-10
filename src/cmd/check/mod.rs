@@ -2,6 +2,9 @@ use std::io::Write;
 
 use crate::backend::Backend;
 use crate::service::Service;
+use crate::ExitCode;
+
+mod format;
 
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
@@ -19,11 +22,18 @@ impl super::Executor for CommandCheck {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<crate::ExitCode, crate::service::Error> {
         let opts = crate::service::check::Options {
-            remote: String::from("origin"),
-            target: self.target,
+            remote: "origin",
+            target: self.target.as_str(),
         };
-        Service::new(backend).check(stdout, &opts)
+        let checklist = Service::new(backend).check(&opts)?;
+        format::TextFormatter::default().format(&checklist, stdout)?;
+
+        if checklist.status.is_failed() {
+            Ok(ExitCode::Failure)
+        } else {
+            Ok(ExitCode::Success)
+        }
     }
 }

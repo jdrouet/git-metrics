@@ -1,7 +1,10 @@
 use std::io::Write;
 
+use super::format::text::TAB;
 use crate::backend::Backend;
+use crate::cmd::format::text::TextMetric;
 use crate::service::Service;
+use crate::ExitCode;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
@@ -22,12 +25,22 @@ impl super::Executor for CommandLog {
         self,
         backend: B,
         stdout: &mut Out,
-    ) -> Result<(), crate::service::Error> {
+    ) -> Result<ExitCode, crate::service::Error> {
         let opts = crate::service::log::Options {
             target: self.target,
-            hide_empty: self.filter_empty,
         };
-        Service::new(backend).log(stdout, &opts)
+        let result = Service::new(backend).log(&opts)?;
+        for (commit, metrics) in result {
+            if metrics.is_empty() && self.filter_empty {
+                continue;
+            }
+
+            writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
+            for metric in metrics.into_metric_iter() {
+                writeln!(stdout, "{TAB}{}", TextMetric(&metric))?;
+            }
+        }
+        Ok(ExitCode::Success)
     }
 }
 
