@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use super::format::text::TextMetric;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -19,12 +20,12 @@ impl super::Executor for CommandShow {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
-        Service::new(backend).show(
-            stdout,
-            &crate::service::show::Options {
-                target: self.target,
-            },
-        )?;
+        let metrics = Service::new(backend).show(&crate::service::show::Options {
+            target: self.target,
+        })?;
+        for metric in metrics.into_metric_iter() {
+            writeln!(stdout, "{}", TextMetric(&metric))?;
+        }
         Ok(ExitCode::Success)
     }
 }

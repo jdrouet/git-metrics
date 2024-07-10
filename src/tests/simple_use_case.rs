@@ -34,11 +34,11 @@ fn execute(backend: &'static str) {
     second.metrics(["log"], |stdout, stderr, code| {
         let lines: Vec<_> = stdout.trim().split('\n').collect();
         assert_eq!(lines.len(), 5);
-        assert!(!lines[0].starts_with('\t'));
-        assert_eq!(lines[1], "\tmy-metric 2.0");
-        assert_eq!(lines[2], "\tother-metric 42.0");
-        assert!(!lines[3].starts_with('\t'));
-        assert_eq!(lines[4], "\tmy-metric 1.0");
+        assert!(!lines[0].starts_with(' '));
+        similar_asserts::assert_eq!(lines[1], "    my-metric 2.0");
+        similar_asserts::assert_eq!(lines[2], "    other-metric 42.0");
+        assert!(!lines[3].starts_with(' '));
+        similar_asserts::assert_eq!(lines[4], "    my-metric 1.0");
         assert_eq!(stderr, "");
         assert!(code.is_success());
     });

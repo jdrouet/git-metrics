@@ -4,6 +4,8 @@ use indexmap::IndexMap;
 
 use crate::entity::metric::{Metric, MetricHeader};
 
+pub(crate) const TAB: &str = "    ";
+
 pub(crate) struct TextPercent(pub f64);
 
 impl Display for TextPercent {

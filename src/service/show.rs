@@ -1,8 +1,5 @@
-// TODO extract display out of service
-
-use std::io::Write;
-
-use crate::{backend::Backend, cmd::format::text::TextMetric};
+use crate::backend::Backend;
+use crate::entity::metric::MetricStack;
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -10,15 +7,7 @@ pub(crate) struct Options {
 }
 
 impl<B: Backend> super::Service<B> {
-    pub(crate) fn show<Out: Write>(
-        &self,
-        stdout: &mut Out,
-        opts: &Options,
-    ) -> Result<(), super::Error> {
-        let metrics = self.get_metrics(&opts.target, "origin")?;
-        for m in metrics.into_metric_iter() {
-            writeln!(stdout, "{}", TextMetric(&m))?;
-        }
-        Ok(())
+    pub(crate) fn show(&self, opts: &Options) -> Result<MetricStack, super::Error> {
+        self.get_metrics(&opts.target, "origin")
     }
 }
