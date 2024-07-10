@@ -36,8 +36,6 @@ impl Rule {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub(crate) struct SubsetConfig {
     #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
     pub(crate) matching: IndexMap<String, String>,
     #[serde(default)]
     pub rules: Vec<Rule>,
@@ -53,8 +51,6 @@ impl SubsetConfig {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub(crate) struct MetricConfig {
-    #[serde(default)]
-    pub description: Option<String>,
     #[serde(default)]
     pub rules: Vec<Rule>,
     #[serde(default)]
