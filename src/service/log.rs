@@ -1,6 +1,8 @@
+// TODO extract the display out of service
+
 use std::io::Write;
 
-use crate::backend::Backend;
+use crate::{backend::Backend, cmd::format::text::TextMetric};
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -22,7 +24,7 @@ impl<B: Backend> super::Service<B> {
             }
             writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
             for metric in metrics.into_metric_iter() {
-                writeln!(stdout, "\t{metric}")?;
+                writeln!(stdout, "\t{}", TextMetric(&metric))?;
             }
         }
         Ok(())

@@ -1,6 +1,8 @@
+// TODO extract display out of service
+
 use std::io::Write;
 
-use crate::backend::Backend;
+use crate::{backend::Backend, cmd::format::text::TextMetric};
 
 #[derive(Debug)]
 pub(crate) struct Options {
@@ -15,7 +17,7 @@ impl<B: Backend> super::Service<B> {
     ) -> Result<(), super::Error> {
         let metrics = self.get_metrics(&opts.target, "origin")?;
         for m in metrics.into_metric_iter() {
-            writeln!(stdout, "{m}")?;
+            writeln!(stdout, "{}", TextMetric(&m))?;
         }
         Ok(())
     }

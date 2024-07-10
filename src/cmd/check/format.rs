@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use crate::cmd::format::text::{TextMetricHeader, TextPercent};
 use crate::config::Rule;
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::difference::{Comparison, Delta};
@@ -76,8 +77,8 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
             } => {
                 write!(
                     f,
-                    "{previous:.1} => {current:.1} Δ {absolute:+.1} ({:+.1} %)",
-                    relative * 100.0
+                    "{previous:.1} => {current:.1} Δ {absolute:+.1} ({})",
+                    TextPercent(*relative)
                 )
             }
             Comparison::Matching {
@@ -123,7 +124,7 @@ impl TextFormatter {
             stdout,
             "{} {} {}",
             TextStatus(&item.status.status()),
-            item.diff.header,
+            TextMetricHeader(&item.diff.header),
             TextComparison(&item.diff.comparison)
         )?;
         for check in item.checks.iter() {

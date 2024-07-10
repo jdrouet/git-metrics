@@ -1,4 +1,3 @@
-use std::fmt::{Display, Write};
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
@@ -121,23 +120,6 @@ impl Hash for MetricHeader {
     }
 }
 
-impl Display for MetricHeader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name.as_str())?;
-        if !self.tags.is_empty() {
-            f.write_char('{')?;
-            for (index, (key, value)) in self.tags.iter().enumerate() {
-                if index > 0 {
-                    f.write_str(", ")?;
-                }
-                write!(f, "{key}={value:?}")?;
-            }
-            f.write_char('}')?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(Clone))]
 pub struct Metric {
@@ -164,34 +146,5 @@ impl Metric {
     pub(crate) fn with_tag<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
         self.header.tags.insert(key.into(), value.into());
         self
-    }
-}
-
-impl Display for Metric {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}", self.header, self.value)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn should_display_metric_with_single_tag() {
-        let item = super::Metric::new("name", 12.34).with_tag("foo", "bar");
-        assert_eq!(item.to_string(), "name{foo=\"bar\"} 12.34");
-    }
-
-    #[test]
-    fn should_display_metric_with_multiple_tags() {
-        let item = super::Metric::new("name", 12.34)
-            .with_tag("foo", "bar")
-            .with_tag("ab", "cd");
-        assert_eq!(item.to_string(), "name{foo=\"bar\", ab=\"cd\"} 12.34");
-    }
-
-    #[test]
-    fn should_display_metric_with_empty_tags() {
-        let item = super::Metric::new("name", 12.34);
-        assert_eq!(item.to_string(), "name 12.34");
     }
 }

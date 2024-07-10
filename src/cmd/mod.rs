@@ -14,6 +14,7 @@ pub(crate) mod push;
 pub(crate) mod remove;
 pub(crate) mod show;
 
+pub(crate) mod format;
 mod prelude;
 
 pub(crate) trait Executor {
