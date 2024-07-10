@@ -1,6 +1,7 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::rc::Rc;
-use std::{cell::RefCell, fmt::Display};
 
 use super::{NoteRef, RevParse};
 use crate::entity::git::Commit;

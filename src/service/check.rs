@@ -1,4 +1,5 @@
-use crate::{backend::Backend, entity::check::CheckList};
+use crate::backend::Backend;
+use crate::entity::check::CheckList;
 
 #[derive(Debug)]
 pub(crate) struct Options<'a> {

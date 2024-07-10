@@ -1,12 +1,8 @@
 use std::io::Write;
 
-use crate::{
-    config::Rule,
-    entity::{
-        check::{CheckList, MetricCheck, RuleCheck, Status},
-        difference::{Comparison, Delta},
-    },
-};
+use crate::config::Rule;
+use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
+use crate::entity::difference::{Comparison, Delta};
 
 const TAB: &str = "    ";
 
@@ -153,16 +149,11 @@ impl TextFormatter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        config::Rule,
-        entity::{
-            check::SubsetCheck,
-            difference::{Comparison, MetricDiff},
-            metric::MetricHeader,
-        },
-    };
-
     use super::*;
+    use crate::config::Rule;
+    use crate::entity::check::SubsetCheck;
+    use crate::entity::difference::{Comparison, MetricDiff};
+    use crate::entity::metric::MetricHeader;
 
     fn complete_checklist() -> CheckList {
         CheckList::default()

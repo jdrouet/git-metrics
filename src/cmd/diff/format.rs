@@ -45,35 +45,18 @@ impl TextFormatter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        entity::difference::{Comparison, MetricDiff, MetricDiffList},
-        entity::metric::MetricHeader,
-    };
+    use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
+    use crate::entity::metric::MetricHeader;
 
     #[test]
     fn should_format_text() {
         let list = MetricDiffList(vec![
-            MetricDiff {
-                header: MetricHeader {
-                    name: "first".into(),
-                    tags: Default::default(),
-                },
-                comparison: Comparison::created(10.0),
-            },
-            MetricDiff {
-                header: MetricHeader {
-                    name: "second".into(),
-                    tags: Default::default(),
-                },
-                comparison: Comparison::new(10.0, Some(12.0)),
-            },
-            MetricDiff {
-                header: MetricHeader {
-                    name: "third".into(),
-                    tags: Default::default(),
-                },
-                comparison: Comparison::new(10.0, None),
-            },
+            MetricDiff::new(MetricHeader::new("first"), Comparison::created(10.0)),
+            MetricDiff::new(
+                MetricHeader::new("second"),
+                Comparison::new(10.0, Some(12.0)),
+            ),
+            MetricDiff::new(MetricHeader::new("third"), Comparison::new(10.0, None)),
         ]);
         let mut stdout = Vec::new();
         super::TextFormatter::format(&list, &mut stdout).unwrap();

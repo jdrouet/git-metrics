@@ -1,6 +1,6 @@
-use crate::config::{Config, MetricConfig, Rule, SubsetConfig};
 use indexmap::IndexMap;
 
+use crate::config::{Config, MetricConfig, Rule, SubsetConfig};
 use crate::entity::difference::{Comparison, Delta, MetricDiff};
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
@@ -268,5 +268,71 @@ impl CheckList {
         }
 
         Self { status, list }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_check_max() {
+        let rule = Rule::max(10.0);
+        assert_eq!(rule.check(&Comparison::created(20.0)), Status::Failed);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Success);
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(20.0))),
+            Status::Failed
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(5.0))),
+            Status::Success
+        );
+        assert_eq!(rule.check(&Comparison::new(0.0, None)), Status::Skip);
+    }
+
+    #[test]
+    fn should_check_min() {
+        let rule = Rule::min(10.0);
+        assert_eq!(rule.check(&Comparison::created(20.0)), Status::Success);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Failed);
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(20.0))),
+            Status::Success
+        );
+        assert_eq!(rule.check(&Comparison::new(0.0, Some(5.0))), Status::Failed);
+        assert_eq!(rule.check(&Comparison::new(0.0, None)), Status::Skip);
+    }
+
+    #[test]
+    fn should_check_max_increase() {
+        let rule = Rule::max_increase(0.1);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
+        assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
+        assert_eq!(
+            rule.check(&Comparison::new(10.0, Some(20.0))),
+            Status::Failed
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(10.0, Some(10.5))),
+            Status::Success
+        );
+        assert_eq!(rule.check(&Comparison::new(10.0, None)), Status::Skip);
+    }
+
+    #[test]
+    fn should_check_max_decrease() {
+        let rule = Rule::max_decrease(0.1);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
+        assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
+        assert_eq!(
+            rule.check(&Comparison::new(10.0, Some(0.0))),
+            Status::Failed
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(10.0, Some(9.5))),
+            Status::Success
+        );
+        assert_eq!(rule.check(&Comparison::new(10.0, None)), Status::Skip);
     }
 }

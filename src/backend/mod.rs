@@ -1,4 +1,5 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
+use std::path::PathBuf;
 
 #[cfg(feature = "impl-command")]
 mod command;

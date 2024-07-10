@@ -16,10 +16,10 @@ impl crate::cmd::Executor for CommandInit {
 
 #[cfg(test)]
 mod tests {
-    use crate::cmd::Executor;
+    use clap::Parser;
 
     use super::CommandInit;
-    use clap::Parser;
+    use crate::cmd::Executor;
 
     #[test]
     fn should_do_nothing_for_now() {
