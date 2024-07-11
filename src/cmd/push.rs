@@ -1,5 +1,4 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -14,7 +13,7 @@ pub struct CommandPush {
 
 impl super::Executor for CommandPush {
     #[tracing::instrument(name = "push", skip_all, fields(remote = self.remote.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,

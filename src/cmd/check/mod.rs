@@ -1,5 +1,4 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -24,7 +23,7 @@ pub struct CommandCheck {
 
 impl super::Executor for CommandCheck {
     #[tracing::instrument(name = "check", skip_all, fields(target = self.target.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,

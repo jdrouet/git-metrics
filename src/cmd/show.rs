@@ -1,6 +1,5 @@
-use std::io::Write;
-
 use super::format::text::TextMetric;
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -15,7 +14,7 @@ pub struct CommandShow {
 
 impl super::Executor for CommandShow {
     #[tracing::instrument(name = "show", skip_all, fields(target = self.target.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
@@ -24,7 +23,8 @@ impl super::Executor for CommandShow {
             target: self.target,
         })?;
         for metric in metrics.into_metric_iter() {
-            writeln!(stdout, "{}", TextMetric(&metric))?;
+            stdout.write_element(TextMetric(&metric))?;
+            stdout.write_str("\n")?;
         }
         Ok(ExitCode::Success)
     }

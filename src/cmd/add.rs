@@ -1,6 +1,4 @@
-use std::io::Write;
-
-use super::prelude::Tag;
+use super::prelude::{PrettyWriter, Tag};
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -22,7 +20,7 @@ pub struct CommandAdd {
 
 impl super::Executor for CommandAdd {
     #[tracing::instrument(name = "add", skip_all, fields(target = self.target.as_str(), name = self.name.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,

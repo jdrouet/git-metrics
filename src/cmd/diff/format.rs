@@ -1,6 +1,5 @@
-use std::io::Write;
-
 use crate::cmd::format::text::{TextMetricHeader, TextPercent};
+use crate::cmd::prelude::PrettyWriter;
 use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
 
 pub struct TextFormatter {
@@ -8,55 +7,44 @@ pub struct TextFormatter {
 }
 
 impl TextFormatter {
-    fn format_entry<W: Write>(&self, entry: &MetricDiff, stdout: &mut W) -> std::io::Result<()> {
+    fn format_entry<W: PrettyWriter>(
+        &self,
+        entry: &MetricDiff,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
         match &entry.comparison {
             Comparison::Created { current } => {
-                writeln!(
-                    stdout,
-                    "+ {} {:.1}",
-                    TextMetricHeader(&entry.header),
-                    current
-                )
+                stdout.write_str("+ ")?;
+                stdout.write_element(TextMetricHeader(&entry.header))?;
+                writeln!(stdout, "{:.1}", current)
             }
             Comparison::Missing { previous } if self.show_previous => {
-                writeln!(
-                    stdout,
-                    "  {} {:.1}",
-                    TextMetricHeader(&entry.header),
-                    previous
-                )
+                stdout.write_str("  ")?;
+                stdout.write_element(TextMetricHeader(&entry.header))?;
+                writeln!(stdout, "{:.1}", previous)
             }
             Comparison::Matching {
                 previous,
                 current,
                 delta: _,
             } if previous == current => {
-                writeln!(
-                    stdout,
-                    "= {} {:.1}",
-                    TextMetricHeader(&entry.header),
-                    current
-                )
+                stdout.write_str("= ")?;
+                stdout.write_element(TextMetricHeader(&entry.header))?;
+                writeln!(stdout, "{:.1}", current)
             }
             Comparison::Matching {
                 previous,
                 current,
                 delta,
             } => {
-                writeln!(
-                    stdout,
-                    "- {} {:.1}",
-                    TextMetricHeader(&entry.header),
-                    previous
-                )?;
-                write!(
-                    stdout,
-                    "+ {} {:.1}",
-                    TextMetricHeader(&entry.header),
-                    current
-                )?;
+                stdout.write_str("- ")?;
+                stdout.write_element(TextMetricHeader(&entry.header))?;
+                writeln!(stdout, "{:.1}", previous)?;
+                stdout.write_str("+ ")?;
+                stdout.write_element(TextMetricHeader(&entry.header))?;
+                write!(stdout, "{:.1}", current)?;
                 if let Some(relative) = delta.relative {
-                    write!(stdout, " ({})", TextPercent(relative))?;
+                    stdout.write_element(TextPercent(relative))?;
                 }
                 writeln!(stdout)
             }
@@ -64,7 +52,11 @@ impl TextFormatter {
         }
     }
 
-    pub fn format<W: Write>(&self, list: &MetricDiffList, stdout: &mut W) -> std::io::Result<()> {
+    pub fn format<W: PrettyWriter>(
+        &self,
+        list: &MetricDiffList,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
         for entry in list.inner().iter() {
             self.format_entry(entry, stdout)?;
         }

@@ -1,6 +1,5 @@
-use std::io::Write;
-
 use crate::cmd::format::text::TextMetric;
+use crate::cmd::prelude::PrettyWriter;
 use crate::entity::git::Commit;
 use crate::entity::metric::{Metric, MetricStack};
 
@@ -12,15 +11,16 @@ pub struct TextFormatter {
 }
 
 impl TextFormatter {
-    fn format_metric<W: Write>(&self, item: &Metric, stdout: &mut W) -> std::io::Result<()> {
-        writeln!(stdout, "{TAB}{}", TextMetric(item))
+    fn format_metric<W: PrettyWriter>(&self, item: &Metric, stdout: &mut W) -> std::io::Result<()> {
+        stdout.write_str(TAB)?;
+        stdout.write_element(TextMetric(item))
     }
 
-    fn format_commit<W: Write>(&self, item: &Commit, stdout: &mut W) -> std::io::Result<()> {
+    fn format_commit<W: PrettyWriter>(&self, item: &Commit, stdout: &mut W) -> std::io::Result<()> {
         writeln!(stdout, "* {} {}", &item.sha.as_str()[..7], item.summary)
     }
 
-    pub(crate) fn format<W: Write>(
+    pub(crate) fn format<W: PrettyWriter>(
         &self,
         list: Vec<(Commit, MetricStack)>,
         stdout: &mut W,

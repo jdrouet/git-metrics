@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
+use crate::cmd::prelude::PrettyWriter;
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::Rule;
 use crate::entity::difference::{Comparison, Delta};
@@ -124,14 +125,17 @@ impl TextFormatter {
         }
     }
 
-    fn format_metric<W: Write>(&self, item: &MetricCheck, stdout: &mut W) -> std::io::Result<()> {
-        writeln!(
-            stdout,
-            "{} {} {}",
-            TextStatus(item.status.status()),
-            TextMetricHeader(&item.diff.header),
-            TextComparison(&item.diff.comparison)
-        )?;
+    fn format_metric<W: PrettyWriter>(
+        &self,
+        item: &MetricCheck,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
+        stdout.write_element(TextStatus(item.status.status()))?;
+        stdout.write(" ".as_bytes())?;
+        stdout.write_element(TextMetricHeader(&item.diff.header))?;
+        stdout.write(" ".as_bytes())?;
+        stdout.write_element(TextComparison(&item.diff.comparison))?;
+        stdout.write("\n".as_bytes())?;
         for check in item.checks.iter() {
             self.format_check(check, stdout)?;
         }
@@ -153,7 +157,7 @@ impl TextFormatter {
         Ok(())
     }
 
-    pub fn format<W: Write>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
+    pub fn format<W: PrettyWriter>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
         for entry in res.list.iter() {
             self.format_metric(entry, stdout)?;
         }

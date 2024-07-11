@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use prelude::{ColoredWriter, PrettyWriter};
+
 use crate::backend::Backend;
 use crate::error::DetailedError;
 use crate::ExitCode;
@@ -18,7 +20,7 @@ mod format;
 mod prelude;
 
 trait Executor {
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
@@ -51,16 +53,17 @@ impl Command {
         stdout: &mut Out,
         stderr: &mut Err,
     ) -> ExitCode {
+        let mut stdout = ColoredWriter::from(stdout);
         let result = match self {
-            Self::Add(inner) => inner.execute(repo, stdout),
-            Self::Check(inner) => inner.execute(repo, stdout),
-            Self::Diff(inner) => inner.execute(repo, stdout),
-            Self::Init(inner) => inner.execute(repo, stdout),
-            Self::Log(inner) => inner.execute(repo, stdout),
-            Self::Pull(inner) => inner.execute(repo, stdout),
-            Self::Push(inner) => inner.execute(repo, stdout),
-            Self::Remove(inner) => inner.execute(repo, stdout),
-            Self::Show(inner) => inner.execute(repo, stdout),
+            Self::Add(inner) => inner.execute(repo, &mut stdout),
+            Self::Check(inner) => inner.execute(repo, &mut stdout),
+            Self::Diff(inner) => inner.execute(repo, &mut stdout),
+            Self::Init(inner) => inner.execute(repo, &mut stdout),
+            Self::Log(inner) => inner.execute(repo, &mut stdout),
+            Self::Pull(inner) => inner.execute(repo, &mut stdout),
+            Self::Push(inner) => inner.execute(repo, &mut stdout),
+            Self::Remove(inner) => inner.execute(repo, &mut stdout),
+            Self::Show(inner) => inner.execute(repo, &mut stdout),
         };
 
         match result {

@@ -1,5 +1,4 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -16,7 +15,7 @@ pub struct CommandRemove {
 
 impl super::Executor for CommandRemove {
     #[tracing::instrument(name = "remove", skip_all, fields(target = self.target.as_str(), index = self.index))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,

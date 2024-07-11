@@ -1,5 +1,4 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
@@ -21,7 +20,7 @@ pub struct CommandLog {
 }
 
 impl super::Executor for CommandLog {
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
