@@ -3,10 +3,12 @@ use std::io::Write;
 use crate::cmd::format::text::{TextMetricHeader, TextPercent};
 use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
 
-pub(super) struct TextFormatter;
+pub(super) struct TextFormatter {
+    pub(super) show_previous: bool,
+}
 
 impl TextFormatter {
-    fn format_entry<W: Write>(entry: &MetricDiff, stdout: &mut W) -> std::io::Result<()> {
+    fn format_entry<W: Write>(&self, entry: &MetricDiff, stdout: &mut W) -> std::io::Result<()> {
         match &entry.comparison {
             Comparison::Created { current } => {
                 writeln!(
@@ -16,7 +18,7 @@ impl TextFormatter {
                     current
                 )
             }
-            Comparison::Missing { previous } => {
+            Comparison::Missing { previous } if self.show_previous => {
                 writeln!(
                     stdout,
                     "  {} {:.1}",
@@ -58,12 +60,17 @@ impl TextFormatter {
                 }
                 writeln!(stdout)
             }
+            _ => Ok(()),
         }
     }
 
-    pub(crate) fn format<W: Write>(list: &MetricDiffList, stdout: &mut W) -> std::io::Result<()> {
+    pub(crate) fn format<W: Write>(
+        &self,
+        list: &MetricDiffList,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
         for entry in list.inner().iter() {
-            Self::format_entry(entry, stdout)?;
+            self.format_entry(entry, stdout)?;
         }
         Ok(())
     }
@@ -85,7 +92,11 @@ mod tests {
             MetricDiff::new(MetricHeader::new("third"), Comparison::new(10.0, None)),
         ]);
         let mut stdout = Vec::new();
-        super::TextFormatter::format(&list, &mut stdout).unwrap();
+        super::TextFormatter {
+            show_previous: true,
+        }
+        .format(&list, &mut stdout)
+        .unwrap();
         let stdout = String::from_utf8_lossy(&stdout);
         similar_asserts::assert_eq!(
             stdout,

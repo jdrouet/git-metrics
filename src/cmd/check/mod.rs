@@ -9,6 +9,12 @@ mod format;
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub(crate) struct CommandCheck {
+    /// Show the successful rules
+    #[clap(long)]
+    show_success_rules: bool,
+    /// Show the skipped rules
+    #[clap(long)]
+    show_skipped_rules: bool,
     /// Commit range, default to HEAD
     ///
     /// Can use ranges like HEAD~2..HEAD
@@ -28,7 +34,11 @@ impl super::Executor for CommandCheck {
             target: self.target.as_str(),
         };
         let checklist = Service::new(backend).check(&opts)?;
-        format::TextFormatter::default().format(&checklist, stdout)?;
+        format::TextFormatter {
+            show_success_rules: self.show_success_rules,
+            show_skipped_rules: self.show_skipped_rules,
+        }
+        .format(&checklist, stdout)?;
 
         if checklist.status.is_failed() {
             Ok(ExitCode::Failure)

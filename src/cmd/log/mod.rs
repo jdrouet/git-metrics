@@ -1,10 +1,6 @@
 use std::io::Write;
 
-use format::FormatOptions;
-
-use super::format::text::TAB;
 use crate::backend::Backend;
-use crate::cmd::format::text::TextMetric;
 use crate::service::Service;
 use crate::ExitCode;
 
@@ -34,9 +30,9 @@ impl super::Executor for CommandLog {
             target: self.target,
         };
         let result = Service::new(backend).log(&opts)?;
-        format::TextFormatter(FormatOptions {
+        format::TextFormatter {
             filter_empty: self.filter_empty,
-        })
+        }
         .format(result, stdout)?;
         Ok(ExitCode::Success)
     }

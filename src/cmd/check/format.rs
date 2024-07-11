@@ -1,11 +1,9 @@
 use std::io::Write;
 
-use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent};
+use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
 use crate::config::Rule;
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::difference::{Comparison, Delta};
-
-const TAB: &str = "    ";
 
 struct TextStatus<'a>(pub &'a Status);
 
@@ -97,19 +95,16 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
 }
 
 #[derive(Default)]
-pub(crate) struct FormatOptions {
-    show_success_rules: bool,
-    show_skipped_rules: bool,
+pub(super) struct TextFormatter {
+    pub(super) show_success_rules: bool,
+    pub(super) show_skipped_rules: bool,
 }
-
-#[derive(Default)]
-pub(super) struct TextFormatter(FormatOptions);
 
 impl TextFormatter {
     fn format_check<W: Write>(&self, check: &RuleCheck, stdout: &mut W) -> std::io::Result<()> {
         match check.status {
-            Status::Success if !self.0.show_success_rules => Ok(()),
-            Status::Skip if !self.0.show_skipped_rules => Ok(()),
+            Status::Success if !self.show_success_rules => Ok(()),
+            Status::Skip if !self.show_skipped_rules => Ok(()),
             _ => writeln!(
                 stdout,
                 "{TAB}{} ... {}",
@@ -132,8 +127,8 @@ impl TextFormatter {
         }
         for (name, subset) in item.subsets.iter() {
             if subset.status.is_failed()
-                || (self.0.show_skipped_rules && subset.status.neutral > 0)
-                || (self.0.show_success_rules && subset.status.success > 0)
+                || (self.show_skipped_rules && subset.status.neutral > 0)
+                || (self.show_success_rules && subset.status.success > 0)
             {
                 writeln!(
                     stdout,
@@ -228,7 +223,7 @@ mod tests {
 
     #[test]
     fn should_format_to_text_by_default() {
-        let formatter = TextFormatter(FormatOptions::default());
+        let formatter = TextFormatter::default();
         let list = complete_checklist();
         let mut stdout: Vec<u8> = Vec::new();
         formatter.format(&list, &mut stdout).unwrap();
@@ -238,10 +233,10 @@ mod tests {
 
     #[test]
     fn should_format_to_text_with_success_showed() {
-        let formatter = TextFormatter(FormatOptions {
+        let formatter = TextFormatter {
             show_success_rules: true,
             show_skipped_rules: true,
-        });
+        };
         let list = complete_checklist();
         let mut stdout: Vec<u8> = Vec::new();
         formatter.format(&list, &mut stdout).unwrap();

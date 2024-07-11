@@ -18,7 +18,7 @@ pub(crate) enum Format {
 pub(crate) struct CommandDiff {
     /// When enabled, the metrics prior the provided range will be displayed
     #[clap(long)]
-    keep_previous: bool,
+    show_previous: bool,
 
     /// Output format
     #[clap(long, default_value = "text")]
@@ -34,7 +34,10 @@ pub(crate) struct CommandDiff {
 impl CommandDiff {
     fn display<Out: Write>(&self, list: &MetricDiffList, stdout: &mut Out) -> std::io::Result<()> {
         match self.format {
-            Format::Text => format::TextFormatter::format(list, stdout),
+            Format::Text => format::TextFormatter {
+                show_previous: self.show_previous,
+            }
+            .format(list, stdout),
         }
     }
 }
@@ -51,7 +54,7 @@ impl super::Executor for CommandDiff {
             target: self.target.as_str(),
         };
         let diff = Service::new(backend).diff(&opts)?;
-        let diff = if self.keep_previous {
+        let diff = if self.show_previous {
             diff
         } else {
             diff.remove_missing()

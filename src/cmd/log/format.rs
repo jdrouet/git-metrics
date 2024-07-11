@@ -7,12 +7,9 @@ use crate::entity::metric::{Metric, MetricStack};
 const TAB: &str = "    ";
 
 #[derive(Default)]
-pub(crate) struct FormatOptions {
+pub(super) struct TextFormatter {
     pub(super) filter_empty: bool,
 }
-
-#[derive(Default)]
-pub(super) struct TextFormatter(pub(super) FormatOptions);
 
 impl TextFormatter {
     fn format_metric<W: Write>(&self, item: &Metric, stdout: &mut W) -> std::io::Result<()> {
@@ -29,7 +26,7 @@ impl TextFormatter {
         stdout: &mut W,
     ) -> std::io::Result<()> {
         for (commit, metrics) in list {
-            if metrics.is_empty() && self.0.filter_empty {
+            if metrics.is_empty() && self.filter_empty {
                 continue;
             }
 
