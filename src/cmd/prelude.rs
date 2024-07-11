@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 #[derive(Clone, Debug)]
-pub(super) struct Tag {
+pub struct Tag {
     pub name: String,
     pub value: String,
 }

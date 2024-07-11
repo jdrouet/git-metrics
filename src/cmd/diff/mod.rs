@@ -8,14 +8,14 @@ use crate::ExitCode;
 mod format;
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug, Default)]
-pub(crate) enum Format {
+pub enum Format {
     #[default]
     Text,
 }
 
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandDiff {
+pub struct CommandDiff {
     /// When enabled, the metrics prior the provided range will be displayed
     #[clap(long)]
     show_previous: bool,

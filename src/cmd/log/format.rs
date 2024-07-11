@@ -7,8 +7,8 @@ use crate::entity::metric::{Metric, MetricStack};
 const TAB: &str = "    ";
 
 #[derive(Default)]
-pub(super) struct TextFormatter {
-    pub(super) filter_empty: bool,
+pub struct TextFormatter {
+    pub filter_empty: bool,
 }
 
 impl TextFormatter {

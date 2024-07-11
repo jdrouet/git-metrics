@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 
 use crate::entity::metric::{Metric, MetricHeader};
 
-pub(crate) const TAB: &str = "    ";
+pub const TAB: &str = "    ";
 
-pub(crate) struct TextPercent(pub f64);
+pub struct TextPercent(pub f64);
 
 impl Display for TextPercent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -14,7 +14,7 @@ impl Display for TextPercent {
     }
 }
 
-pub(crate) struct TextMetricTags<'a>(pub &'a IndexMap<String, String>);
+pub struct TextMetricTags<'a>(pub &'a IndexMap<String, String>);
 
 impl<'a> Display for TextMetricTags<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -32,7 +32,7 @@ impl<'a> Display for TextMetricTags<'a> {
     }
 }
 
-pub(crate) struct TextMetricHeader<'a>(pub &'a MetricHeader);
+pub struct TextMetricHeader<'a>(pub &'a MetricHeader);
 
 impl<'a> Display for TextMetricHeader<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -42,7 +42,7 @@ impl<'a> Display for TextMetricHeader<'a> {
     }
 }
 
-pub(crate) struct TextMetric<'a>(pub &'a Metric);
+pub struct TextMetric<'a>(pub &'a Metric);
 
 impl<'a> Display for TextMetric<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

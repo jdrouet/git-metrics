@@ -8,7 +8,7 @@ mod format;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandLog {
+pub struct CommandLog {
     /// Commit range, default to HEAD
     ///
     /// Can use ranges like HEAD~2..HEAD

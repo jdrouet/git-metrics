@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-pub(crate) enum ExitCode {
+enum ExitCode {
     Success,
     Failure,
 }

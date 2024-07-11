@@ -8,7 +8,7 @@ mod format;
 
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandCheck {
+pub struct CommandCheck {
     /// Show the successful rules
     #[clap(long)]
     show_success_rules: bool,

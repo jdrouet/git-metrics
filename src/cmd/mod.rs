@@ -4,20 +4,20 @@ use crate::backend::Backend;
 use crate::error::DetailedError;
 use crate::ExitCode;
 
-pub(crate) mod add;
-pub(crate) mod check;
-pub(crate) mod diff;
-pub(crate) mod init;
-pub(crate) mod log;
-pub(crate) mod pull;
-pub(crate) mod push;
-pub(crate) mod remove;
-pub(crate) mod show;
+mod add;
+mod check;
+mod diff;
+mod init;
+mod log;
+mod pull;
+mod push;
+mod remove;
+mod show;
 
-pub(crate) mod format;
+mod format;
 mod prelude;
 
-pub(crate) trait Executor {
+trait Executor {
     fn execute<B: Backend, Out: Write>(
         self,
         backend: B,

@@ -7,7 +7,7 @@ use crate::ExitCode;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandAdd {
+pub struct CommandAdd {
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,

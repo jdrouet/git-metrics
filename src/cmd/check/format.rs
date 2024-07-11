@@ -95,9 +95,9 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
 }
 
 #[derive(Default)]
-pub(super) struct TextFormatter {
-    pub(super) show_success_rules: bool,
-    pub(super) show_skipped_rules: bool,
+pub struct TextFormatter {
+    pub show_success_rules: bool,
+    pub show_skipped_rules: bool,
 }
 
 impl TextFormatter {
@@ -143,7 +143,7 @@ impl TextFormatter {
         Ok(())
     }
 
-    pub(crate) fn format<W: Write>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
+    pub fn format<W: Write>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
         for entry in res.list.iter() {
             self.format_metric(entry, stdout)?;
         }

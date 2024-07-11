@@ -6,7 +6,7 @@ use crate::ExitCode;
 
 /// Pushes the metrics
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandPush {
+pub struct CommandPush {
     /// Remote name, default to origin
     #[clap(default_value = "origin")]
     remote: String,

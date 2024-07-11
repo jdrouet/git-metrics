@@ -3,8 +3,8 @@ use std::io::Write;
 use crate::cmd::format::text::{TextMetricHeader, TextPercent};
 use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
 
-pub(super) struct TextFormatter {
-    pub(super) show_previous: bool,
+pub struct TextFormatter {
+    pub show_previous: bool,
 }
 
 impl TextFormatter {
@@ -64,11 +64,7 @@ impl TextFormatter {
         }
     }
 
-    pub(crate) fn format<W: Write>(
-        &self,
-        list: &MetricDiffList,
-        stdout: &mut W,
-    ) -> std::io::Result<()> {
+    pub fn format<W: Write>(&self, list: &MetricDiffList, stdout: &mut W) -> std::io::Result<()> {
         for entry in list.inner().iter() {
             self.format_entry(entry, stdout)?;
         }

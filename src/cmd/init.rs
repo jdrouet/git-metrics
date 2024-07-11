@@ -2,7 +2,7 @@ use crate::ExitCode;
 
 /// Initialize the git-metrics configuration
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandInit;
+pub struct CommandInit;
 
 impl crate::cmd::Executor for CommandInit {
     fn execute<B: crate::backend::Backend, Out: std::io::Write>(

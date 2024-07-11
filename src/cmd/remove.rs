@@ -6,7 +6,7 @@ use crate::ExitCode;
 
 /// Remove a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandRemove {
+pub struct CommandRemove {
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,
