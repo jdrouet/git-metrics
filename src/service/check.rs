@@ -1,5 +1,6 @@
 use crate::backend::Backend;
 use crate::entity::check::CheckList;
+use crate::entity::config::Config;
 
 #[derive(Debug)]
 pub(crate) struct Options<'a> {
@@ -8,11 +9,11 @@ pub(crate) struct Options<'a> {
 }
 
 impl<B: Backend> super::Service<B> {
-    fn open_config(&self) -> Result<crate::config::Config, super::Error> {
+    fn open_config(&self) -> Result<Config, super::Error> {
         let root = self.backend.root_path()?;
         let config_path = root.join(".git-metrics.toml");
         let file = if config_path.is_file() {
-            crate::config::Config::from_path(&config_path)?
+            Config::from_path(&config_path)?
         } else {
             Default::default()
         };
@@ -38,8 +39,8 @@ mod tests {
     use super::*;
     use crate::backend::mock::MockBackend;
     use crate::backend::{NoteRef, RevParse};
-    use crate::config::Rule;
     use crate::entity::check::{MetricCheck, Status, SubsetCheck};
+    use crate::entity::config::Rule;
     use crate::entity::difference::{Comparison, MetricDiff};
     use crate::entity::metric::MetricHeader;
     use crate::service::Service;

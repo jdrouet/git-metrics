@@ -1,31 +1,41 @@
 use std::io::Write;
 
 use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
-use crate::config::Rule;
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
+use crate::entity::config::Rule;
 use crate::entity::difference::{Comparison, Delta};
 
-struct TextStatus<'a>(pub &'a Status);
+impl Status {
+    const fn big_label(&self) -> &'static str {
+        match self {
+            Status::Failed => "[FAILURE]",
+            Status::Skip => "[SKIP]",
+            Status::Success => "[SUCCESS]",
+        }
+    }
 
-impl<'a> std::fmt::Display for TextStatus<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Status::Failed => write!(f, "[FAILURE]"),
-            Status::Skip => write!(f, "[SKIP]"),
-            Status::Success => write!(f, "[SUCCESS]"),
+    const fn small_label(&self) -> &'static str {
+        match self {
+            Status::Failed => "failed",
+            Status::Skip => "skip",
+            Status::Success => "check",
         }
     }
 }
 
-struct SmallTextStatus<'a>(pub &'a Status);
+struct TextStatus(pub Status);
 
-impl<'a> std::fmt::Display for SmallTextStatus<'a> {
+impl std::fmt::Display for TextStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Status::Failed => write!(f, "failed"),
-            Status::Skip => write!(f, "skip"),
-            Status::Success => write!(f, "check"),
-        }
+        f.write_str(self.0.big_label())
+    }
+}
+
+struct SmallTextStatus(pub Status);
+
+impl std::fmt::Display for SmallTextStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0.small_label())
     }
 }
 
@@ -109,7 +119,7 @@ impl TextFormatter {
                 stdout,
                 "{TAB}{} ... {}",
                 TextRule(&check.rule),
-                SmallTextStatus(&check.status),
+                SmallTextStatus(check.status),
             ),
         }
     }
@@ -118,7 +128,7 @@ impl TextFormatter {
         writeln!(
             stdout,
             "{} {} {}",
-            TextStatus(&item.status.status()),
+            TextStatus(item.status.status()),
             TextMetricHeader(&item.diff.header),
             TextComparison(&item.diff.comparison)
         )?;
@@ -154,8 +164,8 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Rule;
     use crate::entity::check::SubsetCheck;
+    use crate::entity::config::Rule;
     use crate::entity::difference::{Comparison, MetricDiff};
     use crate::entity::metric::MetricHeader;
 

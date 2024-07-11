@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use indexmap::IndexMap;
 
-use crate::entity::metric::MetricHeader;
+use super::metric::MetricHeader;
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
