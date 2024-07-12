@@ -62,21 +62,12 @@ jobs:
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v3
       - name: build binaries using buildx
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=${{ github.workspace }}
-          platforms: linux/arm64
-          push: false
-          target: binary
-      - name: build binaries using buildx
-        uses: docker/build-push-action@v5
-        with:
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=local,dest=${{ github.workspace }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: false
           target: binary
       - name: move binaries

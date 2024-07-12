@@ -14,13 +14,15 @@ RUN --mount=type=cache,target=$CARGO_HOME/git,sharing=locked \
     mkdir -p /code/.cargo \
     && cargo vendor >> /code/.cargo/config.toml
 
-FROM rust:1-bookworm AS builder
+FROM rust:1-bookworm AS base-builder
 
 RUN apt-get update \
     && apt-get install -y git \
     && rm -rf /var/lib/apt/lists
 
 RUN cargo install cargo-deb
+
+FROM base-builder AS builder
 
 ENV USER=root
 
@@ -33,9 +35,13 @@ COPY LICENSE /code/LICENSE
 COPY --from=vendor /code/.cargo /code/.cargo
 COPY --from=vendor /code/vendor /code/vendor
 
-RUN cargo build --release --offline \
-    && strip /code/target/release/git-metrics \
-    && cargo deb --no-build
+RUN --mount=type=cache,target=/code/target/release/deps,sharing=locked \
+    --mount=type=cache,target=/code/target/release/build,sharing=locked \
+    --mount=type=cache,target=/code/target/release/incremental,sharing=locked \
+    cargo build --release --offline
+
+RUN strip /code/target/release/git-metrics
+RUN cargo deb --no-build
 
 FROM scratch AS binary
 
