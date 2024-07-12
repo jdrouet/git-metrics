@@ -16,12 +16,12 @@ impl TextFormatter {
             Comparison::Created { current } => {
                 stdout.write_str("+ ")?;
                 stdout.write_element(TextMetricHeader(&entry.header))?;
-                writeln!(stdout, "{:.1}", current)
+                writeln!(stdout, " {:.1}", current)
             }
             Comparison::Missing { previous } if self.show_previous => {
                 stdout.write_str("  ")?;
                 stdout.write_element(TextMetricHeader(&entry.header))?;
-                writeln!(stdout, "{:.1}", previous)
+                writeln!(stdout, " {:.1}", previous)
             }
             Comparison::Matching {
                 previous,
@@ -30,7 +30,7 @@ impl TextFormatter {
             } if previous == current => {
                 stdout.write_str("= ")?;
                 stdout.write_element(TextMetricHeader(&entry.header))?;
-                writeln!(stdout, "{:.1}", current)
+                writeln!(stdout, " {:.1}", current)
             }
             Comparison::Matching {
                 previous,
@@ -39,12 +39,14 @@ impl TextFormatter {
             } => {
                 stdout.write_str("- ")?;
                 stdout.write_element(TextMetricHeader(&entry.header))?;
-                writeln!(stdout, "{:.1}", previous)?;
+                writeln!(stdout, " {:.1}", previous)?;
                 stdout.write_str("+ ")?;
                 stdout.write_element(TextMetricHeader(&entry.header))?;
-                write!(stdout, "{:.1}", current)?;
+                write!(stdout, " {:.1}", current)?;
                 if let Some(relative) = delta.relative {
+                    stdout.write_str(" (")?;
                     stdout.write_element(TextPercent(relative))?;
+                    stdout.write_str(")")?;
                 }
                 writeln!(stdout)
             }
@@ -66,6 +68,7 @@ impl TextFormatter {
 
 #[cfg(test)]
 mod tests {
+    use crate::cmd::prelude::BasicWriter;
     use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
     use crate::entity::metric::MetricHeader;
 
@@ -79,13 +82,13 @@ mod tests {
             ),
             MetricDiff::new(MetricHeader::new("third"), Comparison::new(10.0, None)),
         ]);
-        let mut stdout = Vec::new();
+        let mut writer = BasicWriter::from(Vec::<u8>::new());
         super::TextFormatter {
             show_previous: true,
         }
-        .format(&list, &mut stdout)
+        .format(&list, &mut writer)
         .unwrap();
-        let stdout = String::from_utf8_lossy(&stdout);
+        let stdout = writer.into_string();
         similar_asserts::assert_eq!(
             stdout,
             r#"+ first 10.0

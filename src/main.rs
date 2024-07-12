@@ -133,10 +133,12 @@ impl Args {
         stdout: &mut Out,
         stderr: &mut Err,
     ) -> ExitCode {
+        let color = self.color_enabled();
         match self.backend {
             #[cfg(feature = "impl-command")]
             Backend::Command => self.command.execute(
                 crate::backend::CommandBackend::new(self.root_dir),
+                color,
                 stdout,
                 stderr,
             ),
@@ -145,6 +147,7 @@ impl Args {
                 crate::backend::Git2Backend::new(self.root_dir)
                     .unwrap()
                     .with_credentials(self.auth),
+                color,
                 stdout,
                 stderr,
             ),

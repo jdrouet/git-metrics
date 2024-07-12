@@ -45,7 +45,7 @@ mod tests {
 
         let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(backend, &mut stdout, &mut stderr);
+            .execute(backend, false, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

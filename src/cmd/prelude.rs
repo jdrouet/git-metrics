@@ -19,10 +19,8 @@ impl FromStr for Tag {
     }
 }
 
-pub type Style = &'static str;
-
 pub trait PrettyWriter: std::io::Write + Sized {
-    fn set_style(&mut self, style: Style) -> std::io::Result<usize>;
+    fn set_style<S: std::fmt::Display>(&mut self, style: S) -> std::io::Result<()>;
 
     #[inline]
     fn write_str(&mut self, value: &str) -> std::io::Result<usize> {
@@ -38,14 +36,9 @@ pub trait PrettyWriter: std::io::Write + Sized {
 pub struct ColoredWriter<W>(W);
 
 impl<W: std::io::Write> From<W> for ColoredWriter<W> {
+    #[inline]
     fn from(value: W) -> Self {
         Self(value)
-    }
-}
-
-impl From<ColoredWriter<String>> for String {
-    fn from(value: ColoredWriter<String>) -> Self {
-        value.0
     }
 }
 
@@ -74,16 +67,25 @@ impl<W: std::io::Write> std::io::Write for ColoredWriter<W> {
 
 impl<W: std::io::Write> PrettyWriter for ColoredWriter<W> {
     #[inline]
-    fn set_style(&mut self, style: Style) -> std::io::Result<usize> {
-        self.0.write(style.as_bytes())
+    fn set_style<S: std::fmt::Display>(&mut self, style: S) -> std::io::Result<()> {
+        write!(self.0, "{style}")?;
+        Ok(())
     }
 }
 
 pub struct BasicWriter<W>(W);
 
 impl<W: std::io::Write> From<W> for BasicWriter<W> {
+    #[inline]
     fn from(value: W) -> Self {
         Self(value)
+    }
+}
+
+#[cfg(test)]
+impl BasicWriter<Vec<u8>> {
+    pub fn into_string(self) -> String {
+        String::from_utf8(self.0).unwrap()
     }
 }
 
@@ -111,21 +113,15 @@ impl<W: std::io::Write> std::io::Write for BasicWriter<W> {
 }
 
 impl<W: std::io::Write> PrettyWriter for BasicWriter<W> {
-    fn set_style(&mut self, _style: Style) -> std::io::Result<usize> {
-        Ok(0)
+    fn set_style<S: std::fmt::Display>(&mut self, _style: S) -> std::io::Result<()> {
+        Ok(())
     }
 }
 
 pub trait PrettyDisplay {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()>;
 
-    fn to_colored_string(&self) -> std::io::Result<String> {
-        let mut writer = ColoredWriter::from(Vec::<u8>::new());
-        self.print(&mut writer).unwrap();
-        String::from_utf8(writer.0)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))
-    }
-
+    #[cfg(test)]
     fn to_basic_string(&self) -> std::io::Result<String> {
         let mut writer = BasicWriter::from(Vec::<u8>::new());
         self.print(&mut writer).unwrap();
@@ -135,7 +131,28 @@ pub trait PrettyDisplay {
 }
 
 impl<E: std::fmt::Display> PrettyDisplay for E {
+    #[inline]
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         write!(writer, "{self}")
+    }
+}
+
+pub struct Pretty<E> {
+    style: nu_ansi_term::Style,
+    inner: E,
+}
+
+impl<E: std::fmt::Display> Pretty<E> {
+    pub fn new(style: nu_ansi_term::Style, inner: E) -> Self {
+        Self { inner, style }
+    }
+}
+
+impl<E: std::fmt::Display> PrettyDisplay for Pretty<E> {
+    #[inline]
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.set_style(self.style.prefix())?;
+        write!(writer, "{}", self.inner)?;
+        writer.set_style(self.style.suffix())
     }
 }

@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use prelude::{ColoredWriter, PrettyWriter};
+use prelude::{BasicWriter, ColoredWriter, PrettyWriter};
 
 use crate::backend::Backend;
 use crate::error::DetailedError;
@@ -47,23 +47,35 @@ impl Default for Command {
 }
 
 impl Command {
-    pub(crate) fn execute<Repo: Backend, Out: Write, Err: Write>(
+    fn execute_with<Repo: Backend, Out: PrettyWriter>(
         self,
         repo: Repo,
         stdout: &mut Out,
+    ) -> Result<ExitCode, crate::service::Error> {
+        match self {
+            Self::Add(inner) => inner.execute(repo, stdout),
+            Self::Check(inner) => inner.execute(repo, stdout),
+            Self::Diff(inner) => inner.execute(repo, stdout),
+            Self::Init(inner) => inner.execute(repo, stdout),
+            Self::Log(inner) => inner.execute(repo, stdout),
+            Self::Pull(inner) => inner.execute(repo, stdout),
+            Self::Push(inner) => inner.execute(repo, stdout),
+            Self::Remove(inner) => inner.execute(repo, stdout),
+            Self::Show(inner) => inner.execute(repo, stdout),
+        }
+    }
+
+    pub(crate) fn execute<Repo: Backend, Out: Write, Err: Write>(
+        self,
+        repo: Repo,
+        color_enabled: bool,
+        stdout: &mut Out,
         stderr: &mut Err,
     ) -> ExitCode {
-        let mut stdout = ColoredWriter::from(stdout);
-        let result = match self {
-            Self::Add(inner) => inner.execute(repo, &mut stdout),
-            Self::Check(inner) => inner.execute(repo, &mut stdout),
-            Self::Diff(inner) => inner.execute(repo, &mut stdout),
-            Self::Init(inner) => inner.execute(repo, &mut stdout),
-            Self::Log(inner) => inner.execute(repo, &mut stdout),
-            Self::Pull(inner) => inner.execute(repo, &mut stdout),
-            Self::Push(inner) => inner.execute(repo, &mut stdout),
-            Self::Remove(inner) => inner.execute(repo, &mut stdout),
-            Self::Show(inner) => inner.execute(repo, &mut stdout),
+        let result = if color_enabled {
+            self.execute_with(repo, &mut ColoredWriter::from(stdout))
+        } else {
+            self.execute_with(repo, &mut BasicWriter::from(stdout))
         };
 
         match result {

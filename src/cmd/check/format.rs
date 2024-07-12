@@ -1,7 +1,5 @@
-use std::io::Write;
-
 use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
-use crate::cmd::prelude::PrettyWriter;
+use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::Rule;
 use crate::entity::difference::{Comparison, Delta};
@@ -12,6 +10,20 @@ impl Status {
             Status::Failed => "[FAILURE]",
             Status::Skip => "[SKIP]",
             Status::Success => "[SUCCESS]",
+        }
+    }
+
+    fn style(&self) -> nu_ansi_term::Style {
+        match self {
+            Status::Failed => nu_ansi_term::Style::new()
+                .bold()
+                .fg(nu_ansi_term::Color::Red),
+            Status::Skip => nu_ansi_term::Style::new()
+                .italic()
+                .fg(nu_ansi_term::Color::LightGray),
+            Status::Success => nu_ansi_term::Style::new()
+                .bold()
+                .fg(nu_ansi_term::Color::Green),
         }
     }
 
@@ -26,17 +38,25 @@ impl Status {
 
 struct TextStatus(pub Status);
 
-impl std::fmt::Display for TextStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.big_label())
+impl PrettyDisplay for TextStatus {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = self.0.style();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.big_label())?;
+        writer.set_style(style.suffix())?;
+        Ok(())
     }
 }
 
 struct SmallTextStatus(pub Status);
 
-impl std::fmt::Display for SmallTextStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.small_label())
+impl PrettyDisplay for SmallTextStatus {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = self.0.style();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.small_label())?;
+        writer.set_style(style.suffix())?;
+        Ok(())
     }
 }
 
@@ -112,16 +132,21 @@ pub struct TextFormatter {
 }
 
 impl TextFormatter {
-    fn format_check<W: Write>(&self, check: &RuleCheck, stdout: &mut W) -> std::io::Result<()> {
+    fn format_check<W: PrettyWriter>(
+        &self,
+        check: &RuleCheck,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
         match check.status {
             Status::Success if !self.show_success_rules => Ok(()),
             Status::Skip if !self.show_skipped_rules => Ok(()),
-            _ => writeln!(
-                stdout,
-                "{TAB}{} ... {}",
-                TextRule(&check.rule),
-                SmallTextStatus(check.status),
-            ),
+            _ => {
+                stdout.write_str(TAB)?;
+                stdout.write_element(TextRule(&check.rule))?;
+                stdout.write_str(" ... ")?;
+                stdout.write_element(SmallTextStatus(check.status))?;
+                writeln!(stdout)
+            }
         }
     }
 
@@ -131,24 +156,27 @@ impl TextFormatter {
         stdout: &mut W,
     ) -> std::io::Result<()> {
         stdout.write_element(TextStatus(item.status.status()))?;
-        stdout.write(" ".as_bytes())?;
+        stdout.write_str(" ")?;
         stdout.write_element(TextMetricHeader(&item.diff.header))?;
-        stdout.write(" ".as_bytes())?;
+        stdout.write_str(" ")?;
         stdout.write_element(TextComparison(&item.diff.comparison))?;
-        stdout.write("\n".as_bytes())?;
+        stdout.write_str("\n")?;
         for check in item.checks.iter() {
             self.format_check(check, stdout)?;
         }
+        let subset_style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::LightGray);
         for (name, subset) in item.subsets.iter() {
             if subset.status.is_failed()
                 || (self.show_skipped_rules && subset.status.neutral > 0)
                 || (self.show_success_rules && subset.status.success > 0)
             {
+                stdout.set_style(subset_style.prefix())?;
                 writeln!(
                     stdout,
                     "{TAB}# {name:?} matching tags {}",
                     TextMetricTags(&subset.matching)
                 )?;
+                stdout.set_style(subset_style.suffix())?;
                 for check in subset.checks.iter() {
                     self.format_check(check, stdout)?;
                 }
@@ -168,6 +196,7 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cmd::prelude::BasicWriter;
     use crate::entity::check::SubsetCheck;
     use crate::entity::config::Rule;
     use crate::entity::difference::{Comparison, MetricDiff};
@@ -239,9 +268,9 @@ mod tests {
     fn should_format_to_text_by_default() {
         let formatter = TextFormatter::default();
         let list = complete_checklist();
-        let mut stdout: Vec<u8> = Vec::new();
-        formatter.format(&list, &mut stdout).unwrap();
-        let stdout = String::from_utf8_lossy(&stdout);
+        let mut writter = BasicWriter::from(Vec::<u8>::new());
+        formatter.format(&list, &mut writter).unwrap();
+        let stdout = writter.into_string();
         similar_asserts::assert_eq!(stdout, include_str!("./format_text_by_default.txt"));
     }
 
@@ -252,9 +281,9 @@ mod tests {
             show_skipped_rules: true,
         };
         let list = complete_checklist();
-        let mut stdout: Vec<u8> = Vec::new();
-        formatter.format(&list, &mut stdout).unwrap();
-        let stdout = String::from_utf8_lossy(&stdout);
+        let mut writter = BasicWriter::from(Vec::<u8>::new());
+        formatter.format(&list, &mut writter).unwrap();
+        let stdout = writter.into_string();
         similar_asserts::assert_eq!(
             stdout,
             include_str!("./format_text_with_success_showed.txt")

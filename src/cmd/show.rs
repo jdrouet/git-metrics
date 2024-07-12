@@ -44,10 +44,12 @@ mod tests {
         let repo = crate::backend::mock::MockBackend::default();
         repo.set_note("HEAD", NoteRef::remote_metrics("origin"), String::new());
 
-        let code =
-            crate::Args::parse_from(["_", "show"])
-                .command
-                .execute(repo, &mut stdout, &mut stderr);
+        let code = crate::Args::parse_from(["_", "show"]).command.execute(
+            repo,
+            false,
+            &mut stdout,
+            &mut stderr,
+        );
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
@@ -87,7 +89,7 @@ value = 1.0
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
-            .execute(repo, &mut stdout, &mut stderr);
+            .execute(repo, false, &mut stdout, &mut stderr);
 
         assert!(code.is_success(), "{:?}", String::from_utf8_lossy(&stderr));
         assert!(!stdout.is_empty());

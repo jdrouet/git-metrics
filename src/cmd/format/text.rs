@@ -35,12 +35,11 @@ pub struct TextMetricHeader<'a>(pub &'a MetricHeader);
 
 impl<'a> PrettyDisplay for TextMetricHeader<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        write!(
-            writer,
-            "{}{}",
-            self.0.name.as_str(),
-            TextMetricTags(&self.0.tags)
-        )
+        let style = nu_ansi_term::Style::new().bold();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.name.as_str())?;
+        writer.set_style(style.suffix())?;
+        TextMetricTags(&self.0.tags).print(writer)
     }
 }
 
