@@ -146,6 +146,7 @@ impl GitRepo {
             "git-metrics",
             "--root-dir",
             self.path_str(),
+            "--disable-color",
             "--backend",
             self.backend,
         ];

@@ -21,6 +21,7 @@ auth-git2 = { version = "0.5.4", optional = true, features = ["log"] }
 clap = { version = "4.5.4", features = ["derive", "env"] }
 git2 = { version = "0.18.3", optional = true }
 indexmap = { version = "2.2.6", features = ["serde"] }
+nu-ansi-term = "0.50.0"
 serde = { version = "1.0.200", features = ["derive"] }
 thiserror = { version = "1.0.60" }
 toml = { version = "0.8.12", features = ["preserve_order"] }

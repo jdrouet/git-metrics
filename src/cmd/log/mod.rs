@@ -1,14 +1,13 @@
-use std::io::Write;
-
-use super::format::text::TAB;
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
-use crate::cmd::format::text::TextMetric;
 use crate::service::Service;
 use crate::ExitCode;
 
+mod format;
+
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandLog {
+pub struct CommandLog {
     /// Commit range, default to HEAD
     ///
     /// Can use ranges like HEAD~2..HEAD
@@ -21,7 +20,7 @@ pub(crate) struct CommandLog {
 }
 
 impl super::Executor for CommandLog {
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
@@ -30,16 +29,10 @@ impl super::Executor for CommandLog {
             target: self.target,
         };
         let result = Service::new(backend).log(&opts)?;
-        for (commit, metrics) in result {
-            if metrics.is_empty() && self.filter_empty {
-                continue;
-            }
-
-            writeln!(stdout, "* {} {}", &commit.sha.as_str()[..7], commit.summary)?;
-            for metric in metrics.into_metric_iter() {
-                writeln!(stdout, "{TAB}{}", TextMetric(&metric))?;
-            }
+        format::TextFormatter {
+            filter_empty: self.filter_empty,
         }
+        .format(result, stdout)?;
         Ok(ExitCode::Success)
     }
 }

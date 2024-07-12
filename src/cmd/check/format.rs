@@ -1,33 +1,62 @@
-use std::io::Write;
-
-use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent};
-use crate::config::Rule;
+use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
+use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
+use crate::entity::config::Rule;
 use crate::entity::difference::{Comparison, Delta};
 
-const TAB: &str = "    ";
+impl Status {
+    const fn big_label(&self) -> &'static str {
+        match self {
+            Status::Failed => "[FAILURE]",
+            Status::Skip => "[SKIP]",
+            Status::Success => "[SUCCESS]",
+        }
+    }
 
-struct TextStatus<'a>(pub &'a Status);
+    fn style(&self) -> nu_ansi_term::Style {
+        match self {
+            Status::Failed => nu_ansi_term::Style::new()
+                .bold()
+                .fg(nu_ansi_term::Color::Red),
+            Status::Skip => nu_ansi_term::Style::new()
+                .italic()
+                .fg(nu_ansi_term::Color::LightGray),
+            Status::Success => nu_ansi_term::Style::new()
+                .bold()
+                .fg(nu_ansi_term::Color::Green),
+        }
+    }
 
-impl<'a> std::fmt::Display for TextStatus<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Status::Failed => write!(f, "[FAILURE]"),
-            Status::Skip => write!(f, "[SKIP]"),
-            Status::Success => write!(f, "[SUCCESS]"),
+    const fn small_label(&self) -> &'static str {
+        match self {
+            Status::Failed => "failed",
+            Status::Skip => "skip",
+            Status::Success => "check",
         }
     }
 }
 
-struct SmallTextStatus<'a>(pub &'a Status);
+struct TextStatus(pub Status);
 
-impl<'a> std::fmt::Display for SmallTextStatus<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
-            Status::Failed => write!(f, "failed"),
-            Status::Skip => write!(f, "skip"),
-            Status::Success => write!(f, "check"),
-        }
+impl PrettyDisplay for TextStatus {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = self.0.style();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.big_label())?;
+        writer.set_style(style.suffix())?;
+        Ok(())
+    }
+}
+
+struct SmallTextStatus(pub Status);
+
+impl PrettyDisplay for SmallTextStatus {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = self.0.style();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.small_label())?;
+        writer.set_style(style.suffix())?;
+        Ok(())
     }
 }
 
@@ -97,49 +126,57 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
 }
 
 #[derive(Default)]
-pub(crate) struct FormatOptions {
-    show_success_rules: bool,
-    show_skipped_rules: bool,
+pub struct TextFormatter {
+    pub show_success_rules: bool,
+    pub show_skipped_rules: bool,
 }
 
-#[derive(Default)]
-pub(super) struct TextFormatter(FormatOptions);
-
 impl TextFormatter {
-    fn format_check<W: Write>(&self, check: &RuleCheck, stdout: &mut W) -> std::io::Result<()> {
+    fn format_check<W: PrettyWriter>(
+        &self,
+        check: &RuleCheck,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
         match check.status {
-            Status::Success if !self.0.show_success_rules => Ok(()),
-            Status::Skip if !self.0.show_skipped_rules => Ok(()),
-            _ => writeln!(
-                stdout,
-                "{TAB}{} ... {}",
-                TextRule(&check.rule),
-                SmallTextStatus(&check.status),
-            ),
+            Status::Success if !self.show_success_rules => Ok(()),
+            Status::Skip if !self.show_skipped_rules => Ok(()),
+            _ => {
+                stdout.write_str(TAB)?;
+                stdout.write_element(TextRule(&check.rule))?;
+                stdout.write_str(" ... ")?;
+                stdout.write_element(SmallTextStatus(check.status))?;
+                writeln!(stdout)
+            }
         }
     }
 
-    fn format_metric<W: Write>(&self, item: &MetricCheck, stdout: &mut W) -> std::io::Result<()> {
-        writeln!(
-            stdout,
-            "{} {} {}",
-            TextStatus(&item.status.status()),
-            TextMetricHeader(&item.diff.header),
-            TextComparison(&item.diff.comparison)
-        )?;
+    fn format_metric<W: PrettyWriter>(
+        &self,
+        item: &MetricCheck,
+        stdout: &mut W,
+    ) -> std::io::Result<()> {
+        stdout.write_element(TextStatus(item.status.status()))?;
+        stdout.write_str(" ")?;
+        stdout.write_element(TextMetricHeader(&item.diff.header))?;
+        stdout.write_str(" ")?;
+        stdout.write_element(TextComparison(&item.diff.comparison))?;
+        stdout.write_str("\n")?;
         for check in item.checks.iter() {
             self.format_check(check, stdout)?;
         }
+        let subset_style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::LightGray);
         for (name, subset) in item.subsets.iter() {
             if subset.status.is_failed()
-                || (self.0.show_skipped_rules && subset.status.neutral > 0)
-                || (self.0.show_success_rules && subset.status.success > 0)
+                || (self.show_skipped_rules && subset.status.neutral > 0)
+                || (self.show_success_rules && subset.status.success > 0)
             {
+                stdout.set_style(subset_style.prefix())?;
                 writeln!(
                     stdout,
                     "{TAB}# {name:?} matching tags {}",
                     TextMetricTags(&subset.matching)
                 )?;
+                stdout.set_style(subset_style.suffix())?;
                 for check in subset.checks.iter() {
                     self.format_check(check, stdout)?;
                 }
@@ -148,7 +185,7 @@ impl TextFormatter {
         Ok(())
     }
 
-    pub(crate) fn format<W: Write>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
+    pub fn format<W: PrettyWriter>(&self, res: &CheckList, stdout: &mut W) -> std::io::Result<()> {
         for entry in res.list.iter() {
             self.format_metric(entry, stdout)?;
         }
@@ -159,8 +196,9 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Rule;
+    use crate::cmd::prelude::BasicWriter;
     use crate::entity::check::SubsetCheck;
+    use crate::entity::config::Rule;
     use crate::entity::difference::{Comparison, MetricDiff};
     use crate::entity::metric::MetricHeader;
 
@@ -228,24 +266,24 @@ mod tests {
 
     #[test]
     fn should_format_to_text_by_default() {
-        let formatter = TextFormatter(FormatOptions::default());
+        let formatter = TextFormatter::default();
         let list = complete_checklist();
-        let mut stdout: Vec<u8> = Vec::new();
-        formatter.format(&list, &mut stdout).unwrap();
-        let stdout = String::from_utf8_lossy(&stdout);
+        let mut writter = BasicWriter::from(Vec::<u8>::new());
+        formatter.format(&list, &mut writter).unwrap();
+        let stdout = writter.into_string();
         similar_asserts::assert_eq!(stdout, include_str!("./format_text_by_default.txt"));
     }
 
     #[test]
     fn should_format_to_text_with_success_showed() {
-        let formatter = TextFormatter(FormatOptions {
+        let formatter = TextFormatter {
             show_success_rules: true,
             show_skipped_rules: true,
-        });
+        };
         let list = complete_checklist();
-        let mut stdout: Vec<u8> = Vec::new();
-        formatter.format(&list, &mut stdout).unwrap();
-        let stdout = String::from_utf8_lossy(&stdout);
+        let mut writter = BasicWriter::from(Vec::<u8>::new());
+        formatter.format(&list, &mut writter).unwrap();
+        let stdout = writter.into_string();
         similar_asserts::assert_eq!(
             stdout,
             include_str!("./format_text_with_success_showed.txt")

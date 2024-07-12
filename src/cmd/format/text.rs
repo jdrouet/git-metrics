@@ -1,62 +1,66 @@
-use std::fmt::{Display, Write};
-
 use indexmap::IndexMap;
 
+use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::metric::{Metric, MetricHeader};
 
-pub(crate) const TAB: &str = "    ";
+pub const TAB: &str = "    ";
 
-pub(crate) struct TextPercent(pub f64);
+pub struct TextPercent(pub f64);
 
-impl Display for TextPercent {
+impl std::fmt::Display for TextPercent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:+.1} %", self.0 * 100.0)
     }
 }
 
-pub(crate) struct TextMetricTags<'a>(pub &'a IndexMap<String, String>);
+pub struct TextMetricTags<'a>(pub &'a IndexMap<String, String>);
 
-impl<'a> Display for TextMetricTags<'a> {
+impl<'a> std::fmt::Display for TextMetricTags<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if !self.0.is_empty() {
-            f.write_char('{')?;
+            f.write_str("{")?;
             for (index, (key, value)) in self.0.iter().enumerate() {
                 if index > 0 {
                     f.write_str(", ")?;
                 }
                 write!(f, "{key}={value:?}")?;
             }
-            f.write_char('}')?;
+            f.write_str("}")?;
         }
         Ok(())
     }
 }
 
-pub(crate) struct TextMetricHeader<'a>(pub &'a MetricHeader);
+pub struct TextMetricHeader<'a>(pub &'a MetricHeader);
 
-impl<'a> Display for TextMetricHeader<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.name.as_str())?;
-        TextMetricTags(&self.0.tags).fmt(f)?;
-        Ok(())
+impl<'a> PrettyDisplay for TextMetricHeader<'a> {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = nu_ansi_term::Style::new().bold();
+        writer.set_style(style.prefix())?;
+        writer.write_str(self.0.name.as_str())?;
+        writer.set_style(style.suffix())?;
+        TextMetricTags(&self.0.tags).print(writer)
     }
 }
 
-pub(crate) struct TextMetric<'a>(pub &'a Metric);
+pub struct TextMetric<'a>(pub &'a Metric);
 
-impl<'a> Display for TextMetric<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {:?}", TextMetricHeader(&self.0.header), self.0.value)
+impl<'a> PrettyDisplay for TextMetric<'a> {
+    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        TextMetricHeader(&self.0.header).print(writer)?;
+        write!(writer, " {:?}", self.0.value)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::cmd::prelude::PrettyDisplay;
+
     #[test]
     fn should_display_metric_with_single_tag() {
         let item = super::Metric::new("name", 12.34).with_tag("foo", "bar");
         assert_eq!(
-            super::TextMetric(&item).to_string(),
+            super::TextMetric(&item).to_basic_string().unwrap(),
             "name{foo=\"bar\"} 12.34"
         );
     }
@@ -67,7 +71,7 @@ mod tests {
             .with_tag("foo", "bar")
             .with_tag("ab", "cd");
         assert_eq!(
-            super::TextMetric(&item).to_string(),
+            super::TextMetric(&item).to_basic_string().unwrap(),
             "name{foo=\"bar\", ab=\"cd\"} 12.34"
         );
     }
@@ -75,6 +79,9 @@ mod tests {
     #[test]
     fn should_display_metric_with_empty_tags() {
         let item = super::Metric::new("name", 12.34);
-        assert_eq!(super::TextMetric(&item).to_string(), "name 12.34");
+        assert_eq!(
+            super::TextMetric(&item).to_basic_string().unwrap(),
+            "name 12.34"
+        );
     }
 }

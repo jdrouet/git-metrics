@@ -1,12 +1,11 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
 
 /// Remove a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandRemove {
+pub struct CommandRemove {
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,
@@ -16,7 +15,7 @@ pub(crate) struct CommandRemove {
 
 impl super::Executor for CommandRemove {
     #[tracing::instrument(name = "remove", skip_all, fields(target = self.target.as_str(), index = self.index))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,
@@ -46,7 +45,7 @@ mod tests {
 
         let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(backend, &mut stdout, &mut stderr);
+            .execute(backend, false, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

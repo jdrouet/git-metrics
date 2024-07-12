@@ -1,13 +1,11 @@
-use std::io::Write;
-
-use super::prelude::Tag;
+use super::prelude::{PrettyWriter, Tag};
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
 
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandAdd {
+pub struct CommandAdd {
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,
@@ -22,7 +20,7 @@ pub(crate) struct CommandAdd {
 
 impl super::Executor for CommandAdd {
     #[tracing::instrument(name = "add", skip_all, fields(target = self.target.as_str(), name = self.name.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,
@@ -62,7 +60,7 @@ mod tests {
 
         let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
-            .execute(repo, &mut stdout, &mut stderr);
+            .execute(repo, false, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
@@ -87,7 +85,7 @@ mod tests {
             "12.34",
         ])
         .command
-        .execute(repo.clone(), &mut stdout, &mut stderr);
+        .execute(repo.clone(), false, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
@@ -118,7 +116,7 @@ yolo = "pouwet"
 
         let code = crate::Args::parse_from(["_", "add", "--target", "other", "my-metric", "12.34"])
             .command
-            .execute(repo.clone(), &mut stdout, &mut stderr);
+            .execute(repo.clone(), false, &mut stdout, &mut stderr);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

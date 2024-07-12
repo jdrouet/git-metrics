@@ -1,24 +1,26 @@
 use std::io::Write;
 
+use prelude::{BasicWriter, ColoredWriter, PrettyWriter};
+
 use crate::backend::Backend;
 use crate::error::DetailedError;
 use crate::ExitCode;
 
-pub(crate) mod add;
-pub(crate) mod check;
-pub(crate) mod diff;
-pub(crate) mod init;
-pub(crate) mod log;
-pub(crate) mod pull;
-pub(crate) mod push;
-pub(crate) mod remove;
-pub(crate) mod show;
+mod add;
+mod check;
+mod diff;
+mod init;
+mod log;
+mod pull;
+mod push;
+mod remove;
+mod show;
 
-pub(crate) mod format;
+mod format;
 mod prelude;
 
-pub(crate) trait Executor {
-    fn execute<B: Backend, Out: Write>(
+trait Executor {
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
@@ -45,13 +47,12 @@ impl Default for Command {
 }
 
 impl Command {
-    pub(crate) fn execute<Repo: Backend, Out: Write, Err: Write>(
+    fn execute_with<Repo: Backend, Out: PrettyWriter>(
         self,
         repo: Repo,
         stdout: &mut Out,
-        stderr: &mut Err,
-    ) -> ExitCode {
-        let result = match self {
+    ) -> Result<ExitCode, crate::service::Error> {
+        match self {
             Self::Add(inner) => inner.execute(repo, stdout),
             Self::Check(inner) => inner.execute(repo, stdout),
             Self::Diff(inner) => inner.execute(repo, stdout),
@@ -61,6 +62,20 @@ impl Command {
             Self::Push(inner) => inner.execute(repo, stdout),
             Self::Remove(inner) => inner.execute(repo, stdout),
             Self::Show(inner) => inner.execute(repo, stdout),
+        }
+    }
+
+    pub(crate) fn execute<Repo: Backend, Out: Write, Err: Write>(
+        self,
+        repo: Repo,
+        color_enabled: bool,
+        stdout: &mut Out,
+        stderr: &mut Err,
+    ) -> ExitCode {
+        let result = if color_enabled {
+            self.execute_with(repo, &mut ColoredWriter::from(stdout))
+        } else {
+            self.execute_with(repo, &mut BasicWriter::from(stdout))
         };
 
         match result {

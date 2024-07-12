@@ -1,12 +1,11 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
 use crate::ExitCode;
 
 /// Pushes the metrics
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandPush {
+pub struct CommandPush {
     /// Remote name, default to origin
     #[clap(default_value = "origin")]
     remote: String,
@@ -14,7 +13,7 @@ pub(crate) struct CommandPush {
 
 impl super::Executor for CommandPush {
     #[tracing::instrument(name = "push", skip_all, fields(remote = self.remote.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         _stdout: &mut Out,

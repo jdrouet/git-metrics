@@ -1,24 +1,22 @@
-use std::io::Write;
-
+use super::prelude::PrettyWriter;
 use crate::backend::Backend;
-use crate::entity::difference::MetricDiffList;
 use crate::service::Service;
 use crate::ExitCode;
 
 mod format;
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug, Default)]
-pub(crate) enum Format {
+pub enum Format {
     #[default]
     Text,
 }
 
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
-pub(crate) struct CommandDiff {
+pub struct CommandDiff {
     /// When enabled, the metrics prior the provided range will be displayed
     #[clap(long)]
-    keep_previous: bool,
+    show_previous: bool,
 
     /// Output format
     #[clap(long, default_value = "text")]
@@ -31,17 +29,9 @@ pub(crate) struct CommandDiff {
     target: String,
 }
 
-impl CommandDiff {
-    fn display<Out: Write>(&self, list: &MetricDiffList, stdout: &mut Out) -> std::io::Result<()> {
-        match self.format {
-            Format::Text => format::TextFormatter::format(list, stdout),
-        }
-    }
-}
-
 impl super::Executor for CommandDiff {
     #[tracing::instrument(name = "diff", skip_all, fields(target = self.target.as_str()))]
-    fn execute<B: Backend, Out: Write>(
+    fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
         stdout: &mut Out,
@@ -51,12 +41,17 @@ impl super::Executor for CommandDiff {
             target: self.target.as_str(),
         };
         let diff = Service::new(backend).diff(&opts)?;
-        let diff = if self.keep_previous {
+        let diff = if self.show_previous {
             diff
         } else {
             diff.remove_missing()
         };
-        self.display(&diff, stdout)?;
+        match self.format {
+            Format::Text => format::TextFormatter {
+                show_previous: self.show_previous,
+            }
+            .format(&diff, stdout),
+        }?;
         Ok(ExitCode::Success)
     }
 }

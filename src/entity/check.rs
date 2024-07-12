@@ -1,8 +1,9 @@
 use indexmap::IndexMap;
 
-use crate::config::{Config, MetricConfig, Rule, SubsetConfig};
-use crate::entity::difference::{Comparison, Delta, MetricDiff};
+use super::config::{Config, MetricConfig, Rule, SubsetConfig};
+use super::difference::{Comparison, Delta, MetricDiff};
 
+#[derive(Clone, Copy)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub(crate) enum Status {
     Success,
