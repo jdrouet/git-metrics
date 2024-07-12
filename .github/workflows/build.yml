@@ -67,7 +67,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=${{ github.workspace }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
+          push: false
+          target: binary
+      - name: build binaries using buildx
+        uses: docker/build-push-action@v5
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=local,dest=${{ github.workspace }}
+          platforms: linux/amd64
           push: false
           target: binary
       - name: move binaries
