@@ -51,8 +51,35 @@ jobs:
           path: git-metrics_darwin-*
           if-no-files-found: error
 
-  build-linux-binaries:
-    name: build linux binaries
+  build-linux-amd64-binary:
+    name: build linux amd64 binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+      - name: install cargo-deb
+        run: cargo install cargo-deb
+      - name: build binary
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+      - name: strip binary
+        run: strip ./target/x86_64-unknown-linux-gnu/release/git-metrics
+      - name: build deb file
+        run: cargo deb --no-build --target x86_64-unknown-linux-gnu
+      - name: move binaries
+        run: |
+          mv ./target/x86_64-unknown-linux-gnu/release/git-metrics ./git-metrics_linux-x86_64
+          mv ./target/x86_64-unknown-linux-gnu/debian/git-metrics_*.deb ./
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux-amd64
+          path: ./git-metrics_*
+          if-no-files-found: error
+
+  build-linux-arm64-binary:
+    name: build linux arm64 binary
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -67,17 +94,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=${{ github.workspace }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           push: false
           target: binary
       - name: move binaries
         run: |
-          mv ./linux_amd64/git-metrics ./git-metrics_linux-x86_64
-          mv ./linux_amd64/git-metrics_*.deb ./
           mv ./linux_arm64/git-metrics ./git-metrics_linux-aarch64
           mv ./linux_arm64/git-metrics_*.deb ./
       - uses: actions/upload-artifact@v4
         with:
-          name: binary-linux
+          name: binary-linux-arm64
           path: ./git-metrics_*
           if-no-files-found: error
