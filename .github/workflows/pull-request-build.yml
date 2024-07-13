@@ -3,7 +3,8 @@ name: pr build
 on:
   pull_request:
     paths:
-      - ".github/workflows/release.yml"
+      - ".github/workflows/pull-request-build.yml"
+      - ".github/workflows/build.yml"
       - "rust-toolchain.toml"
       - "**/Cargo.toml"
       - "**/Cargo.lock"
