@@ -78,6 +78,7 @@ jobs:
           path: ./git-metrics_*
           if-no-files-found: error
 
+  # TODO: find a way to cross build this binary without having to go through docker
   build-linux-arm64-binary:
     name: build linux arm64 binary
     runs-on: ubuntu-latest
