@@ -97,10 +97,8 @@ jobs:
           platforms: linux/arm64
           push: false
           target: binary
-      - name: move binaries
-        run: |
-          mv ./linux_arm64/git-metrics ./git-metrics_linux-aarch64
-          mv ./linux_arm64/git-metrics_*.deb ./
+      - name: move binary
+        run: mv ./git-metrics ./git-metrics_linux-aarch64
       - uses: actions/upload-artifact@v4
         with:
           name: binary-linux-arm64
