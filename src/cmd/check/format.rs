@@ -1,8 +1,15 @@
+use ansiconst::{ansi, Ansi, Colour, Effect};
+
 use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::Rule;
 use crate::entity::difference::{Comparison, Delta};
+
+const FAILED_LABEL_STYLE: Ansi = ansi!(Effect::Bold, Colour::Red);
+const SKIPPED_LABEL_STYLE: Ansi = ansi!(Effect::Italic);
+const SUCCESS_LABEL_STYLE: Ansi = ansi!(Effect::Bold, Colour::Green);
+const RESET_STYLE: Ansi = Ansi::reset();
 
 impl Status {
     const fn big_label(&self) -> &'static str {
@@ -13,17 +20,11 @@ impl Status {
         }
     }
 
-    fn style(&self) -> nu_ansi_term::Style {
+    const fn style(&self) -> Ansi {
         match self {
-            Status::Failed => nu_ansi_term::Style::new()
-                .bold()
-                .fg(nu_ansi_term::Color::Red),
-            Status::Skip => nu_ansi_term::Style::new()
-                .italic()
-                .fg(nu_ansi_term::Color::LightGray),
-            Status::Success => nu_ansi_term::Style::new()
-                .bold()
-                .fg(nu_ansi_term::Color::Green),
+            Status::Failed => FAILED_LABEL_STYLE,
+            Status::Skip => SKIPPED_LABEL_STYLE,
+            Status::Success => SUCCESS_LABEL_STYLE,
         }
     }
 
@@ -40,10 +41,9 @@ struct TextStatus(pub Status);
 
 impl PrettyDisplay for TextStatus {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        let style = self.0.style();
-        writer.set_style(style.prefix())?;
+        writer.set_style(self.0.style())?;
         writer.write_str(self.0.big_label())?;
-        writer.set_style(style.suffix())?;
+        writer.set_style(RESET_STYLE)?;
         Ok(())
     }
 }
@@ -52,10 +52,9 @@ struct SmallTextStatus(pub Status);
 
 impl PrettyDisplay for SmallTextStatus {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        let style = self.0.style();
-        writer.set_style(style.prefix())?;
+        writer.set_style(self.0.style())?;
         writer.write_str(self.0.small_label())?;
-        writer.set_style(style.suffix())?;
+        writer.set_style(RESET_STYLE)?;
         Ok(())
     }
 }
@@ -131,6 +130,8 @@ pub struct TextFormatter {
     pub show_skipped_rules: bool,
 }
 
+const SUBSET_TITLE_STYLE: Ansi = ansi!(Effect::Underline);
+
 impl TextFormatter {
     fn format_check<W: PrettyWriter>(
         &self,
@@ -164,19 +165,18 @@ impl TextFormatter {
         for check in item.checks.iter() {
             self.format_check(check, stdout)?;
         }
-        let subset_style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::LightGray);
         for (name, subset) in item.subsets.iter() {
             if subset.status.is_failed()
                 || (self.show_skipped_rules && subset.status.neutral > 0)
                 || (self.show_success_rules && subset.status.success > 0)
             {
-                stdout.set_style(subset_style.prefix())?;
+                stdout.set_style(SUBSET_TITLE_STYLE)?;
                 writeln!(
                     stdout,
                     "{TAB}# {name:?} matching tags {}",
                     TextMetricTags(&subset.matching)
                 )?;
-                stdout.set_style(subset_style.suffix())?;
+                stdout.set_style(RESET_STYLE)?;
                 for check in subset.checks.iter() {
                     self.format_check(check, stdout)?;
                 }

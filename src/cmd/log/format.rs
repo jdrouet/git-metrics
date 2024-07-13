@@ -1,3 +1,5 @@
+use ansiconst::{Ansi, Colour};
+
 /// The output format should be something like
 /// ```
 /// * aaaaaa commit_message
@@ -11,16 +13,14 @@ use crate::entity::metric::{Metric, MetricStack};
 
 const TAB: &str = "    ";
 
+const COMMIT_HASH_COLOR: Ansi = ansiconst::ansi!(Colour::Yellow);
+
 struct TextCommit<'a>(pub &'a Commit);
 
 impl<'a> PrettyDisplay for TextCommit<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         writer.write_str("* ")?;
-        Pretty::new(
-            nu_ansi_term::Style::new().fg(nu_ansi_term::Color::Yellow),
-            &self.0.sha.as_str()[..7],
-        )
-        .print(writer)?;
+        Pretty::new(COMMIT_HASH_COLOR, &self.0.sha.as_str()[..7]).print(writer)?;
         writer.write_str(" ")?;
         writer.write_str(self.0.summary.as_str())?;
         Ok(())

@@ -138,12 +138,12 @@ impl<E: std::fmt::Display> PrettyDisplay for E {
 }
 
 pub struct Pretty<E> {
-    style: nu_ansi_term::Style,
+    style: ansiconst::Ansi,
     inner: E,
 }
 
 impl<E: std::fmt::Display> Pretty<E> {
-    pub fn new(style: nu_ansi_term::Style, inner: E) -> Self {
+    pub fn new(style: ansiconst::Ansi, inner: E) -> Self {
         Self { inner, style }
     }
 }
@@ -151,8 +151,8 @@ impl<E: std::fmt::Display> Pretty<E> {
 impl<E: std::fmt::Display> PrettyDisplay for Pretty<E> {
     #[inline]
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.set_style(self.style.prefix())?;
+        writer.set_style(self.style)?;
         write!(writer, "{}", self.inner)?;
-        writer.set_style(self.style.suffix())
+        writer.set_style(ansiconst::Ansi::reset())
     }
 }

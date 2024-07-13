@@ -1,3 +1,4 @@
+use ansiconst::{ansi, Ansi, Effect};
 use indexmap::IndexMap;
 
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
@@ -33,12 +34,13 @@ impl<'a> std::fmt::Display for TextMetricTags<'a> {
 
 pub struct TextMetricHeader<'a>(pub &'a MetricHeader);
 
+const METRIC_NAME_STYLE: Ansi = ansi!(Effect::Bold);
+
 impl<'a> PrettyDisplay for TextMetricHeader<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        let style = nu_ansi_term::Style::new().bold();
-        writer.set_style(style.prefix())?;
+        writer.set_style(METRIC_NAME_STYLE)?;
         writer.write_str(self.0.name.as_str())?;
-        writer.set_style(style.suffix())?;
+        writer.set_style(Ansi::reset())?;
         TextMetricTags(&self.0.tags).print(writer)
     }
 }
