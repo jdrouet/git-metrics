@@ -28,16 +28,17 @@ impl super::Executor for CommandCheck {
         backend: B,
         stdout: &mut Out,
     ) -> Result<crate::ExitCode, crate::service::Error> {
-        let opts = crate::service::check::Options {
+        let root = backend.root_path()?;
+        let config = crate::entity::config::Config::from_root_path(&root)?;
+        let checklist = Service::new(backend).check(&crate::service::check::Options {
             remote: "origin",
             target: self.target.as_str(),
-        };
-        let checklist = Service::new(backend).check(&opts)?;
+        })?;
         format::TextFormatter {
             show_success_rules: self.show_success_rules,
             show_skipped_rules: self.show_skipped_rules,
         }
-        .format(&checklist, stdout)?;
+        .format(&checklist, &config, stdout)?;
 
         if checklist.status.is_failed() {
             Ok(ExitCode::Failure)

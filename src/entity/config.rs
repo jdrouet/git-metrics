@@ -49,12 +49,72 @@ impl SubsetConfig {
     }
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UnitScale {
+    #[default]
+    SI,
+    Binary,
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub(crate) struct Unit {
+    #[serde(default)]
+    pub scale: UnitScale,
+    #[serde(default)]
+    pub suffix: Option<String>,
+    #[serde(default)]
+    pub decimals: Option<usize>,
+}
+
+#[cfg(test)]
+impl Unit {
+    pub fn new<S: Into<String>>(scale: UnitScale, suffix: Option<S>) -> Self {
+        Unit {
+            scale,
+            suffix: suffix.map(|v| v.into()),
+            decimals: None,
+        }
+    }
+
+    pub fn si() -> Self {
+        Unit::new(UnitScale::SI, None::<String>)
+    }
+
+    pub fn binary() -> Self {
+        Unit::new(UnitScale::Binary, None::<String>)
+    }
+
+    pub fn with_suffix<S: Into<String>>(mut self, value: S) -> Self {
+        self.suffix = Some(value.into());
+        self
+    }
+}
+
+impl Unit {
+    pub fn formater<'a>(&'a self) -> human_number::Formatter<'a> {
+        let mut formatter = match self.scale {
+            UnitScale::SI => human_number::Formatter::si(),
+            UnitScale::Binary => human_number::Formatter::binary(),
+        };
+        if let Some(ref unit) = self.suffix {
+            formatter.set_unit(unit.as_str());
+        }
+        if let Some(decimals) = self.decimals {
+            formatter.set_decimals(decimals);
+        }
+        formatter
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub(crate) struct MetricConfig {
     #[serde(default)]
     pub rules: Vec<Rule>,
     #[serde(default)]
     pub subsets: IndexMap<String, SubsetConfig>,
+    #[serde(default)]
+    pub unit: Unit,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
@@ -68,6 +128,15 @@ impl Config {
         let content = std::fs::read_to_string(path)?;
 
         Config::from_str(content.as_str())
+    }
+
+    pub(crate) fn from_root_path(root: &Path) -> std::io::Result<Config> {
+        let config_path = root.join(".git-metrics.toml");
+        if config_path.is_file() {
+            Config::from_path(&config_path)
+        } else {
+            Ok(Default::default())
+        }
     }
 }
 

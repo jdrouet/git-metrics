@@ -14,14 +14,14 @@ fn execute(backend: &'static str) {
     //
     first.metrics(["add", "my-metric", "1.0"], assert_success!());
     //
-    first.metrics(["show"], assert_success!("my-metric 1.0\n"));
+    first.metrics(["show"], assert_success!("my-metric 1.00\n"));
     //
     first.metrics(["push"], assert_success!());
     //
     let second = GitRepo::clone(&server, root.path().join("second"));
     second.metrics(["pull"], assert_success!());
     //
-    second.metrics(["show"], assert_success!("my-metric 1.0\n"));
+    second.metrics(["show"], assert_success!("my-metric 1.00\n"));
     //
     first.commit("second commit");
     first.push();
@@ -35,10 +35,10 @@ fn execute(backend: &'static str) {
         let lines: Vec<_> = stdout.trim().split('\n').collect();
         assert_eq!(lines.len(), 5);
         assert!(!lines[0].starts_with(' '));
-        similar_asserts::assert_eq!(lines[1], "    my-metric 2.0");
-        similar_asserts::assert_eq!(lines[2], "    other-metric 42.0");
+        similar_asserts::assert_eq!(lines[1], "    my-metric 2.00");
+        similar_asserts::assert_eq!(lines[2], "    other-metric 42.00");
         assert!(!lines[3].starts_with(' '));
-        similar_asserts::assert_eq!(lines[4], "    my-metric 1.0");
+        similar_asserts::assert_eq!(lines[4], "    my-metric 1.00");
         assert_eq!(stderr, "");
         assert!(code.is_success());
     });

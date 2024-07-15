@@ -36,6 +36,8 @@ impl super::Executor for CommandDiff {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
+        let root = backend.root_path()?;
+        let config = crate::entity::config::Config::from_root_path(&root)?;
         let opts = crate::service::diff::Options {
             remote: "origin",
             target: self.target.as_str(),
@@ -50,7 +52,7 @@ impl super::Executor for CommandDiff {
             Format::Text => format::TextFormatter {
                 show_previous: self.show_previous,
             }
-            .format(&diff, stdout),
+            .format(&diff, &config, stdout),
         }?;
         Ok(ExitCode::Success)
     }
