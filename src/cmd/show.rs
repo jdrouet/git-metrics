@@ -26,12 +26,13 @@ impl super::Executor for CommandShow {
         let metrics = Service::new(backend).show(&crate::service::show::Options {
             target: self.target,
         })?;
+        let default_formatter = undefined_unit_formatter();
         for metric in metrics.into_metric_iter() {
             let formatter = config
                 .metrics
                 .get(metric.header.name.as_str())
                 .map(|m| m.unit.formater())
-                .unwrap_or_else(|| undefined_unit_formatter());
+                .unwrap_or_else(|| default_formatter.clone());
             stdout.write_element(TextMetric::new(&formatter, &metric))?;
             stdout.write_str("\n")?;
         }

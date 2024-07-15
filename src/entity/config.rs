@@ -92,7 +92,7 @@ impl Unit {
 }
 
 impl Unit {
-    pub fn formater<'a>(&'a self) -> human_number::Formatter<'a> {
+    pub fn formater(&self) -> human_number::Formatter {
         let mut formatter = match self.scale {
             UnitScale::SI => human_number::Formatter::si(),
             UnitScale::Binary => human_number::Formatter::binary(),

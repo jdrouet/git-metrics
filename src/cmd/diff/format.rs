@@ -65,12 +65,13 @@ impl TextFormatter {
         config: &Config,
         stdout: &mut W,
     ) -> std::io::Result<()> {
+        let default_formatter = undefined_unit_formatter();
         for entry in list.inner().iter() {
-            let formatter = config
+            let formatter: Formatter = config
                 .metrics
                 .get(entry.header.name.as_str())
                 .map(|m| m.unit.formater())
-                .unwrap_or_else(|| undefined_unit_formatter());
+                .unwrap_or_else(|| default_formatter.clone());
             self.format_entry(entry, formatter, stdout)?;
         }
         Ok(())
