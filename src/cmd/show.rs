@@ -1,5 +1,4 @@
 use super::format::text::TextMetric;
-use super::format::undefined_unit_formatter;
 use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::entity::config::Config;
@@ -26,13 +25,8 @@ impl super::Executor for CommandShow {
         let metrics = Service::new(backend).show(&crate::service::show::Options {
             target: self.target,
         })?;
-        let default_formatter = undefined_unit_formatter();
         for metric in metrics.into_metric_iter() {
-            let formatter = config
-                .metrics
-                .get(metric.header.name.as_str())
-                .map(|m| m.unit.formater())
-                .unwrap_or_else(|| default_formatter.clone());
+            let formatter = config.formatter(metric.header.name.as_str());
             stdout.write_element(TextMetric::new(&formatter, &metric))?;
             stdout.write_str("\n")?;
         }

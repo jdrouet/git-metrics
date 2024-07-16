@@ -7,7 +7,6 @@ use human_number::Formatter;
 ///     metric_name{key="other"} 23.45
 /// ```
 use crate::cmd::format::text::TextMetric;
-use crate::cmd::format::undefined_unit_formatter;
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::config::Config;
 use crate::entity::git::Commit;
@@ -68,7 +67,6 @@ impl TextFormatter {
         config: &Config,
         stdout: &mut W,
     ) -> std::io::Result<()> {
-        let default_formatter = undefined_unit_formatter();
         for (commit, metrics) in list {
             if metrics.is_empty() && self.filter_empty {
                 continue;
@@ -76,11 +74,7 @@ impl TextFormatter {
 
             self.format_commit(&commit, stdout)?;
             for metric in metrics.into_metric_iter() {
-                let formatter = config
-                    .metrics
-                    .get(metric.header.name.as_str())
-                    .map(|m| m.unit.formater())
-                    .unwrap_or_else(|| default_formatter.clone());
+                let formatter = config.formatter(metric.header.name.as_str());
                 self.format_metric(&metric, &formatter, stdout)?;
             }
         }

@@ -1,7 +1,6 @@
 use human_number::Formatter;
 
 use crate::cmd::format::text::{TextMetricHeader, TextPercent};
-use crate::cmd::format::undefined_unit_formatter;
 use crate::cmd::prelude::PrettyWriter;
 use crate::entity::config::Config;
 use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
@@ -65,13 +64,8 @@ impl TextFormatter {
         config: &Config,
         stdout: &mut W,
     ) -> std::io::Result<()> {
-        let default_formatter = undefined_unit_formatter();
         for entry in list.inner().iter() {
-            let formatter: Formatter = config
-                .metrics
-                .get(entry.header.name.as_str())
-                .map(|m| m.unit.formater())
-                .unwrap_or_else(|| default_formatter.clone());
+            let formatter: Formatter = config.formatter(entry.header.name.as_str());
             self.format_entry(entry, formatter, stdout)?;
         }
         Ok(())

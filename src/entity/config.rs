@@ -1,9 +1,17 @@
 use std::path::Path;
 use std::str::FromStr;
 
+use human_number::Formatter;
 use indexmap::IndexMap;
 
 use super::metric::MetricHeader;
+
+const NO_SCALE: human_number::Scales<'static> = human_number::Scales::new(&[], &[]);
+
+#[inline]
+fn undefined_unit_formatter() -> human_number::Formatter<'static> {
+    human_number::Formatter::new(NO_SCALE, human_number::Options::default())
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
@@ -60,7 +68,7 @@ pub enum UnitScale {
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub(crate) struct Unit {
     #[serde(default)]
-    pub scale: UnitScale,
+    pub scale: Option<UnitScale>,
     #[serde(default)]
     pub suffix: Option<String>,
     #[serde(default)]
@@ -71,7 +79,7 @@ pub(crate) struct Unit {
 impl Unit {
     pub fn new<S: Into<String>>(scale: UnitScale, suffix: Option<S>) -> Self {
         Unit {
-            scale,
+            scale: Some(scale),
             suffix: suffix.map(|v| v.into()),
             decimals: None,
         }
@@ -90,8 +98,9 @@ impl Unit {
 impl Unit {
     pub fn formater(&self) -> human_number::Formatter {
         let mut formatter = match self.scale {
-            UnitScale::SI => human_number::Formatter::si(),
-            UnitScale::Binary => human_number::Formatter::binary(),
+            Some(UnitScale::SI) => human_number::Formatter::si(),
+            Some(UnitScale::Binary) => human_number::Formatter::binary(),
+            None => undefined_unit_formatter(),
         };
         if let Some(ref unit) = self.suffix {
             formatter.set_unit(unit.as_str());
@@ -149,6 +158,14 @@ impl Config {
             Config::from_path(&config_path)
         } else {
             Ok(Default::default())
+        }
+    }
+
+    pub(crate) fn formatter(&self, metric_name: &str) -> Formatter {
+        if let Some(config) = self.metrics.get(metric_name) {
+            config.unit.formater()
+        } else {
+            undefined_unit_formatter()
         }
     }
 }
