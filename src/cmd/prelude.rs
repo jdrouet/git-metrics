@@ -136,23 +136,3 @@ impl<E: std::fmt::Display> PrettyDisplay for E {
         write!(writer, "{self}")
     }
 }
-
-pub struct Pretty<E> {
-    style: nu_ansi_term::Style,
-    inner: E,
-}
-
-impl<E: std::fmt::Display> Pretty<E> {
-    pub fn new(style: nu_ansi_term::Style, inner: E) -> Self {
-        Self { inner, style }
-    }
-}
-
-impl<E: std::fmt::Display> PrettyDisplay for Pretty<E> {
-    #[inline]
-    fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.set_style(self.style.prefix())?;
-        write!(writer, "{}", self.inner)?;
-        writer.set_style(self.style.suffix())
-    }
-}

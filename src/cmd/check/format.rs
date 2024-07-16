@@ -39,35 +39,62 @@ impl Status {
     }
 }
 
-struct TextStatus(pub Status);
+struct TextStatus {
+    value: Status,
+}
+
+impl TextStatus {
+    #[inline]
+    pub fn new(value: Status) -> Self {
+        Self { value }
+    }
+}
 
 impl PrettyDisplay for TextStatus {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        let style = self.0.style();
+        let style = self.value.style();
         writer.set_style(style.prefix())?;
-        writer.write_str(self.0.big_label())?;
+        writer.write_str(self.value.big_label())?;
         writer.set_style(style.suffix())?;
         Ok(())
     }
 }
 
-struct SmallTextStatus(pub Status);
+struct SmallTextStatus {
+    value: Status,
+}
+
+impl SmallTextStatus {
+    #[inline]
+    pub fn new(value: Status) -> Self {
+        Self { value }
+    }
+}
 
 impl PrettyDisplay for SmallTextStatus {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        let style = self.0.style();
+        let style = self.value.style();
         writer.set_style(style.prefix())?;
-        writer.write_str(self.0.small_label())?;
+        writer.write_str(self.value.small_label())?;
         writer.set_style(style.suffix())?;
         Ok(())
     }
 }
 
-struct TextRule<'a>(pub &'a Rule);
+struct TextRule<'a> {
+    value: &'a Rule,
+}
+
+impl<'a> TextRule<'a> {
+    #[inline]
+    pub fn new(value: &'a Rule) -> Self {
+        Self { value }
+    }
+}
 
 impl<'a> std::fmt::Display for TextRule<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.0 {
+        match self.value {
             Rule::Max { value } => write!(f, "should be lower than {value:.1}"),
             Rule::Min { value } => write!(f, "should be greater than {value:.1}"),
             Rule::MaxIncrease { ratio } => {
@@ -132,7 +159,7 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
                     self.formatter.format(*previous),
                     self.formatter.format(*current),
                     diff_formatter.format(*absolute),
-                    TextPercent(*relative)
+                    TextPercent::new(*relative)
                 )
             }
             Comparison::Matching {
@@ -173,9 +200,9 @@ impl TextFormatter {
             Status::Skip if !self.show_skipped_rules => Ok(()),
             _ => {
                 stdout.write_str(TAB)?;
-                stdout.write_element(TextRule(&check.rule))?;
+                stdout.write_element(TextRule::new(&check.rule))?;
                 stdout.write_str(" ... ")?;
-                stdout.write_element(SmallTextStatus(check.status))?;
+                stdout.write_element(SmallTextStatus::new(check.status))?;
                 writeln!(stdout)
             }
         }
@@ -187,9 +214,9 @@ impl TextFormatter {
         numeric_formatter: Formatter<'_>,
         stdout: &mut W,
     ) -> std::io::Result<()> {
-        stdout.write_element(TextStatus(item.status.status()))?;
+        stdout.write_element(TextStatus::new(item.status.status()))?;
         stdout.write_str(" ")?;
-        stdout.write_element(TextMetricHeader(&item.diff.header))?;
+        stdout.write_element(TextMetricHeader::new(&item.diff.header))?;
         stdout.write_str(" ")?;
         stdout.write_element(TextComparison::new(
             &numeric_formatter,
@@ -209,7 +236,7 @@ impl TextFormatter {
                 writeln!(
                     stdout,
                     "{TAB}# {name:?} matching tags {}",
-                    TextMetricTags(&subset.matching)
+                    TextMetricTags::new(&subset.matching)
                 )?;
                 stdout.set_style(subset_style.suffix())?;
                 for check in subset.checks.iter() {

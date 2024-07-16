@@ -6,21 +6,39 @@ use crate::entity::metric::{Metric, MetricHeader};
 
 pub const TAB: &str = "    ";
 
-pub struct TextPercent(pub f64);
+pub struct TextPercent {
+    value: f64,
+}
 
-impl std::fmt::Display for TextPercent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:+.2} %", self.0 * 100.0)
+impl TextPercent {
+    #[inline]
+    pub fn new(value: f64) -> Self {
+        Self { value }
     }
 }
 
-pub struct TextMetricTags<'a>(pub &'a IndexMap<String, String>);
+impl std::fmt::Display for TextPercent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:+.2} %", self.value * 100.0)
+    }
+}
+
+pub struct TextMetricTags<'a> {
+    value: &'a IndexMap<String, String>,
+}
+
+impl<'a> TextMetricTags<'a> {
+    #[inline]
+    pub fn new(value: &'a IndexMap<String, String>) -> Self {
+        Self { value }
+    }
+}
 
 impl<'a> std::fmt::Display for TextMetricTags<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if !self.0.is_empty() {
+        if !self.value.is_empty() {
             f.write_str("{")?;
-            for (index, (key, value)) in self.0.iter().enumerate() {
+            for (index, (key, value)) in self.value.iter().enumerate() {
                 if index > 0 {
                     f.write_str(", ")?;
                 }
@@ -32,15 +50,23 @@ impl<'a> std::fmt::Display for TextMetricTags<'a> {
     }
 }
 
-pub struct TextMetricHeader<'a>(pub &'a MetricHeader);
+pub struct TextMetricHeader<'a> {
+    value: &'a MetricHeader,
+}
+
+impl<'a> TextMetricHeader<'a> {
+    pub fn new(value: &'a MetricHeader) -> Self {
+        Self { value }
+    }
+}
 
 impl<'a> PrettyDisplay for TextMetricHeader<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         let style = nu_ansi_term::Style::new().bold();
         writer.set_style(style.prefix())?;
-        writer.write_str(self.0.name.as_str())?;
+        writer.write_str(self.value.name.as_str())?;
         writer.set_style(style.suffix())?;
-        TextMetricTags(&self.0.tags).print(writer)
+        TextMetricTags::new(&self.value.tags).print(writer)
     }
 }
 
@@ -57,7 +83,7 @@ impl<'a> TextMetric<'a> {
 
 impl<'a> PrettyDisplay for TextMetric<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
-        TextMetricHeader(&self.value.header).print(writer)?;
+        TextMetricHeader::new(&self.value.header).print(writer)?;
         write!(writer, " {}", self.formatter.format(self.value.value))
     }
 }

@@ -20,12 +20,12 @@ impl TextFormatter {
         match &entry.comparison {
             Comparison::Created { current } => {
                 stdout.write_str("+ ")?;
-                stdout.write_element(TextMetricHeader(&entry.header))?;
+                stdout.write_element(TextMetricHeader::new(&entry.header))?;
                 writeln!(stdout, " {}", formatter.format(*current))
             }
             Comparison::Missing { previous } if self.show_previous => {
                 stdout.write_str("  ")?;
-                stdout.write_element(TextMetricHeader(&entry.header))?;
+                stdout.write_element(TextMetricHeader::new(&entry.header))?;
                 writeln!(stdout, " {}", formatter.format(*previous))
             }
             Comparison::Matching {
@@ -34,7 +34,7 @@ impl TextFormatter {
                 delta: _,
             } if previous == current => {
                 stdout.write_str("= ")?;
-                stdout.write_element(TextMetricHeader(&entry.header))?;
+                stdout.write_element(TextMetricHeader::new(&entry.header))?;
                 writeln!(stdout, " {}", formatter.format(*current))
             }
             Comparison::Matching {
@@ -43,14 +43,14 @@ impl TextFormatter {
                 delta,
             } => {
                 stdout.write_str("- ")?;
-                stdout.write_element(TextMetricHeader(&entry.header))?;
+                stdout.write_element(TextMetricHeader::new(&entry.header))?;
                 writeln!(stdout, " {}", formatter.format(*previous))?;
                 stdout.write_str("+ ")?;
-                stdout.write_element(TextMetricHeader(&entry.header))?;
+                stdout.write_element(TextMetricHeader::new(&entry.header))?;
                 write!(stdout, " {}", formatter.format(*current))?;
                 if let Some(relative) = delta.relative {
                     stdout.write_str(" (")?;
-                    stdout.write_element(TextPercent(relative))?;
+                    stdout.write_element(TextPercent::new(relative))?;
                     stdout.write_str(")")?;
                 }
                 writeln!(stdout)

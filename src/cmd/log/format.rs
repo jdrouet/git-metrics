@@ -8,25 +8,33 @@ use human_number::Formatter;
 /// ```
 use crate::cmd::format::text::TextMetric;
 use crate::cmd::format::undefined_unit_formatter;
-use crate::cmd::prelude::{Pretty, PrettyDisplay, PrettyWriter};
+use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::config::Config;
 use crate::entity::git::Commit;
 use crate::entity::metric::{Metric, MetricStack};
 
 const TAB: &str = "    ";
 
-struct TextCommit<'a>(pub &'a Commit);
+struct TextCommit<'a> {
+    value: &'a Commit,
+}
+
+impl<'a> TextCommit<'a> {
+    #[inline]
+    pub fn new(value: &'a Commit) -> Self {
+        Self { value }
+    }
+}
 
 impl<'a> PrettyDisplay for TextCommit<'a> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
+        let style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::Yellow);
         writer.write_str("* ")?;
-        Pretty::new(
-            nu_ansi_term::Style::new().fg(nu_ansi_term::Color::Yellow),
-            &self.0.sha.as_str()[..7],
-        )
-        .print(writer)?;
+        writer.set_style(style.prefix())?;
+        writer.write_str(&self.value.sha.as_str()[..7])?;
+        writer.set_style(style.suffix())?;
         writer.write_str(" ")?;
-        writer.write_str(self.0.summary.as_str())?;
+        writer.write_str(self.value.summary.as_str())?;
         Ok(())
     }
 }
@@ -50,7 +58,7 @@ impl TextFormatter {
     }
 
     fn format_commit<W: PrettyWriter>(&self, item: &Commit, writer: &mut W) -> std::io::Result<()> {
-        TextCommit(item).print(writer)?;
+        TextCommit::new(item).print(writer)?;
         writeln!(writer)
     }
 
