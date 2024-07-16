@@ -50,7 +50,7 @@ impl TextFormatter {
                 write!(stdout, " {}", formatter.format(*current))?;
                 if let Some(relative) = delta.relative {
                     stdout.write_str(" (")?;
-                    stdout.write_element(TextPercent::new(relative))?;
+                    stdout.write_element(TextPercent::new(relative).with_sign(true))?;
                     stdout.write_str(")")?;
                 }
                 writeln!(stdout)

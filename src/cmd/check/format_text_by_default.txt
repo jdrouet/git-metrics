@@ -1,7 +1,8 @@
 [FAILURE] first{platform.os="linux", platform.arch="amd64", unit="byte"} 10.00 => 20.00 Δ +10.00 (+100.00 %)
     # "show_not_increase_too_much" matching tags {platform.os="linux"}
-    increase should be less than 20.0% ... failed
+    increase should be less than 20.00 % ... failed
 [SUCCESS] first{platform.os="linux", platform.arch="arm64", unit="byte"} 10.00 => 11.00 Δ +1.00 (+10.00 %)
 [SKIP] unknown 42.00 => 28.00 Δ -14.00 (-33.33 %)
 [SKIP] noglobal 42.00 => 28.00 Δ -14.00 (-33.33 %)
 [SUCCESS] nochange 10.00 => 10.00
+[SUCCESS] with-unit 20.00 MiB => 25.00 MiB Δ +5.00 MiB (+25.00 %)

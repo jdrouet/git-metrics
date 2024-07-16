@@ -122,11 +122,11 @@ value = 140.0
             stdout,
             r#"[SUCCESS] binary-size{platform.os="linux"} 100.00 => 100.00
 [FAILURE] binary-size{platform.os="darwin"} 100.00 => 150.00 Δ +50.00 (+50.00 %)
-    increase should be less than 20.0% ... failed
+    increase should be less than 20.00 % ... failed
     # "for-darwin" matching tags {platform.os="darwin"}
-    should be lower than 120.0 ... failed
+    should be lower than 120.00 ... failed
 [FAILURE] binary-size{platform.os="win"} 100.00 => 130.00 Δ +30.00 (+30.00 %)
-    increase should be less than 20.0% ... failed
+    increase should be less than 20.00 % ... failed
 "#
         );
         assert!(!exit.is_success());

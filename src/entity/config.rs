@@ -77,10 +77,6 @@ impl Unit {
         }
     }
 
-    pub fn si() -> Self {
-        Unit::new(UnitScale::SI, None::<String>)
-    }
-
     pub fn binary() -> Self {
         Unit::new(UnitScale::Binary, None::<String>)
     }
@@ -108,6 +104,7 @@ impl Unit {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[cfg_attr(test, derive(Default))]
 pub(crate) struct MetricConfig {
     #[serde(default)]
     pub rules: Vec<Rule>,
@@ -117,10 +114,26 @@ pub(crate) struct MetricConfig {
     pub unit: Unit,
 }
 
+#[cfg(test)]
+impl MetricConfig {
+    pub fn with_unit(mut self, unit: Unit) -> Self {
+        self.unit = unit;
+        self
+    }
+}
+
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub(crate) struct Config {
     #[serde(default)]
     pub metrics: IndexMap<String, MetricConfig>,
+}
+
+#[cfg(test)]
+impl Config {
+    pub fn with_metric<N: Into<String>>(mut self, name: N, value: MetricConfig) -> Self {
+        self.metrics.insert(name.into(), value);
+        self
+    }
 }
 
 impl Config {

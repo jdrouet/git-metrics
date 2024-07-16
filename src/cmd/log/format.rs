@@ -21,7 +21,7 @@ struct TextCommit<'a> {
 
 impl<'a> TextCommit<'a> {
     #[inline]
-    pub fn new(value: &'a Commit) -> Self {
+    pub const fn new(value: &'a Commit) -> Self {
         Self { value }
     }
 }

@@ -45,7 +45,7 @@ struct TextStatus {
 
 impl TextStatus {
     #[inline]
-    pub fn new(value: Status) -> Self {
+    pub const fn new(value: Status) -> Self {
         Self { value }
     }
 }
@@ -66,7 +66,7 @@ struct SmallTextStatus {
 
 impl SmallTextStatus {
     #[inline]
-    pub fn new(value: Status) -> Self {
+    pub const fn new(value: Status) -> Self {
         Self { value }
     }
 }
@@ -82,26 +82,41 @@ impl PrettyDisplay for SmallTextStatus {
 }
 
 struct TextRule<'a> {
+    formatter: &'a Formatter<'a>,
     value: &'a Rule,
 }
 
 impl<'a> TextRule<'a> {
     #[inline]
-    pub fn new(value: &'a Rule) -> Self {
-        Self { value }
+    pub const fn new(formatter: &'a Formatter<'a>, value: &'a Rule) -> Self {
+        Self { formatter, value }
     }
 }
 
 impl<'a> std::fmt::Display for TextRule<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.value {
-            Rule::Max { value } => write!(f, "should be lower than {value:.1}"),
-            Rule::Min { value } => write!(f, "should be greater than {value:.1}"),
+            Rule::Max { value } => {
+                write!(f, "should be lower than {}", self.formatter.format(*value))
+            }
+            Rule::Min { value } => write!(
+                f,
+                "should be greater than {}",
+                self.formatter.format(*value)
+            ),
             Rule::MaxIncrease { ratio } => {
-                write!(f, "increase should be less than {:.1}%", *ratio * 100.0)
+                write!(
+                    f,
+                    "increase should be less than {}",
+                    TextPercent::new(*ratio)
+                )
             }
             Rule::MaxDecrease { ratio } => {
-                write!(f, "decrease should be less than {:.1}%", *ratio * 100.0)
+                write!(
+                    f,
+                    "decrease should be less than {}",
+                    TextPercent::new(*ratio)
+                )
             }
         }
     }
@@ -113,7 +128,8 @@ struct TextComparison<'a> {
 }
 
 impl<'a> TextComparison<'a> {
-    pub fn new(formatter: &'a Formatter<'a>, value: &'a Comparison) -> Self {
+    #[inline]
+    pub const fn new(formatter: &'a Formatter<'a>, value: &'a Comparison) -> Self {
         Self { formatter, value }
     }
 }
@@ -159,7 +175,7 @@ impl<'a> std::fmt::Display for TextComparison<'a> {
                     self.formatter.format(*previous),
                     self.formatter.format(*current),
                     diff_formatter.format(*absolute),
-                    TextPercent::new(*relative)
+                    TextPercent::new(*relative).with_sign(true)
                 )
             }
             Comparison::Matching {
@@ -193,6 +209,7 @@ impl TextFormatter {
     fn format_check<W: PrettyWriter>(
         &self,
         check: &RuleCheck,
+        numeric_formatter: &Formatter<'_>,
         stdout: &mut W,
     ) -> std::io::Result<()> {
         match check.status {
@@ -200,7 +217,7 @@ impl TextFormatter {
             Status::Skip if !self.show_skipped_rules => Ok(()),
             _ => {
                 stdout.write_str(TAB)?;
-                stdout.write_element(TextRule::new(&check.rule))?;
+                stdout.write_element(TextRule::new(numeric_formatter, &check.rule))?;
                 stdout.write_str(" ... ")?;
                 stdout.write_element(SmallTextStatus::new(check.status))?;
                 writeln!(stdout)
@@ -224,7 +241,7 @@ impl TextFormatter {
         ))?;
         stdout.write_str("\n")?;
         for check in item.checks.iter() {
-            self.format_check(check, stdout)?;
+            self.format_check(check, &numeric_formatter, stdout)?;
         }
         let subset_style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::LightGray);
         for (name, subset) in item.subsets.iter() {
@@ -240,7 +257,7 @@ impl TextFormatter {
                 )?;
                 stdout.set_style(subset_style.suffix())?;
                 for check in subset.checks.iter() {
-                    self.format_check(check, stdout)?;
+                    self.format_check(check, &numeric_formatter, stdout)?;
                 }
             }
         }
@@ -271,7 +288,7 @@ mod tests {
     use super::*;
     use crate::cmd::prelude::BasicWriter;
     use crate::entity::check::SubsetCheck;
-    use crate::entity::config::Rule;
+    use crate::entity::config::{MetricConfig, Rule, Unit};
     use crate::entity::difference::{Comparison, MetricDiff};
     use crate::entity::metric::MetricHeader;
 
@@ -335,11 +352,22 @@ mod tests {
                 ))
                 .with_check(Rule::max(30.0), Status::Success),
             )
+            // metric that doesn't change
+            .with_check(
+                MetricCheck::new(MetricDiff::new(
+                    MetricHeader::new("with-unit"),
+                    Comparison::matching(1024.0 * 1024.0 * 20.0, 1024.0 * 1024.0 * 25.0),
+                ))
+                .with_check(Rule::max(1024.0 * 1024.0 * 30.0), Status::Success),
+            )
     }
 
     #[test]
     fn should_format_to_text_by_default() {
-        let config = Config::default();
+        let config = Config::default().with_metric(
+            "with-unit",
+            MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
+        );
         let text_formatter = TextFormatter::default();
         let list = complete_checklist();
         let mut writter = BasicWriter::from(Vec::<u8>::new());
@@ -350,7 +378,10 @@ mod tests {
 
     #[test]
     fn should_format_to_text_with_success_showed() {
-        let config = Config::default();
+        let config = Config::default().with_metric(
+            "with-unit",
+            MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
+        );
         let formatter = TextFormatter {
             show_success_rules: true,
             show_skipped_rules: true,

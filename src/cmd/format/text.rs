@@ -8,18 +8,29 @@ pub const TAB: &str = "    ";
 
 pub struct TextPercent {
     value: f64,
+    sign: bool,
 }
 
 impl TextPercent {
     #[inline]
-    pub fn new(value: f64) -> Self {
-        Self { value }
+    pub const fn new(value: f64) -> Self {
+        Self { value, sign: false }
+    }
+
+    #[inline]
+    pub const fn with_sign(mut self, sign: bool) -> Self {
+        self.sign = sign;
+        self
     }
 }
 
 impl std::fmt::Display for TextPercent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:+.2} %", self.value * 100.0)
+        if self.sign {
+            write!(f, "{:+.2} %", self.value * 100.0)
+        } else {
+            write!(f, "{:.2} %", self.value * 100.0)
+        }
     }
 }
 
@@ -29,7 +40,7 @@ pub struct TextMetricTags<'a> {
 
 impl<'a> TextMetricTags<'a> {
     #[inline]
-    pub fn new(value: &'a IndexMap<String, String>) -> Self {
+    pub const fn new(value: &'a IndexMap<String, String>) -> Self {
         Self { value }
     }
 }
@@ -55,7 +66,8 @@ pub struct TextMetricHeader<'a> {
 }
 
 impl<'a> TextMetricHeader<'a> {
-    pub fn new(value: &'a MetricHeader) -> Self {
+    #[inline]
+    pub const fn new(value: &'a MetricHeader) -> Self {
         Self { value }
     }
 }
@@ -76,7 +88,8 @@ pub struct TextMetric<'a> {
 }
 
 impl<'a> TextMetric<'a> {
-    pub fn new(formatter: &'a Formatter<'a>, value: &'a Metric) -> Self {
+    #[inline]
+    pub const fn new(formatter: &'a Formatter<'a>, value: &'a Metric) -> Self {
         Self { value, formatter }
     }
 }
