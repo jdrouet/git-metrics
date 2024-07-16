@@ -1,3 +1,7 @@
+[metrics.binary-size.unit]
+scale = "binary"
+suffix = "B"
+
 # max increase size of 10%
 [[metrics.binary-size.rules]]
 type = "max-increase"

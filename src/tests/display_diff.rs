@@ -96,28 +96,28 @@ fn execute() {
     );
     //
     cli.metrics(["diff"], |stdout, stderr, code| {
-        assert_eq!(
+        similar_asserts::assert_eq!(
             stdout,
-            r#"- binary_size{build.os="linux"} 1500.0
-+ binary_size{build.os="linux"} 1000.0 (-33.3 %)
-- binary_size{build.os="windows"} 2500.0
-+ binary_size{build.os="windows"} 2000.0 (-20.0 %)
-- binary_size{build.os="macos"} 4000.0
-+ binary_size{build.os="macos"} 3000.0 (-25.0 %)
+            r#"- binary_size{build.os="linux"} 1500.00
++ binary_size{build.os="linux"} 1000.00 (-33.33 %)
+- binary_size{build.os="windows"} 2500.00
++ binary_size{build.os="windows"} 2000.00 (-20.00 %)
+- binary_size{build.os="macos"} 4000.00
++ binary_size{build.os="macos"} 3000.00 (-25.00 %)
 "#
         );
         assert_eq!(stderr, "");
         assert!(code.is_success());
     });
     cli.metrics(["diff", "HEAD~3..HEAD~1"], |stdout, stderr, code| {
-        assert_eq!(
+        similar_asserts::assert_eq!(
             stdout,
-            r#"- binary_size{build.os="linux"} 1000.0
-+ binary_size{build.os="linux"} 1500.0 (+50.0 %)
-- binary_size{build.os="windows"} 2000.0
-+ binary_size{build.os="windows"} 2500.0 (+25.0 %)
-- binary_size{build.os="macos"} 3000.0
-+ binary_size{build.os="macos"} 4000.0 (+33.3 %)
+            r#"- binary_size{build.os="linux"} 1000.00
++ binary_size{build.os="linux"} 1500.00 (+50.00 %)
+- binary_size{build.os="windows"} 2000.00
++ binary_size{build.os="windows"} 2500.00 (+25.00 %)
+- binary_size{build.os="macos"} 3000.00
++ binary_size{build.os="macos"} 4000.00 (+33.33 %)
 "#
         );
         assert_eq!(stderr, "");

@@ -1,6 +1,7 @@
 use super::format::text::TextMetric;
 use super::prelude::PrettyWriter;
 use crate::backend::Backend;
+use crate::entity::config::Config;
 use crate::service::Service;
 use crate::ExitCode;
 
@@ -19,11 +20,14 @@ impl super::Executor for CommandShow {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
+        let root = backend.root_path()?;
+        let config = Config::from_root_path(&root)?;
         let metrics = Service::new(backend).show(&crate::service::show::Options {
             target: self.target,
         })?;
         for metric in metrics.into_metric_iter() {
-            stdout.write_element(TextMetric(&metric))?;
+            let formatter = config.formatter(metric.header.name.as_str());
+            stdout.write_element(TextMetric::new(&formatter, &metric))?;
             stdout.write_str("\n")?;
         }
         Ok(ExitCode::Success)
@@ -96,6 +100,6 @@ value = 1.0
         assert!(stderr.is_empty());
 
         let stdout = String::from_utf8_lossy(&stdout);
-        assert_eq!(stdout, "foo 1.0\nfoo{bar=\"baz\"} 1.0\n");
+        assert_eq!(stdout, "foo 1.00\nfoo{bar=\"baz\"} 1.00\n");
     }
 }

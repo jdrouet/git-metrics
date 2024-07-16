@@ -25,14 +25,15 @@ impl super::Executor for CommandLog {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
-        let opts = crate::service::log::Options {
+        let root = backend.root_path()?;
+        let config = crate::entity::config::Config::from_root_path(&root)?;
+        let result = Service::new(backend).log(&crate::service::log::Options {
             target: self.target,
-        };
-        let result = Service::new(backend).log(&opts)?;
+        })?;
         format::TextFormatter {
             filter_empty: self.filter_empty,
         }
-        .format(result, stdout)?;
+        .format(result, &config, stdout)?;
         Ok(ExitCode::Success)
     }
 }
