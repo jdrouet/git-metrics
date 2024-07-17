@@ -15,11 +15,11 @@ RUN --mount=type=cache,target=$CARGO_HOME/git,sharing=locked \
     mkdir -p /code/.cargo \
     && cargo vendor >> /code/.cargo/config.toml
 
-FROM --platform=amd64 rust:1-bookworm AS base-builder
+FROM --platform=linux/amd64 rust:1-bookworm AS base-builder
 
 RUN cargo install cargo-deb
 
-FROM --platform=amd64 base-builder AS amd64-builder
+FROM --platform=linux/amd64 base-builder AS amd64-builder
 
 RUN apt-get update \
     && apt-get install -y git \
@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/code/target/x86_64-unknown-linux-gnu/release/deps
 RUN strip /code/target/x86_64-unknown-linux-gnu/release/git-metrics
 RUN cargo deb --no-build --target x86_64-unknown-linux-gnu
 
-FROM --platform=amd64 base-builder AS arm64-builder
+FROM --platform=linux/amd64 base-builder AS arm64-builder
 
 RUN rustup target add aarch64-unknown-linux-gnu
 
@@ -76,9 +76,31 @@ RUN --mount=type=cache,target=/code/target/aarch64-unknown-linux-gnu/release/dep
 RUN /usr/aarch64-linux-gnu/bin/strip /code/target/aarch64-unknown-linux-gnu/release/git-metrics
 RUN cargo deb --no-build --target aarch64-unknown-linux-gnu
 
+# making sure it works for linux/arm64
+FROM --platform=linux/arm64 debian:bookworm AS testing-arm64
+
+RUN apt-get update \
+    && apt-get install -y git \
+    && rm -rf /var/lib/apt/lists
+
+COPY --from=arm64-builder /code/target/aarch64-unknown-linux-gnu/release/git-metrics /git-metrics
+RUN chmod +x /git-metrics
+RUN /git-metrics --help
+
+# making sure it works for linux/amd64
+FROM --platform=linux/amd64 debian:bookworm AS testing-amd64
+
+RUN apt-get update \
+    && apt-get install -y git \
+    && rm -rf /var/lib/apt/lists
+
+COPY --from=amd64-builder /code/target/x86_64-unknown-linux-gnu/release/git-metrics /git-metrics
+RUN chmod +x /git-metrics
+RUN /git-metrics --help
+
 FROM scratch AS binary
 
-COPY --from=amd64-builder /code/target/x86_64-unknown-linux-gnu/release/git-metrics /git-metrics_linux-x86_64
+COPY --from=testing-amd64 /git-metrics /git-metrics_linux-x86_64
 COPY --from=amd64-builder /code/target/x86_64-unknown-linux-gnu/debian/*.deb /
-COPY --from=arm64-builder /code/target/aarch64-unknown-linux-gnu/release/git-metrics /git-metrics_linux-aarch64
+COPY --from=testing-arm64 /git-metrics /git-metrics_linux-aarch64
 COPY --from=arm64-builder /code/target/aarch64-unknown-linux-gnu/debian/*.deb /
