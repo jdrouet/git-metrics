@@ -51,36 +51,8 @@ jobs:
           path: git-metrics_darwin-*
           if-no-files-found: error
 
-  build-linux-amd64-binary:
-    name: build linux amd64 binary
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: x86_64-unknown-linux-gnu
-      - name: install cargo-deb
-        run: cargo install cargo-deb
-      - name: build binary
-        run: cargo build --release --target x86_64-unknown-linux-gnu
-      - name: strip binary
-        run: strip ./target/x86_64-unknown-linux-gnu/release/git-metrics
-      - name: build deb file
-        run: cargo deb --no-build --target x86_64-unknown-linux-gnu
-      - name: move binaries
-        run: |
-          mv ./target/x86_64-unknown-linux-gnu/release/git-metrics ./git-metrics_linux-x86_64
-          mv ./target/x86_64-unknown-linux-gnu/debian/git-metrics_*.deb ./
-      - uses: actions/upload-artifact@v4
-        with:
-          name: binary-linux-amd64
-          path: ./git-metrics_*
-          if-no-files-found: error
-
-  # TODO: find a way to cross build this binary without having to go through docker
-  build-linux-arm64-binary:
-    name: build linux arm64 binary
+  build-linux-binaries:
+    name: build linux binaries
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -94,14 +66,12 @@ jobs:
         with:
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          file: ./cross.Dockerfile
           outputs: type=local,dest=${{ github.workspace }}
-          platforms: linux/arm64
           push: false
           target: binary
-      - name: move binary
-        run: mv ./git-metrics ./git-metrics_linux-aarch64
       - uses: actions/upload-artifact@v4
         with:
-          name: binary-linux-arm64
+          name: binary-linux
           path: ./git-metrics_*
           if-no-files-found: error
