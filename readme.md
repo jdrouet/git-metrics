@@ -24,8 +24,8 @@ cargo install --git https://github.com/jdrouet/git-metrics
 $ git metrics pull
 # add a new metric
 $ git metrics add binary-size \
+    --tag "platform.os: linux" \
     --tag "platform.arch: amd64" \
-    --tag "unit: byte" \
     1024.0
 # push the metrics to remote
 $ git metrics push
@@ -33,11 +33,19 @@ $ git metrics push
 $ git metrics log --filter-empty
 # display the metrics on current commit
 $ git metrics show
-binary-size{platform.arch="amd64", unit="byte"} 1024.0
+binary-size{platform.os="linux", platform.arch="amd64"} 1024.0
 # display the metrics difference between commits
 $ git metrics diff HEAD~2..HEAD
-- binary-size{platform.arch="amd64", unit="byte"} 512.0
-+ binary-size{platform.arch="amd64", unit="byte"} 1024.0 (+200.00 %)
+- binary-size{platform.os="linux", platform.arch="amd64"} 512.0
++ binary-size{platform.os="linux", platform.arch="amd64"} 1024.0 (+200.00 %)
+# check the metrics against the defined rules
+$ git metrics check --show-success-rules --show-skipped-rules HEAD~2..HEAD
+[SUCCESS] binary-size{platform.os="linux", platform.arch="amd64"} 3.44 MiB => 3.53 MiB Δ +96.01 kiB (+2.72 %)
+    increase should be less than 10.00 % ... check
+    should be lower than 10.00 MiB ... check
+[SUCCESS] binary-size{platform.os="linux", platform.arch="aarch64"} 3.14 MiB => 3.14 MiB
+    increase should be less than 10.00 % ... check
+    should be lower than 10.00 MiB ... check
 ```
 
 ### With a github action
