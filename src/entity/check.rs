@@ -80,6 +80,7 @@ impl Rule {
                 _ => Status::Success,
             },
             Self::MaxIncrease(RuleChange::Absolute(RuleAbsolute { value })) => match comparison {
+                Comparison::Created { .. } | Comparison::Missing { .. } => Status::Skip,
                 Comparison::Matching {
                     delta: Delta { absolute, .. },
                     ..
@@ -123,10 +124,11 @@ impl Rule {
                 _ => Status::Skip,
             },
             Self::MaxDecrease(RuleChange::Absolute(RuleAbsolute { value })) => match comparison {
+                Comparison::Created { .. } | Comparison::Missing { .. } => Status::Skip,
                 Comparison::Matching {
                     delta: Delta { absolute, .. },
                     ..
-                } if absolute < value => Status::Failed,
+                } if *absolute < (*value) * -1.0 => Status::Failed,
                 _ => Status::Success,
             },
         }
@@ -322,7 +324,25 @@ mod tests {
     }
 
     #[test]
-    fn should_check_max_increase() {
+    fn should_check_max_absolute_increase() {
+        let rule = Rule::max_absolute_increase(10.0);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(8.0))),
+            Status::Success
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(10.0))),
+            Status::Success
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(0.0, Some(20.0))),
+            Status::Failed
+        );
+    }
+
+    #[test]
+    fn should_check_max_relative_increase() {
         let rule = Rule::max_relative_increase(0.1);
         assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
         assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
@@ -338,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    fn should_check_max_decrease() {
+    fn should_check_max_relative_decrease() {
         let rule = Rule::max_relative_decrease(0.1);
         assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
         assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
@@ -349,6 +369,25 @@ mod tests {
         assert_eq!(
             rule.check(&Comparison::new(10.0, Some(9.5))),
             Status::Success
+        );
+        assert_eq!(rule.check(&Comparison::new(10.0, None)), Status::Skip);
+    }
+
+    #[test]
+    fn should_check_max_absolute_decrease() {
+        let rule = Rule::max_absolute_decrease(10.0);
+        assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
+        assert_eq!(
+            rule.check(&Comparison::new(20.0, Some(15.0))),
+            Status::Success
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(20.0, Some(10.0))),
+            Status::Success
+        );
+        assert_eq!(
+            rule.check(&Comparison::new(20.0, Some(0.0))),
+            Status::Failed
         );
         assert_eq!(rule.check(&Comparison::new(10.0, None)), Status::Skip);
     }
