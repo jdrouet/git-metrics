@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/jdrouet/git-metrics/compare/v0.2.0...v0.2.1) - 2024-07-20
+
+### Added
+- introduce absolute changes ([#63](https://github.com/jdrouet/git-metrics/pull/63))
+- format numbers with unit ([#60](https://github.com/jdrouet/git-metrics/pull/60))
+- add colors to output ([#53](https://github.com/jdrouet/git-metrics/pull/53))
+- create a check command ([#46](https://github.com/jdrouet/git-metrics/pull/46))
+
+### Other
+- add format option to check command
+- cross build linux binaries ([#61](https://github.com/jdrouet/git-metrics/pull/61))
+- update project goals
+- update readme with check command
+- move format option to shared module
+- make linux-amd64 build run outside of docker ([#56](https://github.com/jdrouet/git-metrics/pull/56))
+- update dependencies ([#57](https://github.com/jdrouet/git-metrics/pull/57))
+- move writing code out of service ([#52](https://github.com/jdrouet/git-metrics/pull/52))
+- move display logic in cmd ([#51](https://github.com/jdrouet/git-metrics/pull/51))
+- build deb files for linux ([#50](https://github.com/jdrouet/git-metrics/pull/50))
+- make sure the check command answers as expected ([#49](https://github.com/jdrouet/git-metrics/pull/49))
+- send a notification after release
+- increase coverage for add command
+- cover init command
+- add license section to readme
+
 ## [0.2.0](https://github.com/jdrouet/git-metrics/compare/v0.1.4...v0.2.0) - 2024-06-30
 
 ### Added
