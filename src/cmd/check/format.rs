@@ -3,7 +3,7 @@ use human_number::Formatter;
 use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
-use crate::entity::config::{Config, Rule};
+use crate::entity::config::{Config, Rule, RuleAbsolute, RuleChange, RuleRelative};
 use crate::entity::difference::{Comparison, Delta};
 
 impl Status {
@@ -95,26 +95,40 @@ impl<'a> TextRule<'a> {
 impl<'a> std::fmt::Display for TextRule<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.value {
-            Rule::Max { value } => {
+            Rule::Max(RuleAbsolute { value }) => {
                 write!(f, "should be lower than {}", self.formatter.format(*value))
             }
-            Rule::Min { value } => write!(
+            Rule::Min(RuleAbsolute { value }) => write!(
                 f,
                 "should be greater than {}",
                 self.formatter.format(*value)
             ),
-            Rule::MaxIncrease { ratio } => {
+            Rule::MaxIncrease(RuleChange::Relative(RuleRelative { ratio })) => {
                 write!(
                     f,
                     "increase should be less than {}",
                     TextPercent::new(*ratio)
                 )
             }
-            Rule::MaxDecrease { ratio } => {
+            Rule::MaxIncrease(RuleChange::Absolute(RuleAbsolute { value })) => {
+                write!(
+                    f,
+                    "increase should be less than {}",
+                    self.formatter.format(*value)
+                )
+            }
+            Rule::MaxDecrease(RuleChange::Relative(RuleRelative { ratio })) => {
                 write!(
                     f,
                     "decrease should be less than {}",
                     TextPercent::new(*ratio)
+                )
+            }
+            Rule::MaxDecrease(RuleChange::Absolute(RuleAbsolute { value })) => {
+                write!(
+                    f,
+                    "decrease should be less than {}",
+                    self.formatter.format(*value)
                 )
             }
         }
@@ -301,7 +315,7 @@ mod tests {
                     "show_not_increase_too_much",
                     SubsetCheck::default()
                         .with_matching("platform.os", "linux")
-                        .with_check(Rule::max_increase(0.2), Status::Failed),
+                        .with_check(Rule::max_relative_increase(0.2), Status::Failed),
                 ),
             )
             .with_check(
@@ -317,7 +331,7 @@ mod tests {
                     "show_not_increase_too_much",
                     SubsetCheck::default()
                         .with_matching("platform.os", "linux")
-                        .with_check(Rule::max_increase(0.2), Status::Success),
+                        .with_check(Rule::max_relative_increase(0.2), Status::Success),
                 ),
             )
             // metric not known in config
@@ -335,7 +349,7 @@ mod tests {
                     "show_pass",
                     SubsetCheck::default()
                         .with_matching("foo", "bar")
-                        .with_check(Rule::max_increase(0.2), Status::Skip),
+                        .with_check(Rule::max_relative_increase(0.2), Status::Skip),
                 ),
             )
             // metric that doesn't change
@@ -353,6 +367,21 @@ mod tests {
                     Comparison::matching(1024.0 * 1024.0 * 20.0, 1024.0 * 1024.0 * 25.0),
                 ))
                 .with_check(Rule::max(1024.0 * 1024.0 * 30.0), Status::Success),
+            )
+            // with absolute change
+            .with_check(
+                MetricCheck::new(MetricDiff::new(
+                    MetricHeader::new("with-change"),
+                    Comparison::matching(1024.0 * 1024.0 * 20.0, 1024.0 * 1024.0 * 25.0),
+                ))
+                .with_check(
+                    Rule::max_absolute_increase(1024.0 * 1024.0 * 10.0),
+                    Status::Success,
+                )
+                .with_check(
+                    Rule::max_absolute_increase(1024.0 * 1024.0 * 2.0),
+                    Status::Failed,
+                ),
             )
     }
 

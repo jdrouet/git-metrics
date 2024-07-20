@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 
-use super::config::{Config, MetricConfig, Rule, SubsetConfig};
+use super::config::{
+    Config, MetricConfig, Rule, RuleAbsolute, RuleChange, RuleRelative, SubsetConfig,
+};
 use super::difference::{Comparison, Delta, MetricDiff};
 
 #[derive(Clone, Copy)]
@@ -59,7 +61,7 @@ impl StatusCount {
 impl Rule {
     fn check(&self, comparison: &Comparison) -> Status {
         match self {
-            Self::Max { value } => match comparison {
+            Self::Max(RuleAbsolute { value }) => match comparison {
                 Comparison::Created { current } | Comparison::Matching { current, .. }
                     if current > value =>
                 {
@@ -68,7 +70,7 @@ impl Rule {
                 Comparison::Missing { .. } => Status::Skip,
                 _ => Status::Success,
             },
-            Self::Min { value } => match comparison {
+            Self::Min(RuleAbsolute { value }) => match comparison {
                 Comparison::Created { current } | Comparison::Matching { current, .. }
                     if current < value =>
                 {
@@ -77,7 +79,14 @@ impl Rule {
                 Comparison::Missing { .. } => Status::Skip,
                 _ => Status::Success,
             },
-            Self::MaxIncrease { ratio } => match comparison {
+            Self::MaxIncrease(RuleChange::Absolute(RuleAbsolute { value })) => match comparison {
+                Comparison::Matching {
+                    delta: Delta { absolute, .. },
+                    ..
+                } if absolute > value => Status::Failed,
+                _ => Status::Success,
+            },
+            Self::MaxIncrease(RuleChange::Relative(RuleRelative { ratio })) => match comparison {
                 Comparison::Matching {
                     delta:
                         Delta {
@@ -95,7 +104,7 @@ impl Rule {
                 } => Status::Success,
                 _ => Status::Skip,
             },
-            Self::MaxDecrease { ratio } => match comparison {
+            Self::MaxDecrease(RuleChange::Relative(RuleRelative { ratio })) => match comparison {
                 Comparison::Matching {
                     delta:
                         Delta {
@@ -112,6 +121,13 @@ impl Rule {
                     ..
                 } => Status::Success,
                 _ => Status::Skip,
+            },
+            Self::MaxDecrease(RuleChange::Absolute(RuleAbsolute { value })) => match comparison {
+                Comparison::Matching {
+                    delta: Delta { absolute, .. },
+                    ..
+                } if absolute < value => Status::Failed,
+                _ => Status::Success,
             },
         }
     }
@@ -307,7 +323,7 @@ mod tests {
 
     #[test]
     fn should_check_max_increase() {
-        let rule = Rule::max_increase(0.1);
+        let rule = Rule::max_relative_increase(0.1);
         assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
         assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
         assert_eq!(
@@ -323,7 +339,7 @@ mod tests {
 
     #[test]
     fn should_check_max_decrease() {
-        let rule = Rule::max_decrease(0.1);
+        let rule = Rule::max_relative_decrease(0.1);
         assert_eq!(rule.check(&Comparison::created(0.0)), Status::Skip);
         assert_eq!(rule.check(&Comparison::new(0.0, Some(20.0))), Status::Skip);
         assert_eq!(

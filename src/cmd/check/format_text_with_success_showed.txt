@@ -14,3 +14,6 @@
     should be lower than 30.00 ... check
 [SUCCESS] with-unit 20.00 MiB => 25.00 MiB Δ +5.00 MiB (+25.00 %)
     should be lower than 30.00 MiB ... check
+[FAILURE] with-change 20971520.00 => 26214400.00 Δ +5242880.00 (+25.00 %)
+    increase should be less than 10485760.00 ... check
+    increase should be less than 2097152.00 ... failed

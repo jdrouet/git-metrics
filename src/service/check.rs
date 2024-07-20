@@ -96,7 +96,7 @@ value = 80.0
                     Comparison::matching(80.0, 120.0)
                 ))
                 .with_check(Rule::max(100.0), Status::Failed)
-                .with_check(Rule::max_increase(0.1), Status::Failed)
+                .with_check(Rule::max_relative_increase(0.1), Status::Failed)
             )
         );
     }
@@ -165,7 +165,7 @@ value = 50.0
                         MetricHeader::new("first"),
                         Comparison::matching(50.0, 90.0)
                     ))
-                    .with_check(Rule::Max { value: 100.0 }, Status::Success)
+                    .with_check(Rule::max(100.0), Status::Success)
                     .with_subset("foo", SubsetCheck::default().with_matching("foo", "bar"))
                 )
                 .with_check(
@@ -173,12 +173,12 @@ value = 50.0
                         MetricHeader::new("first").with_tag("foo", "bar"),
                         Comparison::matching(50.0, 90.0)
                     ))
-                    .with_check(Rule::Max { value: 100.0 }, Status::Success)
+                    .with_check(Rule::max(100.0), Status::Success)
                     .with_subset(
                         "foo",
                         SubsetCheck::default()
                             .with_matching("foo", "bar")
-                            .with_check(Rule::MaxIncrease { ratio: 0.1 }, Status::Failed)
+                            .with_check(Rule::max_relative_increase(0.1), Status::Failed)
                     )
                 )
         );
