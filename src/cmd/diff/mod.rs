@@ -5,12 +5,6 @@ use crate::ExitCode;
 
 mod format;
 
-#[derive(clap::ValueEnum, Clone, Copy, Debug, Default)]
-pub enum Format {
-    #[default]
-    Text,
-}
-
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandDiff {
@@ -20,7 +14,7 @@ pub struct CommandDiff {
 
     /// Output format
     #[clap(long, default_value = "text")]
-    format: Format,
+    format: super::format::Format,
 
     /// Commit range, default to HEAD
     ///
@@ -49,7 +43,7 @@ impl super::Executor for CommandDiff {
             diff.remove_missing()
         };
         match self.format {
-            Format::Text => format::TextFormatter {
+            super::format::Format::Text => format::TextFormatter {
                 show_previous: self.show_previous,
             }
             .format(&diff, &config, stdout),
