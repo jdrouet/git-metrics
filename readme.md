@@ -102,9 +102,10 @@ jobs:
 - [x] `git-metrics push` pushes the metrics
 - [x] `git-metrics log` displays the metrics for the last commits
 - [x] `git-metrics diff` computes the diff of the metrics between 2 commits
+- [x] `git-metrics check` compares the metrics against the defined budget
 - [ ] `git-metrics page` generates a web page with charts for every metrics
-- [ ] add a way to create a budget and compare to it
-- [ ] create an action to comment a PR with the comparison to the main branch
+- [ ] `git-metrics import` to add metrics based on some apps output
+  - [ ] from code coverage output format
 
 ## License
 
