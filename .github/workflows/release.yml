@@ -53,6 +53,7 @@ jobs:
     needs:
       - execute-build
     steps:
+      - uses: actions/checkout@v4
       - name: download binaries
         uses: ./.github/actions/download-binaries
 
