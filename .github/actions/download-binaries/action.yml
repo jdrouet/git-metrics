@@ -11,7 +11,4 @@ runs:
         name: binary-darwin
     - uses: actions/download-artifact@v4
       with:
-        name: binary-linux-amd64
-    - uses: actions/download-artifact@v4
-      with:
-        name: binary-linux-arm64
+        name: binary-linux
