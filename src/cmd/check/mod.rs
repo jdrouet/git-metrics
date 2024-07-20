@@ -8,6 +8,9 @@ mod format;
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandCheck {
+    /// Output format
+    #[clap(long, default_value = "text")]
+    format: super::format::Format,
     /// Show the successful rules
     #[clap(long)]
     show_success_rules: bool,
@@ -34,11 +37,16 @@ impl super::Executor for CommandCheck {
             remote: "origin",
             target: self.target.as_str(),
         })?;
-        format::TextFormatter {
-            show_success_rules: self.show_success_rules,
-            show_skipped_rules: self.show_skipped_rules,
-        }
-        .format(&checklist, &config, stdout)?;
+
+        match self.format {
+            super::format::Format::Text => {
+                format::TextFormatter {
+                    show_success_rules: self.show_success_rules,
+                    show_skipped_rules: self.show_skipped_rules,
+                }
+                .format(&checklist, &config, stdout)?;
+            }
+        };
 
         if checklist.status.is_failed() {
             Ok(ExitCode::Failure)
