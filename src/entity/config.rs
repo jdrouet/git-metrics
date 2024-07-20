@@ -14,30 +14,55 @@ fn undefined_unit_formatter() -> human_number::Formatter<'static> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub(crate) struct RuleAbsolute {
+    pub value: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub(crate) struct RuleRelative {
+    pub ratio: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+pub(crate) enum RuleChange {
+    Absolute(RuleAbsolute),
+    Relative(RuleRelative),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub(crate) enum Rule {
-    Max { value: f64 },
-    Min { value: f64 },
-    MaxIncrease { ratio: f64 },
-    MaxDecrease { ratio: f64 },
+    Max(RuleAbsolute),
+    Min(RuleAbsolute),
+    MaxIncrease(RuleChange),
+    MaxDecrease(RuleChange),
 }
 
 #[cfg(test)]
 impl Rule {
     pub fn max(value: f64) -> Self {
-        Self::Max { value }
+        Self::Max(RuleAbsolute { value })
     }
 
-    pub fn max_increase(ratio: f64) -> Self {
-        Self::MaxIncrease { ratio }
+    pub fn max_absolute_increase(value: f64) -> Self {
+        Self::MaxIncrease(RuleChange::Absolute(RuleAbsolute { value }))
+    }
+
+    pub fn max_relative_increase(ratio: f64) -> Self {
+        Self::MaxIncrease(RuleChange::Relative(RuleRelative { ratio }))
     }
 
     pub fn min(value: f64) -> Self {
-        Self::Min { value }
+        Self::Min(RuleAbsolute { value })
     }
 
-    pub fn max_decrease(ratio: f64) -> Self {
-        Self::MaxDecrease { ratio }
+    pub fn max_absolute_decrease(value: f64) -> Self {
+        Self::MaxDecrease(RuleChange::Absolute(RuleAbsolute { value }))
+    }
+
+    pub fn max_relative_decrease(ratio: f64) -> Self {
+        Self::MaxDecrease(RuleChange::Relative(RuleRelative { ratio }))
     }
 }
 
@@ -214,6 +239,16 @@ mod tests {
     rules = [{ type = "max-increase", ratio = 0.1 }]
     "#,
             &["binary_size", "binary.size"],
+        );
+    }
+
+    #[test]
+    fn should_deserialize_with_relative_and_absolute() {
+        should_deserialize(
+            r#"[metrics.binary_size]
+    rules = [{ type = "max-increase", ratio = 0.1 }, { type = "max-increase", value = 1.0 }, { type = "max-decrease", ratio = 0.1 }, { type = "max-decrease", value = 1.0 }]
+    "#,
+            &["binary_size"],
         );
     }
 }

@@ -6,3 +6,5 @@
 [SKIP] noglobal 42.00 => 28.00 Δ -14.00 (-33.33 %)
 [SUCCESS] nochange 10.00 => 10.00
 [SUCCESS] with-unit 20.00 MiB => 25.00 MiB Δ +5.00 MiB (+25.00 %)
+[FAILURE] with-change 20971520.00 => 26214400.00 Δ +5242880.00 (+25.00 %)
+    increase should be less than 2097152.00 ... failed
