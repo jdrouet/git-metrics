@@ -33,3 +33,5 @@ jobs:
 
       - name: execute git check
         uses: jdrouet/action-check-git-metrics@main
+        with:
+          binary_path: "./git-metrics_linux-x86_64"
