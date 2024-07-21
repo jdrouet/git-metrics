@@ -31,23 +31,7 @@ jobs:
         with:
           push: "false"
 
-      - name: output git-metrics
-        id: diff
-        run: |
-          echo "metrics<<EOF" >> $GITHUB_OUTPUT
-          ./git-metrics_linux-x86_64 diff origin/$GITHUB_BASE_REF..HEAD >> $GITHUB_OUTPUT
-          echo EOF >> $GITHUB_OUTPUT
-
-      - name: commenting pull request
-        uses: thollander/actions-comment-pull-request@v2
+      - name: execute git check
+        uses: jdrouet/action-check-git-metrics@main
         with:
-          comment_tag: metrics
-          message: |
-            🦀 This is how your metrics evolved
-
-            ```
-            ${{ steps.diff.outputs.metrics }}
-            ```
-
-      - name: check metrics against the budget
-        run: ./git-metrics_linux-x86_64 check origin/$GITHUB_BASE_REF..HEAD
+          binary_path: "./git-metrics_linux-x86_64"
