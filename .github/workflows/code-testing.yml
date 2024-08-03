@@ -1,25 +1,8 @@
 name: code testing
 
 on:
-  merge_group:
-    types: [checks_requested]
   workflow_call:
-  pull_request:
-    paths:
-      - ".github/workflows/code-testing.yml"
-      - "rust-toolchain.toml"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - "**.rs"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/code-testing.yml"
-      - "rust-toolchain.toml"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - "**.rs"
+  workflow_dispatch:
 
 env:
   RUSTFLAGS: "-Dwarnings"
