@@ -44,6 +44,13 @@ jobs:
         with:
           push: "true"
 
+      - name: execute git check
+        uses: jdrouet/action-git-metrics@check
+        with:
+          binary_path: "./git-metrics_linux-x86_64"
+        # remove this when it's sure this works on push
+        continue-on-error: true
+
   publish:
     name: publish
     runs-on: ubuntu-latest
