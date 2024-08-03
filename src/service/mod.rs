@@ -32,6 +32,7 @@ impl crate::error::DetailedError for Error {
         match self {
             Self::Io(inner) => Some(inner.to_string()),
             Self::Backend(inner) => inner.details(),
+            #[cfg(feature = "importer")]
             Self::Importer(inner) => Some(inner.to_string()),
         }
     }
