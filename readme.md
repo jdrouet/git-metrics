@@ -105,7 +105,7 @@ jobs:
 - [x] `git-metrics check` compares the metrics against the defined budget
 - [ ] `git-metrics page` generates a web page with charts for every metrics
 - [ ] `git-metrics import` to add metrics based on some apps output
-  - [ ] from code coverage output format
+  - [x] from lcov file
 
 ## License
 
