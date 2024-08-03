@@ -12,7 +12,8 @@ license-file = ["LICENSE", "4"]
 section = "utility"
 
 [features]
-default = ["impl-command", "impl-git2"]
+default = ["importer", "impl-command", "impl-git2"]
+importer = []
 impl-command = []
 impl-git2 = ["dep:git2", "dep:auth-git2"]
 

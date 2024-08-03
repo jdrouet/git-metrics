@@ -16,6 +16,9 @@ pub(crate) enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Backend(crate::backend::Error),
+    #[cfg(feature = "importer")]
+    #[error(transparent)]
+    Importer(#[from] crate::importer::Error),
 }
 
 impl<E: Into<crate::backend::Error>> From<E> for Error {
@@ -29,6 +32,7 @@ impl crate::error::DetailedError for Error {
         match self {
             Self::Io(inner) => Some(inner.to_string()),
             Self::Backend(inner) => inner.details(),
+            Self::Importer(inner) => Some(inner.to_string()),
         }
     }
 }
