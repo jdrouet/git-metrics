@@ -5,6 +5,14 @@ use crate::ExitCode;
 
 #[cfg(feature = "importer-lcov")]
 /// Imports metrics from a lcov.info file
+///
+/// This can be obtained with the following commands
+///
+/// For Rust, use <https://github.com/taiki-e/cargo-llvm-cov> with the following command.
+///
+///     cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+///
+/// For other languages, feel free to open a PR or an issue with the command.
 #[derive(clap::Parser, Debug)]
 struct LcovImporter {
     /// Path to the lcov.info file
