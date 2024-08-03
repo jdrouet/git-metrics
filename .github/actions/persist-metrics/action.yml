@@ -26,6 +26,7 @@ runs:
         ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-apple-darwin" --tag "platform.os: macos" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_darwin-aarch64)
         ./git-metrics_linux-x86_64 add binary-size --tag "build.target: x86_64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: x86_64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-x86_64)
         ./git-metrics_linux-x86_64 add binary-size --tag "build.target: aarch64-unknown-linux-gnu" --tag "platform.os: linux" --tag "platform.arch: aarch64" --tag "unit: byte" $(stat --printf="%s" ./git-metrics_linux-aarch64)
+        ./git-metrics_linux-x86_64 import lcov ./lcov.info
     - name: push metrics
       if: ${{ inputs.push == 'true' }}
       shell: bash
