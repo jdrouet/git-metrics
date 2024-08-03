@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/jdrouet/git-metrics/compare/v0.2.1...v0.2.2) - 2024-08-03
+
+### Added
+- create import command ([#66](https://github.com/jdrouet/git-metrics/pull/66))
+
+### Fixed
+- add missing checkout for releasing binaries
+
+### Other
+- fix readme example
+- update readme with current import command state
+- execute git check even on push
+- replace old actions locations to new ones
+- use action for checking metrics ([#65](https://github.com/jdrouet/git-metrics/pull/65))
+
 ## [0.2.1](https://github.com/jdrouet/git-metrics/compare/v0.2.0...v0.2.1) - 2024-07-20
 
 ### Added
