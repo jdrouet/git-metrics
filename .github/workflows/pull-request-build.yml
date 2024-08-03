@@ -36,6 +36,6 @@ jobs:
           push: "false"
 
       - name: execute git check
-        uses: jdrouet/action-check-git-metrics@main
+        uses: jdrouet/action-git-metrics@check
         with:
           binary_path: "./git-metrics_linux-x86_64"
