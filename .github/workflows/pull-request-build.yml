@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: download binaries
-        uses: ./.github/actions/download-binaries
+        uses: ./.github/actions/download-artifacts
       - name: persist metrics
         uses: ./.github/actions/persist-metrics
         with:

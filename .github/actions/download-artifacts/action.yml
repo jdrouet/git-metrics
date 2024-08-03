@@ -1,5 +1,5 @@
-name: download-binaries
-description: download the binaries that were previously built
+name: download-artifacts
+description: download the artifacts that were previously built or generated
 runs:
   using: "composite"
   steps:

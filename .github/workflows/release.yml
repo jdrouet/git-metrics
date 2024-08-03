@@ -39,8 +39,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: download binaries
-        uses: ./.github/actions/download-binaries
+      - name: download artifacts
+        uses: ./.github/actions/download-artifacts
       - name: persist metrics
         uses: ./.github/actions/persist-metrics
         with:
@@ -54,8 +54,8 @@ jobs:
       - execute-build
     steps:
       - uses: actions/checkout@v4
-      - name: download binaries
-        uses: ./.github/actions/download-binaries
+      - name: download artifacts
+        uses: ./.github/actions/download-artifacts
 
       - name: get release id from tag
         id: release_id
