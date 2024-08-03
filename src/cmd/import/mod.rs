@@ -4,61 +4,29 @@ use crate::importer::Importer;
 use crate::ExitCode;
 
 #[cfg(feature = "importer-lcov")]
-/// Imports metrics from a lcov.info file
-///
-/// This can be obtained with the following commands
-///
-/// For Rust, use <https://github.com/taiki-e/cargo-llvm-cov> with the following command.
-///
-///     cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-///
-/// For other languages, feel free to open a PR or an issue with the command.
-#[derive(clap::Parser, Debug)]
-struct LcovImporter {
-    /// Path to the lcov.info file
-    path: std::path::PathBuf,
-    /// Skip importing branch coverage
-    #[clap(long, default_value = "false")]
-    disable_branches: bool,
-    /// Skip importing function coverage
-    #[clap(long, default_value = "false")]
-    disable_functions: bool,
-    /// Skip importing line coverage
-    #[clap(long, default_value = "false")]
-    disable_lines: bool,
-}
+mod lcov;
 
 #[derive(Debug, clap::Subcommand)]
 enum CommandImporter {
+    /// Just for testing, will import nothing.
+    #[cfg(feature = "importer-noop")]
     Noop,
     #[cfg(feature = "importer-lcov")]
-    Lcov(LcovImporter),
+    Lcov(lcov::LcovImporter),
 }
 
 impl crate::importer::Importer for CommandImporter {
     fn import(self) -> Result<Vec<Metric>, crate::importer::Error> {
         match self {
+            #[cfg(feature = "importer-noop")]
             Self::Noop => Ok(Vec::new()),
             #[cfg(feature = "importer-lcov")]
-            Self::Lcov(LcovImporter {
-                path,
-                disable_branches,
-                disable_functions,
-                disable_lines,
-            }) => crate::importer::lcov::LcovImporter::new(
-                path,
-                crate::importer::lcov::LcovImporterOptions {
-                    branches: !disable_branches,
-                    functions: !disable_functions,
-                    lines: !disable_lines,
-                },
-            )
-            .import(),
+            Self::Lcov(inner) => inner.import(),
         }
     }
 }
 
-/// Import metrics in batch from source file
+/// Import metrics in batch from source files.
 #[derive(clap::Parser, Debug)]
 pub struct CommandImport {
     /// Commit target, default to HEAD
