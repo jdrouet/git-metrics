@@ -81,7 +81,8 @@ jobs:
           pull: 'true'
           # set that to true when not a pull request
           push: ${{ github.event_name != 'pull_request' }}
-          script: git-metrics add binary-size --tag "platform: linux" 1024
+          script: |
+            add binary-size --tag "platform: linux" 1024
       # add a comment message to your pull request reporting the evolution
       - uses: jdrouet/action-git-metrics@check
         if: ${{ github.event_name == 'pull_request' }}
@@ -92,6 +93,7 @@ jobs:
 - GitHub action to install `git-metrics`: https://github.com/jdrouet/action-git-metrics/tree/install
 - GitHub action to execute `git-metrics`: https://github.com/jdrouet/action-git-metrics/tree/execute
 - GitHub action to report `git-metrics` checks: https://github.com/jdrouet/action-git-metrics/tree/check
+- GitHub action to report `git-metrics` diff: https://github.com/jdrouet/action-git-metrics/tree/diff
 
 ## Project goals
 
