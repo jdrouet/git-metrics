@@ -14,18 +14,22 @@ jobs:
   execute-build:
     uses: ./.github/workflows/build.yml
 
+  code-testing:
+    uses: ./.github/workflows/code-testing.yml
+
   persist-metrics:
     name: persist metrics with git-metrics
     runs-on: ubuntu-latest
     needs:
       - execute-build
+      - code-testing
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: download binaries
-        uses: ./.github/actions/download-binaries
+        uses: ./.github/actions/download-artifacts
       - name: persist metrics
         uses: ./.github/actions/persist-metrics
         with:

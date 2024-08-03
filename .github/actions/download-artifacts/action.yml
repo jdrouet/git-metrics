@@ -1,5 +1,5 @@
-name: download-binaries
-description: download the binaries that were previously built
+name: download-artifacts
+description: download the artifacts that were previously built or generated
 runs:
   using: "composite"
   steps:
@@ -12,3 +12,6 @@ runs:
     - uses: actions/download-artifact@v4
       with:
         name: binary-linux
+    - uses: actions/download-artifact@v4
+      with:
+        name: code-coverage

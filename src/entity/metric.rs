@@ -128,8 +128,8 @@ pub struct Metric {
     pub value: f64,
 }
 
-#[cfg(test)]
 impl Metric {
+    #[cfg(any(test, feature = "importer-lcov"))]
     pub(crate) fn new<N>(name: N, value: f64) -> Self
     where
         N: Into<String>,
@@ -143,6 +143,7 @@ impl Metric {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_tag<K: Into<String>, V: Into<String>>(mut self, key: K, value: V) -> Self {
         self.header.tags.insert(key.into(), value.into());
         self

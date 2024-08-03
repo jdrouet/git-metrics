@@ -5,6 +5,8 @@ mod backend;
 mod cmd;
 mod entity;
 mod error;
+#[cfg(feature = "importer")]
+mod importer;
 mod service;
 
 use std::path::PathBuf;

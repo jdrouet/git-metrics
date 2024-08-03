@@ -1,25 +1,8 @@
 name: code testing
 
 on:
-  merge_group:
-    types: [checks_requested]
   workflow_call:
-  pull_request:
-    paths:
-      - ".github/workflows/code-testing.yml"
-      - "rust-toolchain.toml"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - "**.rs"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/code-testing.yml"
-      - "rust-toolchain.toml"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - "**.rs"
+  workflow_dispatch:
 
 env:
   RUSTFLAGS: "-Dwarnings"
@@ -72,6 +55,9 @@ jobs:
           toolchain: stable
           profile: minimal
 
+      # install cargo-llvm-cov
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -88,5 +74,11 @@ jobs:
           git config --global user.name "git-metrics tester"
           git config --global init.defaultBranch main
 
-      - name: run tests
-        run: cargo test
+      - name: run tests and build lcov file
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: lcov.info
+          if-no-files-found: error

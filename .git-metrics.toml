@@ -11,3 +11,13 @@ ratio = 0.1
 [[metrics.binary-size.rules]]
 type = "max"
 value = 10485760.0
+
+# max decrease of 5%
+[[metrics."coverage.functions.percentage".rules]]
+type = "max-decrease"
+ratio = 0.05
+
+# max decrease of 5%
+[[metrics."coverage.lines.percentage".rules]]
+type = "max-decrease"
+ratio = 0.05
