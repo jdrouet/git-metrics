@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use human_number::Formatter;
@@ -170,6 +170,47 @@ impl Config {
     }
 }
 
+const fn sample() -> &'static str {
+    r#"# # For every metric you want to monitor, you need to add an entry
+# [metrics.metric_name.unit]
+# # This scale can be "si" for International System of Units or "binary" (optional)
+# scale = "si"
+# # Any string that will be added as a suffix (optional)
+# suffix = "B"
+# # Number of decimals for every number (optional)
+# decimals = 3
+#
+# # Set of rules for the unit budget.
+# [[metrics.metric_name.rules]]
+# type = "max"
+# value = 12.34
+#
+# [[metrics.metric_name.rules]]
+# type = "min"
+# value = 1.234
+#
+# [[metrics.metric_name.rules]]
+# type = "max-decrease"
+# # the metric cannot decrease of more than 5%
+# ratio = 0.05
+#
+# [[metrics.metric_name.rules]]
+# type = "max-decrease"
+# # the metric cannot decrease of more than 1.234
+# value = 1.234
+#
+# [[metrics.metric_name.rules]]
+# type = "max-increase"
+# # the metric cannot increase of more than 5%
+# ratio = 0.05
+#
+# [[metrics.metric_name.rules]]
+# type = "max-increase"
+# # the metric cannot increase of more than 1.234
+# value = 1.234
+"#
+}
+
 impl Config {
     pub(crate) fn from_path(path: &Path) -> std::io::Result<Config> {
         let content = std::fs::read_to_string(path)?;
@@ -177,8 +218,12 @@ impl Config {
         Config::from_str(content.as_str())
     }
 
+    fn config_path(root: &Path) -> PathBuf {
+        root.join(".git-metrics.toml")
+    }
+
     pub(crate) fn from_root_path(root: &Path) -> std::io::Result<Config> {
-        let config_path = root.join(".git-metrics.toml");
+        let config_path = Self::config_path(root);
         if config_path.is_file() {
             Config::from_path(&config_path)
         } else {
@@ -192,6 +237,11 @@ impl Config {
         } else {
             undefined_unit_formatter()
         }
+    }
+
+    pub(crate) fn write_sample(root: &Path) -> std::io::Result<()> {
+        let config_path = Self::config_path(root);
+        std::fs::write(&config_path, sample())
     }
 }
 
@@ -208,6 +258,16 @@ impl FromStr for Config {
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
+
+    #[test]
+    fn should_parse_config() {
+        let without_comment = super::sample()
+            .split("\n")
+            .filter_map(|line| line.strip_prefix("# "))
+            .collect::<Vec<_>>()
+            .join("\n");
+        super::Config::from_str(&without_comment).unwrap();
+    }
 
     fn should_deserialize(payload: &str, names: &[&str]) {
         let config = super::Config::from_str(payload).unwrap();

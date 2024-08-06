@@ -1,5 +1,5 @@
 use super::prelude::PrettyWriter;
-use crate::ExitCode;
+use crate::{entity::config::Config, ExitCode};
 
 /// Initialize the git-metrics configuration
 #[derive(clap::Parser, Debug, Default)]
@@ -8,9 +8,11 @@ pub struct CommandInit;
 impl crate::cmd::Executor for CommandInit {
     fn execute<B: crate::backend::Backend, Out: PrettyWriter>(
         self,
-        _backend: B,
+        backend: B,
         _stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
+        let root = backend.root_path()?;
+        Config::write_sample(&root)?;
         Ok(ExitCode::Success)
     }
 }
