@@ -10,6 +10,9 @@ on:
       - "**/Cargo.lock"
       - "**.rs"
 
+permissions:
+  pull-requests: write
+
 jobs:
   execute-build:
     uses: ./.github/workflows/build.yml
