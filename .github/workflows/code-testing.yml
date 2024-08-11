@@ -43,7 +43,7 @@ jobs:
   testing:
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.ref }}-mrml-cli-testing
+      group: ${{ github.ref }}-testing
       cancel-in-progress: true
 
     steps:
@@ -84,7 +84,7 @@ jobs:
   dependencies:
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.ref }}-mrml-dependencies
+      group: ${{ github.ref }}-dependencies
       cancel-in-progress: true
 
     steps:
