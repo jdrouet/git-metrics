@@ -29,7 +29,7 @@ lcov = { version = "0.8.1", optional = true }
 nu-ansi-term = { version = "0.50.0" }
 serde = { version = "1.0.206", features = ["derive"] }
 thiserror = { version = "1.0.62" }
-toml = { version = "0.8.14", features = ["preserve_order"] }
+toml = { version = "0.8.19", features = ["preserve_order"] }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18" }
 
