@@ -65,6 +65,11 @@ on:
     branches:
       - main
 
+# this is required to be able to post the result of the check command
+# in a comment of the pull request
+permissions:
+  pull-requests: write
+
 jobs:
   building:
     runs-on: ubuntu-latest
