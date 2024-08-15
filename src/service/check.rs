@@ -9,18 +9,7 @@ pub(crate) struct Options<'a> {
 }
 
 impl<B: Backend> super::Service<B> {
-    fn open_config(&self) -> Result<Config, super::Error> {
-        let root = self.backend.root_path()?;
-        let config_path = root.join(".git-metrics.toml");
-        let file = if config_path.is_file() {
-            Config::from_path(&config_path)?
-        } else {
-            Default::default()
-        };
-        Ok(file)
-    }
-
-    pub(crate) fn check(&self, opts: &Options) -> Result<CheckList, super::Error> {
+    pub(crate) fn check(&self, config: &Config, opts: &Options) -> Result<CheckList, super::Error> {
         let diff = self
             .diff(&super::diff::Options {
                 remote: opts.remote,
@@ -29,8 +18,7 @@ impl<B: Backend> super::Service<B> {
             .remove_missing()
             .into_inner();
 
-        let config = self.open_config()?;
-        Ok(CheckList::evaluate(&config, diff))
+        Ok(CheckList::evaluate(config, diff))
     }
 }
 
@@ -82,11 +70,15 @@ tags = {}
 value = 80.0
 "#,
         );
+        let config = Config::default();
         let res = Service::new(backend)
-            .check(&super::Options {
-                remote: "origin",
-                target: "main..HEAD",
-            })
+            .check(
+                &config,
+                &super::Options {
+                    remote: "origin",
+                    target: "main..HEAD",
+                },
+            )
             .unwrap();
         similar_asserts::assert_eq!(
             res,
@@ -151,11 +143,15 @@ tags = { foo = "bar" }
 value = 50.0
 "#,
         );
+        let config = Config::default();
         let res = Service::new(backend)
-            .check(&super::Options {
-                remote: "origin",
-                target: "main..HEAD",
-            })
+            .check(
+                &config,
+                &super::Options {
+                    remote: "origin",
+                    target: "main..HEAD",
+                },
+            )
             .unwrap();
         similar_asserts::assert_eq!(
             res,

@@ -34,12 +34,15 @@ impl super::Executor for CommandCheck {
         backend: B,
         stdout: &mut Out,
     ) -> Result<crate::ExitCode, crate::service::Error> {
-        let root = backend.root_path()?;
-        let config = crate::entity::config::Config::from_root_path(&root)?;
-        let checklist = Service::new(backend).check(&crate::service::check::Options {
-            remote: self.remote.as_str(),
-            target: self.target.as_str(),
-        })?;
+        let svc = Service::new(backend);
+        let config = svc.open_config()?;
+        let checklist = svc.check(
+            &config,
+            &crate::service::check::Options {
+                remote: self.remote.as_str(),
+                target: self.target.as_str(),
+            },
+        )?;
 
         match self.format {
             super::format::Format::Text => {

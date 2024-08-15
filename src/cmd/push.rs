@@ -19,7 +19,7 @@ impl super::Executor for CommandPush {
         _stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).push(&crate::service::push::Options {
-            remote: self.remote,
+            remote: self.remote.as_str(),
         })?;
         Ok(ExitCode::Success)
     }

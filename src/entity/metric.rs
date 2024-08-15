@@ -16,8 +16,9 @@ impl Iterator for MetricStackIterator {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize)]
 pub(crate) struct MetricStack {
+    #[serde(flatten)]
     inner: IndexMap<MetricHeader, f64>,
 }
 

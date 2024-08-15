@@ -14,13 +14,13 @@ impl<B: Backend> super::Service<B> {
 }
 
 #[derive(Debug)]
-pub(crate) struct Options {
-    pub remote: String,
+pub(crate) struct Options<'a> {
+    pub remote: &'a str,
 }
 
 impl<B: Backend> super::Service<B> {
     pub(crate) fn push(&self, opts: &Options) -> Result<(), super::Error> {
-        let remote_ref = NoteRef::remote_metrics(&opts.remote);
+        let remote_ref = NoteRef::remote_metrics(opts.remote);
         let local_notes = self.backend.list_notes(&NoteRef::Changes)?;
 
         for commit_sha in local_notes.into_iter().map(|item| item.commit_id) {
@@ -40,7 +40,7 @@ impl<B: Backend> super::Service<B> {
             }
         }
 
-        self.backend.push(opts.remote.as_str(), &remote_ref)?;
+        self.backend.push(opts.remote, &remote_ref)?;
         self.prune_notes_in_ref(&NoteRef::Changes)?;
 
         Ok(())

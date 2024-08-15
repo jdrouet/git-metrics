@@ -33,13 +33,13 @@ impl super::Executor for CommandDiff {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
-        let root = backend.root_path()?;
-        let config = crate::entity::config::Config::from_root_path(&root)?;
+        let svc = Service::new(backend);
+        let config = svc.open_config()?;
         let opts = crate::service::diff::Options {
             remote: self.remote.as_str(),
             target: self.target.as_str(),
         };
-        let diff = Service::new(backend).diff(&opts)?;
+        let diff = svc.diff(&opts)?;
         let diff = if self.show_previous {
             diff
         } else {

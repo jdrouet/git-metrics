@@ -1,13 +1,15 @@
 use super::format::text::TextMetric;
 use super::prelude::PrettyWriter;
 use crate::backend::Backend;
-use crate::entity::config::Config;
 use crate::service::Service;
 use crate::ExitCode;
 
 /// Display the metrics related to the target
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandShow {
+    /// Remote name, default to origin
+    #[clap(long, default_value = "origin")]
+    remote: String,
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,
@@ -20,10 +22,11 @@ impl super::Executor for CommandShow {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
-        let root = backend.root_path()?;
-        let config = Config::from_root_path(&root)?;
-        let metrics = Service::new(backend).show(&crate::service::show::Options {
-            target: self.target,
+        let svc = Service::new(backend);
+        let config = svc.open_config()?;
+        let metrics = svc.show(&crate::service::show::Options {
+            remote: self.remote.as_str(),
+            target: self.target.as_str(),
         })?;
         for metric in metrics.into_metric_iter() {
             let formatter = config.formatter(metric.header.name.as_str());

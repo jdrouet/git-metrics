@@ -12,7 +12,9 @@ license-file = ["LICENSE", "4"]
 section = "utility"
 
 [features]
-default = ["importer-lcov", "impl-command", "impl-git2"]
+default = ["exporter-json", "importer-lcov", "impl-command", "impl-git2"]
+exporter = []
+exporter-json = ["exporter", "dep:serde_json"]
 importer = []
 importer-noop = ["importer"]
 importer-lcov = ["importer", "dep:lcov"]
@@ -28,6 +30,9 @@ indexmap = { version = "2.4.0", features = ["serde"] }
 lcov = { version = "0.8.1", optional = true }
 nu-ansi-term = { version = "0.50.1" }
 serde = { version = "1.0.207", features = ["derive"] }
+serde_json = { version = "1.0.125", features = [
+    "preserve_order",
+], optional = true }
 thiserror = { version = "1.0.63" }
 toml = { version = "0.8.19", features = ["preserve_order"] }
 tracing = { version = "0.1.40" }

@@ -5,6 +5,8 @@ mod backend;
 mod cmd;
 mod entity;
 mod error;
+#[cfg(feature = "exporter")]
+mod exporter;
 #[cfg(feature = "importer")]
 mod importer;
 mod service;

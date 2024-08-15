@@ -9,6 +9,8 @@ use crate::ExitCode;
 mod add;
 mod check;
 mod diff;
+#[cfg(feature = "exporter")]
+mod export;
 #[cfg(feature = "importer")]
 mod import;
 mod init;
@@ -34,6 +36,7 @@ pub(crate) enum Command {
     Add(add::CommandAdd),
     Check(check::CommandCheck),
     Diff(diff::CommandDiff),
+    Export(export::CommandExport),
     Init(init::CommandInit),
     #[cfg(feature = "importer")]
     Import(import::CommandImport),
@@ -60,6 +63,7 @@ impl Command {
             Self::Add(inner) => inner.execute(repo, stdout),
             Self::Check(inner) => inner.execute(repo, stdout),
             Self::Diff(inner) => inner.execute(repo, stdout),
+            Self::Export(inner) => inner.execute(repo, stdout),
             Self::Init(inner) => inner.execute(repo, stdout),
             #[cfg(feature = "importer")]
             Self::Import(inner) => inner.execute(repo, stdout),

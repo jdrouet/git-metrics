@@ -5,8 +5,8 @@ use super::config::{
 };
 use super::difference::{Comparison, Delta, MetricDiff};
 
-#[derive(Clone, Copy)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub(crate) enum Status {
     Success,
     Skip,
@@ -20,8 +20,8 @@ impl Default for Status {
     }
 }
 
-#[derive(Default)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, Default, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub(crate) struct StatusCount {
     pub success: usize,
     pub neutral: usize,
@@ -135,13 +135,15 @@ impl Rule {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct RuleCheck {
     pub rule: Rule,
     pub status: Status,
 }
 
-#[cfg_attr(test, derive(Debug, Default, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub(crate) struct SubsetCheck {
     pub matching: IndexMap<String, String>,
     pub checks: Vec<RuleCheck>,
@@ -184,7 +186,8 @@ impl SubsetCheck {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub(crate) struct MetricCheck {
     pub diff: MetricDiff,
     pub checks: Vec<RuleCheck>,
@@ -256,7 +259,8 @@ impl MetricCheck {
     }
 }
 
-#[cfg_attr(test, derive(Debug, Default, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub(crate) struct CheckList {
     pub status: StatusCount,
     pub list: Vec<MetricCheck>,
