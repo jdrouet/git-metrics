@@ -8,6 +8,9 @@ mod format;
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandCheck {
+    /// Remote name, default to origin
+    #[clap(long, default_value = "origin")]
+    remote: String,
     /// Output format
     #[clap(long, default_value = "text")]
     format: super::format::Format,
@@ -34,7 +37,7 @@ impl super::Executor for CommandCheck {
         let root = backend.root_path()?;
         let config = crate::entity::config::Config::from_root_path(&root)?;
         let checklist = Service::new(backend).check(&crate::service::check::Options {
-            remote: "origin",
+            remote: self.remote.as_str(),
             target: self.target.as_str(),
         })?;
 

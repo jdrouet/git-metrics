@@ -8,6 +8,9 @@ mod format;
 /// Show metrics changes
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandDiff {
+    /// Remote name, default to origin
+    #[clap(long, default_value = "origin")]
+    remote: String,
     /// When enabled, the metrics prior the provided range will be displayed
     #[clap(long)]
     show_previous: bool,
@@ -33,7 +36,7 @@ impl super::Executor for CommandDiff {
         let root = backend.root_path()?;
         let config = crate::entity::config::Config::from_root_path(&root)?;
         let opts = crate::service::diff::Options {
-            remote: "origin",
+            remote: self.remote.as_str(),
             target: self.target.as_str(),
         };
         let diff = Service::new(backend).diff(&opts)?;
