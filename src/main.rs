@@ -7,6 +7,7 @@ mod entity;
 mod error;
 #[cfg(feature = "exporter")]
 mod exporter;
+mod formatter;
 #[cfg(feature = "importer")]
 mod importer;
 mod service;

@@ -1,9 +1,10 @@
 use human_number::Formatter;
 
-use crate::cmd::format::text::{TextMetricHeader, TextPercent};
+use crate::cmd::format::text::TextMetricHeader;
 use crate::cmd::prelude::PrettyWriter;
 use crate::entity::config::Config;
 use crate::entity::difference::{Comparison, MetricDiff, MetricDiffList};
+use crate::formatter::percent::TextPercent;
 
 pub struct TextFormatter {
     pub show_previous: bool,

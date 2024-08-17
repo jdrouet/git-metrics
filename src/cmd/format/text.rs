@@ -6,34 +6,6 @@ use crate::entity::metric::{Metric, MetricHeader};
 
 pub const TAB: &str = "    ";
 
-pub struct TextPercent {
-    value: f64,
-    sign: bool,
-}
-
-impl TextPercent {
-    #[inline]
-    pub const fn new(value: f64) -> Self {
-        Self { value, sign: false }
-    }
-
-    #[inline]
-    pub const fn with_sign(mut self, sign: bool) -> Self {
-        self.sign = sign;
-        self
-    }
-}
-
-impl std::fmt::Display for TextPercent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.sign {
-            write!(f, "{:+.2} %", self.value * 100.0)
-        } else {
-            write!(f, "{:.2} %", self.value * 100.0)
-        }
-    }
-}
-
 pub struct TextMetricTags<'a> {
     value: &'a IndexMap<String, String>,
 }

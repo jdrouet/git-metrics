@@ -1,10 +1,11 @@
 use human_number::Formatter;
 
-use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TextPercent, TAB};
+use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::{Config, Rule, RuleAbsolute, RuleChange, RuleRelative};
 use crate::entity::difference::{Comparison, Delta};
+use crate::formatter::percent::TextPercent;
 
 impl Status {
     const fn big_label(&self) -> &'static str {
