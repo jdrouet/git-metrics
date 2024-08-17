@@ -70,7 +70,7 @@ tags = {}
 value = 80.0
 "#,
         );
-        let config = Config::default();
+        let config = backend.get_config();
         let res = Service::new(backend)
             .check(
                 &config,
@@ -143,7 +143,7 @@ tags = { foo = "bar" }
 value = 50.0
 "#,
         );
-        let config = Config::default();
+        let config = backend.get_config();
         let res = Service::new(backend)
             .check(
                 &config,

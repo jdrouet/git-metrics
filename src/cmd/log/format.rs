@@ -30,7 +30,7 @@ impl<'a> PrettyDisplay for TextCommit<'a> {
         let style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::Yellow);
         writer.write_str("* ")?;
         writer.set_style(style.prefix())?;
-        writer.write_str(&self.value.sha.as_str()[..7])?;
+        writer.write_str(self.value.short_sha())?;
         writer.set_style(style.suffix())?;
         writer.write_str(" ")?;
         writer.write_str(self.value.summary.as_str())?;

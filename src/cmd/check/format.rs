@@ -4,7 +4,7 @@ use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::{Config, Rule, RuleAbsolute, RuleChange, RuleRelative};
-use crate::entity::difference::{Comparison, Delta};
+use crate::formatter::difference::TextComparison;
 use crate::formatter::percent::TextPercent;
 
 impl Status {
@@ -130,83 +130,6 @@ impl<'a> std::fmt::Display for TextRule<'a> {
                     f,
                     "decrease should be less than {}",
                     self.formatter.format(*value)
-                )
-            }
-        }
-    }
-}
-
-struct TextComparison<'a> {
-    formatter: &'a Formatter<'a>,
-    value: &'a Comparison,
-}
-
-impl<'a> TextComparison<'a> {
-    #[inline]
-    pub const fn new(formatter: &'a Formatter<'a>, value: &'a Comparison) -> Self {
-        Self { formatter, value }
-    }
-}
-
-impl<'a> std::fmt::Display for TextComparison<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let diff_formatter = self.formatter.clone().with_force_sign(true);
-        match self.value {
-            Comparison::Created { current } => {
-                write!(f, "{} (new)", self.formatter.format(*current))
-            }
-            Comparison::Missing { previous } => {
-                write!(f, "{} (old)", self.formatter.format(*previous))
-            }
-            Comparison::Matching {
-                previous,
-                current,
-                delta:
-                    Delta {
-                        absolute,
-                        relative: _,
-                    },
-            } if *absolute == 0.0 => {
-                write!(
-                    f,
-                    "{} => {}",
-                    self.formatter.format(*previous),
-                    self.formatter.format(*current)
-                )
-            }
-            Comparison::Matching {
-                previous,
-                current,
-                delta:
-                    Delta {
-                        absolute,
-                        relative: Some(relative),
-                    },
-            } => {
-                write!(
-                    f,
-                    "{} => {} Δ {} ({})",
-                    self.formatter.format(*previous),
-                    self.formatter.format(*current),
-                    diff_formatter.format(*absolute),
-                    TextPercent::new(*relative).with_sign(true)
-                )
-            }
-            Comparison::Matching {
-                previous,
-                current,
-                delta:
-                    Delta {
-                        absolute,
-                        relative: None,
-                    },
-            } => {
-                write!(
-                    f,
-                    "{} => {} Δ {}",
-                    self.formatter.format(*previous),
-                    self.formatter.format(*current),
-                    diff_formatter.format(*absolute),
                 )
             }
         }

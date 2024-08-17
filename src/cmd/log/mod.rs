@@ -9,7 +9,7 @@ mod format;
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandLog {
     /// Remote name, default to origin
-    #[clap(default_value = "origin")]
+    #[clap(long, default_value = "origin")]
     remote: String,
     /// Commit range, default to HEAD
     ///
