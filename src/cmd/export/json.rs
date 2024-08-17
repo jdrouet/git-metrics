@@ -17,9 +17,9 @@ impl CommandExportJson {
         payload: &crate::exporter::Payload,
     ) -> Result<ExitCode, crate::service::Error> {
         if let Some(path) = self.output {
-            crate::exporter::to_json_file(&path, payload)?;
+            crate::exporter::json::to_file(&path, payload)?;
         } else {
-            crate::exporter::to_json_writer(stdout, payload)?;
+            crate::exporter::json::to_writer(stdout, payload)?;
         }
         Ok(ExitCode::Success)
     }

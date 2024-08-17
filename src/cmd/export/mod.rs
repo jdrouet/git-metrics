@@ -15,7 +15,7 @@ enum ExportFormat {
 impl ExportFormat {
     fn execute<W: std::io::Write>(
         self,
-        output: W,
+        output: &mut W,
         payload: &crate::exporter::Payload,
     ) -> Result<ExitCode, crate::service::Error> {
         match self {

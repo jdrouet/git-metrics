@@ -1,8 +1,12 @@
-use crate::entity::{check::CheckList, log::LogEntry};
 use std::path::Path;
 
+use crate::entity::{check::CheckList, log::LogEntry};
+
+#[cfg(feature = "exporter-json")]
+pub(crate) mod json;
+
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub(crate) enum Error {
     #[cfg(feature = "exporter-json")]
     #[error("unable to write to json file")]
     Json(
@@ -36,19 +40,10 @@ impl Payload {
     }
 }
 
-#[cfg(feature = "exporter-json")]
-pub(crate) fn to_json_file(path: &Path, payload: &Payload) -> Result<(), Error> {
-    let mut file = std::fs::OpenOptions::new()
+fn with_file(path: &Path) -> std::io::Result<std::fs::File> {
+    std::fs::OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(path)?;
-    to_json_writer(&mut file, payload)?;
-    Ok(())
-}
-
-#[cfg(feature = "exporter-json")]
-pub(crate) fn to_json_writer<W: std::io::Write>(output: W, payload: &Payload) -> Result<(), Error> {
-    serde_json::to_writer(output, payload)?;
-    Ok(())
+        .open(path)
 }
