@@ -1,9 +1,12 @@
 use std::path::Path;
 
-use crate::entity::{check::CheckList, log::LogEntry};
+use crate::entity::check::CheckList;
+use crate::entity::log::LogEntry;
 
 #[cfg(feature = "exporter-json")]
 pub(crate) mod json;
+#[cfg(feature = "exporter-markdown")]
+pub(crate) mod markdown;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
@@ -14,7 +17,7 @@ pub(crate) enum Error {
         #[source]
         serde_json::Error,
     ),
-    #[cfg(feature = "exporter-json")]
+    #[cfg(feature = "exporter")]
     #[error("unable to open file")]
     Io(
         #[from]

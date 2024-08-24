@@ -4,7 +4,8 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use super::{NoteRef, RevParse};
-use crate::entity::{config::Config, git::Commit};
+use crate::entity::config::Config;
+use crate::entity::git::Commit;
 
 #[derive(Debug)]
 pub(crate) struct Error {

@@ -1,11 +1,12 @@
 use human_number::Formatter;
 
-use crate::cmd::format::text::{TextMetricHeader, TextMetricTags, TAB};
+use crate::cmd::format::text::{TextMetricHeader, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
-use crate::entity::config::{Config, Rule, RuleAbsolute, RuleChange, RuleRelative};
-use crate::formatter::difference::TextComparison;
-use crate::formatter::percent::TextPercent;
+use crate::entity::config::Config;
+use crate::formatter::difference::ShortTextComparison;
+use crate::formatter::metric::TextMetricTags;
+use crate::formatter::rule::TextRule;
 
 impl Status {
     const fn big_label(&self) -> &'static str {
@@ -81,61 +82,6 @@ impl PrettyDisplay for SmallTextStatus {
     }
 }
 
-struct TextRule<'a> {
-    formatter: &'a Formatter<'a>,
-    value: &'a Rule,
-}
-
-impl<'a> TextRule<'a> {
-    #[inline]
-    pub const fn new(formatter: &'a Formatter<'a>, value: &'a Rule) -> Self {
-        Self { formatter, value }
-    }
-}
-
-impl<'a> std::fmt::Display for TextRule<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.value {
-            Rule::Max(RuleAbsolute { value }) => {
-                write!(f, "should be lower than {}", self.formatter.format(*value))
-            }
-            Rule::Min(RuleAbsolute { value }) => write!(
-                f,
-                "should be greater than {}",
-                self.formatter.format(*value)
-            ),
-            Rule::MaxIncrease(RuleChange::Relative(RuleRelative { ratio })) => {
-                write!(
-                    f,
-                    "increase should be less than {}",
-                    TextPercent::new(*ratio)
-                )
-            }
-            Rule::MaxIncrease(RuleChange::Absolute(RuleAbsolute { value })) => {
-                write!(
-                    f,
-                    "increase should be less than {}",
-                    self.formatter.format(*value)
-                )
-            }
-            Rule::MaxDecrease(RuleChange::Relative(RuleRelative { ratio })) => {
-                write!(
-                    f,
-                    "decrease should be less than {}",
-                    TextPercent::new(*ratio)
-                )
-            }
-            Rule::MaxDecrease(RuleChange::Absolute(RuleAbsolute { value })) => {
-                write!(
-                    f,
-                    "decrease should be less than {}",
-                    self.formatter.format(*value)
-                )
-            }
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct TextFormatter {
     pub show_success_rules: bool,
@@ -172,7 +118,7 @@ impl TextFormatter {
         stdout.write_str(" ")?;
         stdout.write_element(TextMetricHeader::new(&item.diff.header))?;
         stdout.write_str(" ")?;
-        stdout.write_element(TextComparison::new(
+        stdout.write_element(ShortTextComparison::new(
             &numeric_formatter,
             &item.diff.comparison,
         ))?;

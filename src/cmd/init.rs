@@ -1,5 +1,6 @@
 use super::prelude::PrettyWriter;
-use crate::{entity::config::Config, ExitCode};
+use crate::entity::config::Config;
+use crate::ExitCode;
 
 /// Initialize the git-metrics configuration
 #[derive(clap::Parser, Debug, Default)]

@@ -1,25 +1,31 @@
 use super::prelude::PrettyWriter;
 use crate::backend::Backend;
+use crate::entity::config::Config;
 use crate::entity::log::LogEntry;
 use crate::service::Service;
 use crate::ExitCode;
 
 #[cfg(feature = "exporter-json")]
 mod json;
+#[cfg(feature = "exporter-markdown")]
+mod markdown;
 
 #[derive(Debug, clap::Subcommand)]
 enum ExportFormat {
     Json(json::CommandExportJson),
+    Markdown(markdown::CommandExportMarkdown),
 }
 
 impl ExportFormat {
     fn execute<W: std::io::Write>(
         self,
         output: &mut W,
+        config: Config,
         payload: &crate::exporter::Payload,
     ) -> Result<ExitCode, crate::service::Error> {
         match self {
             Self::Json(inner) => inner.execute(output, payload),
+            Self::Markdown(inner) => inner.execute(output, config, payload),
         }
     }
 }
@@ -71,6 +77,6 @@ impl super::Executor for CommandExport {
             checks,
             logs.into_iter().map(LogEntry::from).collect(),
         );
-        self.format.execute(stdout, &payload)
+        self.format.execute(stdout, config, &payload)
     }
 }

@@ -12,9 +12,16 @@ license-file = ["LICENSE", "4"]
 section = "utility"
 
 [features]
-default = ["exporter-json", "importer-lcov", "impl-command", "impl-git2"]
+default = [
+    "exporter-json",
+    "exporter-markdown",
+    "importer-lcov",
+    "impl-command",
+    "impl-git2",
+]
 exporter = []
 exporter-json = ["exporter", "dep:serde_json"]
+exporter-markdown = ["exporter"]
 importer = []
 importer-noop = ["importer"]
 importer-lcov = ["importer", "dep:lcov"]
