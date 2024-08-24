@@ -4,6 +4,7 @@ use human_number::Formatter;
 
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::Config;
+use crate::entity::log::LogEntry;
 use crate::entity::metric::MetricHeader;
 use crate::formatter::difference::LongTextComparison;
 use crate::formatter::metric::TextMetricTags;
@@ -77,7 +78,7 @@ impl<'a> std::fmt::Display for CheckSection<'a> {
         writeln!(f)?;
         writeln!(f)?;
         if self.check.checks.is_empty() {
-            writeln!(f, "No rules defined for this metric. Passing.")?;
+            writeln!(f, "_No rules defined for this metric. Passing._")?;
         } else {
             for rule in self.check.checks.iter() {
                 RuleCheckSection::new(&formatter, rule).fmt(f)?;
@@ -105,11 +106,13 @@ impl<'a> std::fmt::Display for ChecklistSection<'a> {
         writeln!(f)?;
         match self.checklist.status.status() {
             Status::Success => {
-                writeln!(f, "The current commit is successful ✅")?;
+                writeln!(f, "The current target is successful ✅")?;
             }
-            Status::Skip => {}
+            Status::Skip => {
+                writeln!(f, "All the elements from the checklist were skipped.")?;
+            }
             Status::Failed => {
-                writeln!(f, "The current commit failed the checklist ⛔️")?;
+                writeln!(f, "The current target failed the checklist ⛔️")?;
             }
         }
         writeln!(f)?;
@@ -125,6 +128,68 @@ impl<'a> std::fmt::Display for ChecklistSection<'a> {
         writeln!(f)?;
         for check in self.checklist.list.iter() {
             CheckSection::new(self.config, check).fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+struct LogEntrySection<'a> {
+    config: &'a Config,
+    entry: &'a LogEntry,
+}
+
+impl<'a> LogEntrySection<'a> {
+    const fn new(config: &'a Config, entry: &'a LogEntry) -> Self {
+        Self { config, entry }
+    }
+}
+
+impl<'a> std::fmt::Display for LogEntrySection<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "- `{}` {}",
+            self.entry.commit.short_sha(),
+            self.entry.commit.summary
+        )?;
+        writeln!(f)?;
+        if self.entry.metrics.is_empty() {
+            writeln!(f, "_There were no metric for this commit._")?;
+        } else {
+            writeln!(f, r#"```"#)?;
+            for metric in self.entry.metrics.iter() {
+                let formatter = self.config.formatter(&metric.header.name);
+                writeln!(
+                    f,
+                    "{} {}",
+                    MetricCheckTitle(&metric.header),
+                    formatter.format(metric.value)
+                )?;
+            }
+            writeln!(f, r#"```"#)?;
+        }
+        writeln!(f)?;
+        Ok(())
+    }
+}
+
+struct LogHistorySection<'a> {
+    config: &'a Config,
+    entries: &'a [LogEntry],
+}
+
+impl<'a> LogHistorySection<'a> {
+    const fn new(config: &'a Config, entries: &'a [LogEntry]) -> Self {
+        Self { config, entries }
+    }
+}
+
+impl<'a> std::fmt::Display for LogHistorySection<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "## Log history")?;
+        writeln!(f)?;
+        for entry in self.entries.iter() {
+            LogEntrySection::new(&self.config, entry).fmt(f)?;
         }
         Ok(())
     }
@@ -148,6 +213,7 @@ impl<'a> std::fmt::Display for MainView<'a> {
         writeln!(f, "Generated for the target `{}`.", self.payload.target)?;
         writeln!(f)?;
         ChecklistSection::new(self.config, &self.payload.checks).fmt(f)?;
+        LogHistorySection::new(&self.config, &self.payload.logs).fmt(f)?;
         Ok(())
     }
 }

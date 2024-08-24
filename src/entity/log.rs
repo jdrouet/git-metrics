@@ -3,8 +3,8 @@ use super::metric::{Metric, MetricStack};
 
 #[derive(Debug, serde::Serialize)]
 pub struct LogEntry {
-    commit: Commit,
-    metrics: Vec<Metric>,
+    pub commit: Commit,
+    pub metrics: Vec<Metric>,
 }
 
 impl From<(Commit, MetricStack)> for LogEntry {
