@@ -189,7 +189,7 @@ impl<'a> std::fmt::Display for LogHistorySection<'a> {
         writeln!(f, "## Log history")?;
         writeln!(f)?;
         for entry in self.entries.iter() {
-            LogEntrySection::new(&self.config, entry).fmt(f)?;
+            LogEntrySection::new(self.config, entry).fmt(f)?;
         }
         Ok(())
     }
@@ -213,7 +213,7 @@ impl<'a> std::fmt::Display for MainView<'a> {
         writeln!(f, "Generated for the target `{}`.", self.payload.target)?;
         writeln!(f)?;
         ChecklistSection::new(self.config, &self.payload.checks).fmt(f)?;
-        LogHistorySection::new(&self.config, &self.payload.logs).fmt(f)?;
+        LogHistorySection::new(self.config, &self.payload.logs).fmt(f)?;
         Ok(())
     }
 }
