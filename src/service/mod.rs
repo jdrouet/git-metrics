@@ -1,4 +1,5 @@
 use crate::backend::{Backend, NoteRef};
+use crate::entity::config::Config;
 use crate::entity::metric::{Metric, MetricChange, MetricStack};
 
 pub(crate) mod add;
@@ -19,6 +20,9 @@ pub(crate) enum Error {
     #[cfg(feature = "importer")]
     #[error(transparent)]
     Importer(#[from] crate::importer::Error),
+    #[cfg(feature = "exporter")]
+    #[error(transparent)]
+    Exporter(#[from] crate::exporter::Error),
 }
 
 impl<E: Into<crate::backend::Error>> From<E> for Error {
@@ -34,6 +38,8 @@ impl crate::error::DetailedError for Error {
             Self::Backend(inner) => inner.details(),
             #[cfg(feature = "importer")]
             Self::Importer(inner) => Some(inner.to_string()),
+            #[cfg(feature = "exporter")]
+            Self::Exporter(inner) => Some(inner.to_string()),
         }
     }
 }
@@ -63,6 +69,11 @@ pub(crate) struct Service<B> {
 impl<B: Backend> Service<B> {
     pub(crate) fn new(backend: B) -> Self {
         Self { backend }
+    }
+
+    pub(crate) fn open_config(&self) -> Result<Config, Error> {
+        let root = self.backend.root_path()?;
+        Config::from_root_path(&root).map_err(Error::from)
     }
 
     pub(crate) fn set_metric_changes(

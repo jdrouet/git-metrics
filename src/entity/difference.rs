@@ -1,7 +1,7 @@
 use super::metric::{MetricHeader, MetricStack};
 
-#[derive(Default)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub(crate) struct Delta {
     #[allow(dead_code)]
     pub(crate) absolute: f64,
@@ -21,7 +21,9 @@ impl Delta {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(tag = "type", rename_all = "kebab-case")]
 pub(crate) enum Comparison {
     Created {
         current: f64,
@@ -71,7 +73,8 @@ impl Comparison {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub(crate) struct MetricDiff {
     pub header: MetricHeader,
     pub comparison: Comparison,

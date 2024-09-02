@@ -1,5 +1,6 @@
-use lcov::{Reader, Record};
 use std::path::PathBuf;
+
+use lcov::{Reader, Record};
 
 use crate::entity::metric::Metric;
 
@@ -160,10 +161,8 @@ impl super::Importer for LcovImporter {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::importer::{
-        lcov::{LcovImporter, LcovImporterOptions},
-        Importer,
-    };
+    use crate::importer::lcov::{LcovImporter, LcovImporterOptions};
+    use crate::importer::Importer;
 
     #[test]
     fn should_load_metrics_complete() {

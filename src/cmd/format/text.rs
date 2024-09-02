@@ -1,65 +1,10 @@
 use human_number::Formatter;
-use indexmap::IndexMap;
 
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::metric::{Metric, MetricHeader};
+use crate::formatter::metric::TextMetricTags;
 
 pub const TAB: &str = "    ";
-
-pub struct TextPercent {
-    value: f64,
-    sign: bool,
-}
-
-impl TextPercent {
-    #[inline]
-    pub const fn new(value: f64) -> Self {
-        Self { value, sign: false }
-    }
-
-    #[inline]
-    pub const fn with_sign(mut self, sign: bool) -> Self {
-        self.sign = sign;
-        self
-    }
-}
-
-impl std::fmt::Display for TextPercent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.sign {
-            write!(f, "{:+.2} %", self.value * 100.0)
-        } else {
-            write!(f, "{:.2} %", self.value * 100.0)
-        }
-    }
-}
-
-pub struct TextMetricTags<'a> {
-    value: &'a IndexMap<String, String>,
-}
-
-impl<'a> TextMetricTags<'a> {
-    #[inline]
-    pub const fn new(value: &'a IndexMap<String, String>) -> Self {
-        Self { value }
-    }
-}
-
-impl<'a> std::fmt::Display for TextMetricTags<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if !self.value.is_empty() {
-            f.write_str("{")?;
-            for (index, (key, value)) in self.value.iter().enumerate() {
-                if index > 0 {
-                    f.write_str(", ")?;
-                }
-                write!(f, "{key}={value:?}")?;
-            }
-            f.write_str("}")?;
-        }
-        Ok(())
-    }
-}
 
 pub struct TextMetricHeader<'a> {
     value: &'a MetricHeader,

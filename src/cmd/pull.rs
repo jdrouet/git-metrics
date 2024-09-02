@@ -19,7 +19,7 @@ impl super::Executor for CommandPull {
         _stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).pull(&crate::service::pull::Options {
-            remote: self.remote,
+            remote: self.remote.as_str(),
         })?;
         Ok(ExitCode::Success)
     }

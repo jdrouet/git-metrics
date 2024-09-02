@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use super::{NoteRef, RevParse};
+use crate::entity::config::Config;
 use crate::entity::git::Commit;
 
 #[derive(Debug)]
@@ -84,6 +85,11 @@ impl MockBackend {
     pub(crate) fn set_config(&self, input: &str) {
         let file = self.0.temp_dir.path().join(".git-metrics.toml");
         std::fs::write(file, input).unwrap();
+    }
+
+    pub(crate) fn get_config(&self) -> Config {
+        let file = self.0.temp_dir.path().join(".git-metrics.toml");
+        Config::from_path(&file).unwrap()
     }
 }
 

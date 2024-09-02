@@ -8,6 +8,9 @@ mod format;
 /// Add a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandLog {
+    /// Remote name, default to origin
+    #[clap(long, default_value = "origin")]
+    remote: String,
     /// Commit range, default to HEAD
     ///
     /// Can use ranges like HEAD~2..HEAD
@@ -25,10 +28,11 @@ impl super::Executor for CommandLog {
         backend: B,
         stdout: &mut Out,
     ) -> Result<ExitCode, crate::service::Error> {
-        let root = backend.root_path()?;
-        let config = crate::entity::config::Config::from_root_path(&root)?;
-        let result = Service::new(backend).log(&crate::service::log::Options {
-            target: self.target,
+        let svc = Service::new(backend);
+        let config = svc.open_config()?;
+        let result = svc.log(&crate::service::log::Options {
+            remote: self.remote.as_str(),
+            target: self.target.as_str(),
         })?;
         format::TextFormatter {
             filter_empty: self.filter_empty,

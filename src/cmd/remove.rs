@@ -6,6 +6,9 @@ use crate::ExitCode;
 /// Remove a metric related to the target
 #[derive(clap::Parser, Debug, Default)]
 pub struct CommandRemove {
+    /// Remote name, default to origin
+    #[clap(long, default_value = "origin")]
+    remote: String,
     /// Commit target, default to HEAD
     #[clap(long, short, default_value = "HEAD")]
     target: String,
@@ -23,7 +26,8 @@ impl super::Executor for CommandRemove {
         Service::new(backend).remove(
             self.index,
             &crate::service::remove::Options {
-                target: self.target,
+                remote: self.remote.as_str(),
+                target: self.target.as_str(),
             },
         )?;
         Ok(ExitCode::Success)
