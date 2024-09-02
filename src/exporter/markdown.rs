@@ -236,3 +236,235 @@ pub(crate) fn to_writer<W: std::io::Write>(
     write!(output, "{}", MainView::new(config, payload))?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        entity::{
+            check::{CheckList, MetricCheck, Status},
+            config::{Config, Rule},
+            difference::{Comparison, MetricDiff},
+            git::Commit,
+            log::LogEntry,
+            metric::{Metric, MetricHeader},
+        },
+        exporter::Payload,
+    };
+
+    #[test]
+    fn should_display_log_history() {
+        let config = Config::default();
+        let entries = vec![
+            LogEntry {
+                commit: Commit {
+                    sha: "aaaaaaaaaaaaa".into(),
+                    summary: "first commit".into(),
+                },
+                metrics: Vec::new(),
+            },
+            LogEntry {
+                commit: Commit {
+                    sha: "bbbbbbbbbbbbb".into(),
+                    summary: "second commit".into(),
+                },
+                metrics: vec![Metric::new("name", 42.0).with_tag("foo", "bar")],
+            },
+        ];
+        let output = super::LogHistorySection::new(&config, &entries).to_string();
+        similar_asserts::assert_eq!(
+            r#"## Log history
+
+- `aaaaaaa` first commit
+
+_There were no metric for this commit._
+
+- `bbbbbbb` second commit
+
+```
+name{foo="bar"} 42.00
+```
+
+"#,
+            output
+        );
+    }
+
+    #[test]
+    fn should_display_checklist_with_nothing() {
+        let config = Config::default();
+        let checklist = CheckList::default();
+        let output = super::ChecklistSection::new(&config, &checklist).to_string();
+        similar_asserts::assert_eq!(
+            r#"## Check conclusion
+
+All the elements from the checklist were skipped.
+
+| Success    | Skipped    | Failed     |
+|:----------:|:----------:|:----------:|
+|          0 |          0 |          0 |
+
+"#,
+            output
+        );
+    }
+
+    #[test]
+    fn should_display_checklist_with_failed_check() {
+        let config = Config::default();
+        let checklist = CheckList::default()
+            .with_check(MetricCheck::new(MetricDiff::new(
+                MetricHeader::new("created"),
+                Comparison::created(42.0),
+            )))
+            .with_check(
+                MetricCheck::new(MetricDiff::new(
+                    MetricHeader::new("diff"),
+                    Comparison::matching(21.0, 42.0),
+                ))
+                .with_check(Rule::max(30.0), Status::Failed),
+            );
+        let output = super::ChecklistSection::new(&config, &checklist).to_string();
+        similar_asserts::assert_eq!(
+            r#"## Check conclusion
+
+The current target failed the checklist ⛔️
+
+| Success    | Skipped    | Failed     |
+|:----------:|:----------:|:----------:|
+|          0 |          0 |          1 |
+
+### 🆗 `created`
+
+This metric didn't exist before and was created with the value 42.00.
+
+_No rules defined for this metric. Passing._
+
+### ⛔️ `diff`
+
+This metric changed from 21.00 to 42.00, with a difference of +21.00 (+100.00 %).
+
+- ⛔️ should be lower than 30.00
+
+"#,
+            output
+        );
+    }
+
+    #[test]
+    fn should_display_checklist_with_success_check() {
+        let config = Config::default();
+        let checklist = CheckList::default()
+            .with_check(MetricCheck::new(MetricDiff::new(
+                MetricHeader::new("created"),
+                Comparison::created(42.0),
+            )))
+            .with_check(
+                MetricCheck::new(MetricDiff::new(
+                    MetricHeader::new("diff"),
+                    Comparison::matching(21.0, 42.0),
+                ))
+                .with_check(Rule::max(50.0), Status::Success),
+            );
+        let output = super::ChecklistSection::new(&config, &checklist).to_string();
+        similar_asserts::assert_eq!(
+            r#"## Check conclusion
+
+The current target is successful ✅
+
+| Success    | Skipped    | Failed     |
+|:----------:|:----------:|:----------:|
+|          1 |          0 |          0 |
+
+### 🆗 `created`
+
+This metric didn't exist before and was created with the value 42.00.
+
+_No rules defined for this metric. Passing._
+
+### ✅ `diff`
+
+This metric changed from 21.00 to 42.00, with a difference of +21.00 (+100.00 %).
+
+- ✅ should be lower than 50.00
+
+"#,
+            output
+        );
+    }
+
+    #[test]
+    fn should_display_main_view() {
+        let config = Config::default();
+        let checklist = CheckList::default()
+            .with_check(MetricCheck::new(MetricDiff::new(
+                MetricHeader::new("created"),
+                Comparison::created(42.0),
+            )))
+            .with_check(
+                MetricCheck::new(MetricDiff::new(
+                    MetricHeader::new("diff"),
+                    Comparison::matching(21.0, 42.0),
+                ))
+                .with_check(Rule::max(50.0), Status::Success),
+            );
+        let entries = vec![
+            LogEntry {
+                commit: Commit {
+                    sha: "aaaaaaaaaaaaa".into(),
+                    summary: "first commit".into(),
+                },
+                metrics: Vec::new(),
+            },
+            LogEntry {
+                commit: Commit {
+                    sha: "bbbbbbbbbbbbb".into(),
+                    summary: "second commit".into(),
+                },
+                metrics: vec![Metric::new("name", 42.0).with_tag("foo", "bar")],
+            },
+        ];
+        let payload = Payload::new("HEAD~4..HEAD".to_string(), checklist, entries);
+        let output = super::MainView::new(&config, &payload).to_string();
+
+        assert_eq!(
+            r#"# Git metrics report
+
+Generated for the target `HEAD~4..HEAD`.
+
+## Check conclusion
+
+The current target is successful ✅
+
+| Success    | Skipped    | Failed     |
+|:----------:|:----------:|:----------:|
+|          1 |          0 |          0 |
+
+### 🆗 `created`
+
+This metric didn't exist before and was created with the value 42.00.
+
+_No rules defined for this metric. Passing._
+
+### ✅ `diff`
+
+This metric changed from 21.00 to 42.00, with a difference of +21.00 (+100.00 %).
+
+- ✅ should be lower than 50.00
+
+## Log history
+
+- `aaaaaaa` first commit
+
+_There were no metric for this commit._
+
+- `bbbbbbb` second commit
+
+```
+name{foo="bar"} 42.00
+```
+
+"#,
+            output
+        );
+    }
+}
