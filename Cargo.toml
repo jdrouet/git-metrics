@@ -36,7 +36,7 @@ human-number = { version = "0.1.2" }
 indexmap = { version = "2.5.0", features = ["serde"] }
 lcov = { version = "0.8.1", optional = true }
 nu-ansi-term = { version = "0.50.1" }
-serde = { version = "1.0.209", features = ["derive"] }
+serde = { version = "1.0.210", features = ["derive"] }
 serde_json = { version = "1.0.127", features = [
     "preserve_order",
 ], optional = true }
