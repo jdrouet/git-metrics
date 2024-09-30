@@ -48,5 +48,5 @@ tracing-subscriber = { version = "0.3.18" }
 [dev-dependencies]
 mockall = "0.13.0"
 similar-asserts = "1.6.0"
-tempfile = "3.12.0"
+tempfile = "3.13.0"
 test-case = "3.3.1"
