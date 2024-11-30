@@ -22,7 +22,7 @@ impl Status {
 
 struct MetricCheckTitle<'a>(&'a MetricHeader);
 
-impl<'a> std::fmt::Display for MetricCheckTitle<'a> {
+impl std::fmt::Display for MetricCheckTitle<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0.name)?;
         TextMetricTags::new(&self.0.tags).fmt(f)?;
@@ -41,7 +41,7 @@ impl<'a> RuleCheckSection<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for RuleCheckSection<'a> {
+impl std::fmt::Display for RuleCheckSection<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
@@ -64,7 +64,7 @@ impl<'a> CheckSection<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for CheckSection<'a> {
+impl std::fmt::Display for CheckSection<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let formatter = self.config.formatter(&self.check.diff.header.name);
         writeln!(
@@ -100,7 +100,7 @@ impl<'a> ChecklistSection<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for ChecklistSection<'a> {
+impl std::fmt::Display for ChecklistSection<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "## Check conclusion")?;
         writeln!(f)?;
@@ -144,7 +144,7 @@ impl<'a> LogEntrySection<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for LogEntrySection<'a> {
+impl std::fmt::Display for LogEntrySection<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
@@ -184,7 +184,7 @@ impl<'a> LogHistorySection<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for LogHistorySection<'a> {
+impl std::fmt::Display for LogHistorySection<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "## Log history")?;
         writeln!(f)?;
@@ -206,7 +206,7 @@ impl<'a> MainView<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for MainView<'a> {
+impl std::fmt::Display for MainView<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "# Git metrics report")?;
         writeln!(f)?;

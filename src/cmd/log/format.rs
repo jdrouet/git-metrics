@@ -25,7 +25,7 @@ impl<'a> TextCommit<'a> {
     }
 }
 
-impl<'a> PrettyDisplay for TextCommit<'a> {
+impl PrettyDisplay for TextCommit<'_> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         let style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::Yellow);
         writer.write_str("* ")?;

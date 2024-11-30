@@ -14,7 +14,7 @@ impl<'a> TextDelta<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for TextDelta<'a> {
+impl std::fmt::Display for TextDelta<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.value.relative {
             Some(relative) => write!(
@@ -40,7 +40,7 @@ impl<'a> ShortTextComparison<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for ShortTextComparison<'a> {
+impl std::fmt::Display for ShortTextComparison<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let diff_formatter = self.formatter.clone().with_force_sign(true);
         match self.value {
@@ -95,7 +95,7 @@ impl<'a> LongTextComparison<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for LongTextComparison<'a> {
+impl std::fmt::Display for LongTextComparison<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let diff_formatter = self.formatter.clone().with_force_sign(true);
         match self.value {

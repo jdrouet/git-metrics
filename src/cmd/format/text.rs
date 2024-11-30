@@ -17,7 +17,7 @@ impl<'a> TextMetricHeader<'a> {
     }
 }
 
-impl<'a> PrettyDisplay for TextMetricHeader<'a> {
+impl PrettyDisplay for TextMetricHeader<'_> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         let style = nu_ansi_term::Style::new().bold();
         writer.set_style(style.prefix())?;
@@ -39,7 +39,7 @@ impl<'a> TextMetric<'a> {
     }
 }
 
-impl<'a> PrettyDisplay for TextMetric<'a> {
+impl PrettyDisplay for TextMetric<'_> {
     fn print<W: PrettyWriter>(&self, writer: &mut W) -> std::io::Result<()> {
         TextMetricHeader::new(&self.value.header).print(writer)?;
         write!(writer, " {}", self.formatter.format(self.value.value))
