@@ -6,6 +6,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/jdrouet/git-metrics/compare/v0.2.3...v0.2.4) - 2024-12-10
+
+### Added
+
+- report check and diff in markdown (#126)
+- create an export command (#84)
+- add remote options for diff and check
+
+### Other
+
+- *(deps)* bump thiserror from 2.0.3 to 2.0.4 (#122)
+- *(deps)* bump hashbrown from 0.15.0 to 0.15.2 (#124)
+- *(deps)* bump tracing-subscriber from 0.3.18 to 0.3.19 (#120)
+- *(deps)* bump indexmap from 2.6.0 to 2.7.0 (#121)
+- apply clippy suggestions
+- *(deps)* bump tracing from 0.1.40 to 0.1.41 (#119)
+- *(deps)* bump serde_json from 1.0.132 to 1.0.133 (#117)
+- *(deps)* bump mockall from 0.13.0 to 0.13.1 (#116)
+- *(deps)* bump clap from 4.5.20 to 4.5.21 (#115)
+- *(deps)* bump thiserror from 2.0.1 to 2.0.3 (#113)
+- *(deps)* bump serde from 1.0.214 to 1.0.215 (#114)
+- *(deps)* bump thiserror from 1.0.66 to 2.0.1 (#112)
+- *(deps)* bump tempfile from 3.13.0 to 3.14.0 (#111)
+- *(deps)* bump thiserror from 1.0.65 to 1.0.66 (#108)
+- *(deps)* bump serde from 1.0.213 to 1.0.214 (#107)
+- *(deps)* bump serde from 1.0.210 to 1.0.213 (#106)
+- *(deps)* bump thiserror from 1.0.64 to 1.0.65 (#105)
+- *(deps)* bump serde_json from 1.0.128 to 1.0.132 (#104)
+- *(deps)* bump indexmap from 2.5.0 to 2.6.0 (#100)
+- *(deps)* bump clap from 4.5.18 to 4.5.20 (#101)
+- *(deps)* bump tempfile from 3.12.0 to 3.13.0 (#98)
+- *(deps)* bump clap from 4.5.17 to 4.5.18 (#94)
+- *(deps)* bump thiserror from 1.0.63 to 1.0.64 (#96)
+- *(deps)* bump human-number from 0.1.2 to 0.1.3 (#97)
+- *(deps)* bump rustsec/audit-check from 1.4.1 to 2.0.0 (#95)
+- *(deps)* bump auth-git2 from 0.5.4 to 0.5.5 (#93)
+- *(deps)* bump clap from 4.5.16 to 4.5.17 (#89)
+- *(deps)* bump serde_json from 1.0.127 to 1.0.128 (#90)
+- *(deps)* bump serde from 1.0.209 to 1.0.210 (#92)
+- *(deps)* bump similar-asserts from 1.5.0 to 1.6.0 (#91)
+- *(deps)* bump serde_json from 1.0.125 to 1.0.127 (#88)
+- *(deps)* bump serde from 1.0.207 to 1.0.209 (#86)
+- *(deps)* bump indexmap from 2.4.0 to 2.5.0 (#87)
+- *(deps)* bump clap from 4.5.15 to 4.5.16 (#83)
+- *(deps)* bump indexmap from 2.3.0 to 2.4.0 (#82)
+- *(deps)* bump thiserror from 1.0.62 to 1.0.63 (#81)
+- *(deps)* bump nu-ansi-term from 0.50.0 to 0.50.1 (#80)
+- *(deps)* bump mockall from 0.12.1 to 0.13.0 (#79)
+- *(deps)* bump serde from 1.0.206 to 1.0.207 (#78)
+- *(deps)* bump toml from 0.8.14 to 0.8.19 (#74)
+- add permission for check action
+- *(deps)* bump serde from 1.0.204 to 1.0.206 (#73)
+- *(deps)* bump tempfile from 3.10.1 to 3.12.0 (#76)
+- *(deps)* bump indexmap from 2.2.6 to 2.3.0 (#75)
+- *(deps)* bump clap from 4.5.9 to 4.5.15 (#72)
+- *(deps)* bump actions/checkout from 3 to 4 (#71)
+- *(deps)* bump actions/cache from 3 to 4 (#70)
+- multiple upgrades (#68)
+
 ## [0.2.3](https://github.com/jdrouet/git-metrics/compare/v0.2.2...v0.2.3) - 2024-08-06
 
 ### Added
