@@ -1,11 +1,11 @@
-use crate::{
-    entity::{
-        check::{MetricCheck, RuleCheck, StatusCount},
-        config::Config,
-    },
-    formatter::{metric::TextMetricHeader, percent::TextPercent, rule::TextRule},
-};
-use another_html_builder::{prelude::WriterExt, Body, Buffer};
+use another_html_builder::prelude::WriterExt;
+use another_html_builder::{Body, Buffer};
+
+use crate::entity::check::{MetricCheck, RuleCheck, StatusCount};
+use crate::entity::config::Config;
+use crate::formatter::metric::TextMetricHeader;
+use crate::formatter::percent::TextPercent;
+use crate::formatter::rule::TextRule;
 
 fn empty<W: WriterExt>(buf: Buffer<W, Body<'_>>) -> Buffer<W, Body<'_>> {
     buf
@@ -124,38 +124,35 @@ impl<'e> MetricCheckTable<'e> {
                 })
         });
 
-        buf.cond(
-            should_display_detailed(self.params, &check.status),
-            |buf| {
-                buf.node("tr").content(|buf| {
-                    buf.node("td")
-                        .content(empty)
-                        .node("td")
-                        .attr(("colspan", "4"))
-                        .content(|buf| {
-                            let buf = check.checks.iter().fold(buf, |buf, rule_check| {
-                                self.write_rule_check(buf, rule_check, &formatter)
-                            });
-                            check.subsets.iter().fold(buf, |buf, (title, subset)| {
-                                buf.cond(
-                                    should_display_detailed(self.params, &subset.status),
-                                    |buf| {
-                                        let buf = buf
-                                            .node("i")
-                                            .content(|buf| buf.text(title))
-                                            .node("br")
-                                            .close();
+        buf.cond(should_display_detailed(self.params, &check.status), |buf| {
+            buf.node("tr").content(|buf| {
+                buf.node("td")
+                    .content(empty)
+                    .node("td")
+                    .attr(("colspan", "4"))
+                    .content(|buf| {
+                        let buf = check.checks.iter().fold(buf, |buf, rule_check| {
+                            self.write_rule_check(buf, rule_check, &formatter)
+                        });
+                        check.subsets.iter().fold(buf, |buf, (title, subset)| {
+                            buf.cond(
+                                should_display_detailed(self.params, &subset.status),
+                                |buf| {
+                                    let buf = buf
+                                        .node("i")
+                                        .content(|buf| buf.text(title))
+                                        .node("br")
+                                        .close();
 
-                                        subset.checks.iter().fold(buf, |buf, rule_check| {
-                                            self.write_rule_check(buf, rule_check, &formatter)
-                                        })
-                                    },
-                                )
-                            })
+                                    subset.checks.iter().fold(buf, |buf, rule_check| {
+                                        self.write_rule_check(buf, rule_check, &formatter)
+                                    })
+                                },
+                            )
                         })
-                })
-            },
-        )
+                    })
+            })
+        })
     }
 
     pub fn write<'a, W: WriterExt>(&self, buf: Buffer<W, Body<'a>>) -> Buffer<W, Body<'a>> {

@@ -229,17 +229,13 @@ pub(crate) fn to_writer<W: std::io::Write>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        entity::{
-            check::{CheckList, MetricCheck, Status},
-            config::{Config, Rule},
-            difference::{Comparison, MetricDiff},
-            git::Commit,
-            log::LogEntry,
-            metric::{Metric, MetricHeader},
-        },
-        exporter::Payload,
-    };
+    use crate::entity::check::{CheckList, MetricCheck, Status};
+    use crate::entity::config::{Config, Rule};
+    use crate::entity::difference::{Comparison, MetricDiff};
+    use crate::entity::git::Commit;
+    use crate::entity::log::LogEntry;
+    use crate::entity::metric::{Metric, MetricHeader};
+    use crate::exporter::Payload;
 
     #[test]
     fn should_display_log_history() {
