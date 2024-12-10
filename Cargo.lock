@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "another-html-builder"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4f180816a27fde124e99c29b1e18143ea66659d65c0570714e6ac9c91eb11ed"
+
+[[package]]
 name = "anstream"
 version = "0.6.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +246,7 @@ dependencies = [
 name = "git-metrics"
 version = "0.2.3"
 dependencies = [
+ "another-html-builder",
  "auth-git2",
  "clap",
  "git2",

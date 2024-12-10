@@ -65,17 +65,17 @@ impl TextFormatter {
         &self,
         list: Vec<(Commit, MetricStack)>,
         config: &Config,
-        stdout: &mut W,
+        mut stdout: W,
     ) -> std::io::Result<()> {
         for (commit, metrics) in list {
             if metrics.is_empty() && self.filter_empty {
                 continue;
             }
 
-            self.format_commit(&commit, stdout)?;
+            self.format_commit(&commit, &mut stdout)?;
             for metric in metrics.into_metric_iter() {
                 let formatter = config.formatter(metric.header.name.as_str());
-                self.format_metric(&metric, &formatter, stdout)?;
+                self.format_metric(&metric, &formatter, &mut stdout)?;
             }
         }
         Ok(())

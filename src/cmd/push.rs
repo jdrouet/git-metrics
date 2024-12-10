@@ -16,7 +16,7 @@ impl super::Executor for CommandPush {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        _stdout: &mut Out,
+        _stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).push(&crate::service::push::Options {
             remote: self.remote.as_str(),

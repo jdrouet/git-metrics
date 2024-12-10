@@ -10,16 +10,6 @@ use crate::formatter::difference::LongTextComparison;
 use crate::formatter::metric::TextMetricTags;
 use crate::formatter::rule::TextRule;
 
-impl Status {
-    const fn emoji(&self) -> &str {
-        match self {
-            Status::Success => "✅",
-            Status::Skip => "🆗",
-            Status::Failed => "⛔️",
-        }
-    }
-}
-
 struct MetricCheckTitle<'a>(&'a MetricHeader);
 
 impl std::fmt::Display for MetricCheckTitle<'_> {

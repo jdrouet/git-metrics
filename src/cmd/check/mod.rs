@@ -32,7 +32,7 @@ impl super::Executor for CommandCheck {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        stdout: &mut Out,
+        stdout: Out,
     ) -> Result<crate::ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
         let config = svc.open_config()?;
@@ -46,7 +46,14 @@ impl super::Executor for CommandCheck {
 
         match self.format {
             super::format::Format::Text => {
-                format::TextFormatter {
+                format::text::TextFormatter {
+                    show_success_rules: self.show_success_rules,
+                    show_skipped_rules: self.show_skipped_rules,
+                }
+                .format(&checklist, &config, stdout)?;
+            }
+            super::format::Format::Markdown => {
+                format::markdown::MarkdownFormatter {
                     show_success_rules: self.show_success_rules,
                     show_skipped_rules: self.show_skipped_rules,
                 }

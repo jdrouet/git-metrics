@@ -71,6 +71,28 @@ impl Comparison {
             Self::Missing { previous }
         }
     }
+
+    pub fn previous(&self) -> Option<f64> {
+        match self {
+            Self::Matching { previous, .. } | Self::Missing { previous } => Some(*previous),
+            _ => None,
+        }
+    }
+
+    pub fn current(&self) -> Option<f64> {
+        match self {
+            Self::Created { current } => Some(*current),
+            Self::Matching { current, .. } => Some(*current),
+            Self::Missing { .. } => None,
+        }
+    }
+
+    pub fn delta(&self) -> Option<&Delta> {
+        match self {
+            Self::Matching { delta, .. } => Some(delta),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize)]

@@ -8,38 +8,6 @@ use crate::formatter::difference::ShortTextComparison;
 use crate::formatter::metric::TextMetricTags;
 use crate::formatter::rule::TextRule;
 
-impl Status {
-    const fn big_label(&self) -> &'static str {
-        match self {
-            Status::Failed => "[FAILURE]",
-            Status::Skip => "[SKIP]",
-            Status::Success => "[SUCCESS]",
-        }
-    }
-
-    fn style(&self) -> nu_ansi_term::Style {
-        match self {
-            Status::Failed => nu_ansi_term::Style::new()
-                .bold()
-                .fg(nu_ansi_term::Color::Red),
-            Status::Skip => nu_ansi_term::Style::new()
-                .italic()
-                .fg(nu_ansi_term::Color::LightGray),
-            Status::Success => nu_ansi_term::Style::new()
-                .bold()
-                .fg(nu_ansi_term::Color::Green),
-        }
-    }
-
-    const fn small_label(&self) -> &'static str {
-        match self {
-            Status::Failed => "failed",
-            Status::Skip => "skip",
-            Status::Success => "check",
-        }
-    }
-}
-
 struct TextStatus {
     value: Status,
 }
@@ -151,13 +119,13 @@ impl TextFormatter {
         &self,
         res: &CheckList,
         config: &Config,
-        stdout: &mut W,
-    ) -> std::io::Result<()> {
+        mut stdout: W,
+    ) -> std::io::Result<W> {
         for entry in res.list.iter() {
             let formatter: Formatter = config.formatter(entry.diff.header.name.as_str());
-            self.format_metric(entry, formatter, stdout)?;
+            self.format_metric(entry, formatter, &mut stdout)?;
         }
-        Ok(())
+        Ok(stdout)
     }
 }
 
@@ -263,8 +231,8 @@ mod tests {
         );
         let text_formatter = TextFormatter::default();
         let list = complete_checklist();
-        let mut writter = BasicWriter::from(Vec::<u8>::new());
-        text_formatter.format(&list, &config, &mut writter).unwrap();
+        let writter = BasicWriter::from(Vec::<u8>::new());
+        let writter = text_formatter.format(&list, &config, writter).unwrap();
         let stdout = writter.into_string();
         similar_asserts::assert_eq!(stdout, include_str!("./format_text_by_default.txt"));
     }
@@ -280,8 +248,8 @@ mod tests {
             show_skipped_rules: true,
         };
         let list = complete_checklist();
-        let mut writter = BasicWriter::from(Vec::<u8>::new());
-        formatter.format(&list, &config, &mut writter).unwrap();
+        let writter = BasicWriter::from(Vec::<u8>::new());
+        let writter = formatter.format(&list, &config, writter).unwrap();
         let stdout = writter.into_string();
         similar_asserts::assert_eq!(
             stdout,

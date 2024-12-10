@@ -45,7 +45,7 @@ impl crate::cmd::Executor for CommandImport {
     fn execute<B: crate::backend::Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        _stdout: &mut Out,
+        _stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let metrics = self.importer.import()?;
         if metrics.is_empty() {

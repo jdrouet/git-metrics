@@ -27,7 +27,7 @@ trait Executor {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        stdout: &mut Out,
+        stdout: Out,
     ) -> Result<ExitCode, crate::service::Error>;
 }
 
@@ -57,7 +57,7 @@ impl Command {
     fn execute_with<Repo: Backend, Out: PrettyWriter>(
         self,
         repo: Repo,
-        stdout: &mut Out,
+        stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         match self {
             Self::Add(inner) => inner.execute(repo, stdout),
@@ -79,13 +79,13 @@ impl Command {
         self,
         repo: Repo,
         color_enabled: bool,
-        stdout: &mut Out,
-        stderr: &mut Err,
+        stdout: Out,
+        stderr: Err,
     ) -> ExitCode {
         let result = if color_enabled {
-            self.execute_with(repo, &mut ColoredWriter::from(stdout))
+            self.execute_with(repo, ColoredWriter::from(stdout))
         } else {
-            self.execute_with(repo, &mut BasicWriter::from(stdout))
+            self.execute_with(repo, BasicWriter::from(stdout))
         };
 
         match result {

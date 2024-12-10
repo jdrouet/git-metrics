@@ -20,7 +20,7 @@ impl super::Executor for CommandShow {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        stdout: &mut Out,
+        mut stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
         let config = svc.open_config()?;

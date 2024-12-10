@@ -21,7 +21,7 @@ impl super::Executor for CommandRemove {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        _stdout: &mut Out,
+        _stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).remove(
             self.index,

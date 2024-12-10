@@ -1,5 +1,7 @@
 use indexmap::IndexMap;
 
+use crate::entity::metric::MetricHeader;
+
 pub struct TextMetricTags<'a> {
     value: &'a IndexMap<String, String>,
 }
@@ -24,5 +26,23 @@ impl std::fmt::Display for TextMetricTags<'_> {
             f.write_str("}")?;
         }
         Ok(())
+    }
+}
+
+pub struct TextMetricHeader<'a> {
+    value: &'a MetricHeader,
+}
+
+impl<'a> TextMetricHeader<'a> {
+    #[inline]
+    pub const fn new(value: &'a MetricHeader) -> Self {
+        Self { value }
+    }
+}
+
+impl std::fmt::Display for TextMetricHeader<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.name.fmt(f)?;
+        TextMetricTags::new(&self.value.tags).fmt(f)
     }
 }
