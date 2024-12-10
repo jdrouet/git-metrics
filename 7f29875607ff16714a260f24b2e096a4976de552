@@ -1,0 +1,95 @@
+[[metrics]]
+name = "binary-size"
+value = 4130816.0
+
+[metrics.tags]
+"build.target" = "x86_64-pc-windows-msvc"
+"platform.os" = "windows"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3683328.0
+
+[metrics.tags]
+"build.target" = "aarch64-pc-windows-msvc"
+"platform.os" = "windows"
+"platform.arch" = "aarch64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3305976.0
+
+[metrics.tags]
+"build.target" = "x86_64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3305976.0
+
+[metrics.tags]
+"build.target" = "aarch64-apple-darwin"
+"platform.os" = "macos"
+"platform.arch" = "aarch64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3858448.0
+
+[metrics.tags]
+"build.target" = "x86_64-unknown-linux-gnu"
+"platform.os" = "linux"
+"platform.arch" = "x86_64"
+unit = "byte"
+
+[[metrics]]
+name = "binary-size"
+value = 3493568.0
+
+[metrics.tags]
+"build.target" = "aarch64-unknown-linux-gnu"
+"platform.os" = "linux"
+"platform.arch" = "aarch64"
+unit = "byte"
+
+[[metrics]]
+name = "coverage.functions.count"
+value = 447.0
+
+[metrics.tags]
+
+[[metrics]]
+name = "coverage.functions.hit"
+value = 346.0
+
+[metrics.tags]
+
+[[metrics]]
+name = "coverage.functions.percentage"
+value = 0.7740492170022372
+
+[metrics.tags]
+
+[[metrics]]
+name = "coverage.lines.count"
+value = 3881.0
+
+[metrics.tags]
+
+[[metrics]]
+name = "coverage.lines.hit"
+value = 3357.0
+
+[metrics.tags]
+
+[[metrics]]
+name = "coverage.lines.percentage"
+value = 0.8649832517392425
+
+[metrics.tags]
