@@ -50,10 +50,13 @@ impl super::Executor for CommandDiff {
                 show_previous: self.show_previous,
             }
             .format(&diff, &config, &mut stdout),
-            super::format::Format::Markdown => format::TextFormatter {
-                show_previous: self.show_previous,
+            super::format::Format::Markdown => {
+                tracing::warn!("markdown format not implemented, fallback to text formatter");
+                format::TextFormatter {
+                    show_previous: self.show_previous,
+                }
+                .format(&diff, &config, &mut stdout)
             }
-            .format(&diff, &config, &mut stdout),
         }?;
         Ok(ExitCode::Success)
     }
