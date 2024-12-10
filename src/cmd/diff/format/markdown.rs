@@ -7,7 +7,7 @@ use crate::formatter::metric::TextMetricHeader;
 
 pub struct MarkdownFormatter<'a>(pub &'a super::Params);
 
-impl<'a> MarkdownFormatter<'a> {
+impl MarkdownFormatter<'_> {
     fn format_entry<W: std::io::Write>(
         &self,
         entry: &MetricDiff,

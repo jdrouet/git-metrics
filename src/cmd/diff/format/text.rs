@@ -8,7 +8,7 @@ use crate::formatter::percent::TextPercent;
 
 pub struct TextFormatter<'a>(pub &'a super::Params);
 
-impl<'a> TextFormatter<'a> {
+impl TextFormatter<'_> {
     fn format_entry<W: PrettyWriter>(
         &self,
         entry: &MetricDiff,

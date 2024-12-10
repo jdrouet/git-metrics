@@ -17,7 +17,7 @@ fn text<W: WriterExt>(
     |buf: Buffer<W, Body<'_>>| buf.text(value)
 }
 
-fn write_thead<'a, W: WriterExt>(buf: Buffer<W, Body<'a>>) -> Buffer<W, Body<'a>> {
+fn write_thead<W: WriterExt>(buf: Buffer<W, Body<'_>>) -> Buffer<W, Body<'_>> {
     buf.node("thead").content(|buf| {
         buf.node("tr").content(|buf| {
             buf.node("th")
@@ -125,7 +125,7 @@ impl<'e> MetricCheckTable<'e> {
         });
 
         buf.cond(
-            should_display_detailed(&self.params, &check.status),
+            should_display_detailed(self.params, &check.status),
             |buf| {
                 buf.node("tr").content(|buf| {
                     buf.node("td")
@@ -138,7 +138,7 @@ impl<'e> MetricCheckTable<'e> {
                             });
                             check.subsets.iter().fold(buf, |buf, (title, subset)| {
                                 buf.cond(
-                                    should_display_detailed(&self.params, &subset.status),
+                                    should_display_detailed(self.params, &subset.status),
                                     |buf| {
                                         let buf = buf
                                             .node("i")
