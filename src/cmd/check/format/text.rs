@@ -50,13 +50,15 @@ impl PrettyDisplay for SmallTextStatus {
     }
 }
 
-#[derive(Default)]
-pub struct TextFormatter {
-    pub show_success_rules: bool,
-    pub show_skipped_rules: bool,
+pub struct TextFormatter<'a> {
+    params: &'a super::Params,
 }
 
-impl TextFormatter {
+impl<'a> TextFormatter<'a> {
+    pub fn new(params: &'a super::Params) -> Self {
+        Self { params }
+    }
+
     fn format_check<W: PrettyWriter>(
         &self,
         check: &RuleCheck,
@@ -64,8 +66,8 @@ impl TextFormatter {
         stdout: &mut W,
     ) -> std::io::Result<()> {
         match check.status {
-            Status::Success if !self.show_success_rules => Ok(()),
-            Status::Skip if !self.show_skipped_rules => Ok(()),
+            Status::Success if !self.params.show_success_rules => Ok(()),
+            Status::Skip if !self.params.show_skipped_rules => Ok(()),
             _ => {
                 stdout.write_str(TAB)?;
                 stdout.write_element(TextRule::new(numeric_formatter, &check.rule))?;
@@ -97,8 +99,8 @@ impl TextFormatter {
         let subset_style = nu_ansi_term::Style::new().fg(nu_ansi_term::Color::LightGray);
         for (name, subset) in item.subsets.iter() {
             if subset.status.is_failed()
-                || (self.show_skipped_rules && subset.status.neutral > 0)
-                || (self.show_success_rules && subset.status.success > 0)
+                || (self.params.show_skipped_rules && subset.status.neutral > 0)
+                || (self.params.show_success_rules && subset.status.success > 0)
             {
                 stdout.set_style(subset_style.prefix())?;
                 writeln!(
@@ -132,6 +134,7 @@ impl TextFormatter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cmd::check::format::Params;
     use crate::cmd::prelude::BasicWriter;
     use crate::entity::check::SubsetCheck;
     use crate::entity::config::{MetricConfig, Rule, Unit};
@@ -229,7 +232,10 @@ mod tests {
             "with-unit",
             MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
         );
-        let text_formatter = TextFormatter::default();
+        let text_formatter = TextFormatter::new(&Params {
+            show_skipped_rules: false,
+            show_success_rules: false,
+        });
         let list = complete_checklist();
         let writter = BasicWriter::from(Vec::<u8>::new());
         let writter = text_formatter.format(&list, &config, writter).unwrap();
@@ -243,10 +249,10 @@ mod tests {
             "with-unit",
             MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
         );
-        let formatter = TextFormatter {
+        let formatter = TextFormatter::new(&Params {
             show_success_rules: true,
             show_skipped_rules: true,
-        };
+        });
         let list = complete_checklist();
         let writter = BasicWriter::from(Vec::<u8>::new());
         let writter = formatter.format(&list, &config, writter).unwrap();

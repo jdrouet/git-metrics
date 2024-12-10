@@ -323,7 +323,7 @@ The current target failed the checklist ⛔️
 |:----------:|:----------:|:----------:|
 |          0 |          0 |          1 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 
@@ -365,7 +365,7 @@ The current target is successful ✅
 |:----------:|:----------:|:----------:|
 |          1 |          0 |          0 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 
@@ -429,7 +429,7 @@ The current target is successful ✅
 |:----------:|:----------:|:----------:|
 |          1 |          0 |          0 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 

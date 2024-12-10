@@ -1,26 +1,29 @@
 use crate::entity::check::CheckList;
 use crate::entity::config::Config;
 
-#[derive(Default)]
-pub struct MarkdownFormatter {
-    pub show_success_rules: bool,
-    pub show_skipped_rules: bool,
+pub struct MarkdownFormatter<'a> {
+    params: &'a super::Params,
 }
 
-impl MarkdownFormatter {
+impl<'a> MarkdownFormatter<'a> {
+    pub fn new(params: &'a super::Params) -> Self {
+        Self { params }
+    }
+
     pub fn format<W: std::io::Write>(
         &self,
         res: &CheckList,
         config: &Config,
         stdout: W,
     ) -> std::io::Result<W> {
-        Ok(super::html::MetricCheckTable::new(config, &res.list).render(stdout))
+        Ok(super::html::MetricCheckTable::new(self.params, config, &res.list).render(stdout))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cmd::check::format::Params;
     use crate::cmd::prelude::BasicWriter;
     use crate::entity::check::{CheckList, MetricCheck, Status, SubsetCheck};
     use crate::entity::config::{MetricConfig, Rule, Unit};
@@ -118,7 +121,10 @@ mod tests {
             "with-unit",
             MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
         );
-        let markdown_formatter = MarkdownFormatter::default();
+        let markdown_formatter = MarkdownFormatter::new(&Params {
+            show_success_rules: false,
+            show_skipped_rules: false,
+        });
         let list = complete_checklist();
         let mut writter = BasicWriter::from(Vec::<u8>::new());
         markdown_formatter
@@ -134,10 +140,10 @@ mod tests {
             "with-unit",
             MetricConfig::default().with_unit(Unit::binary().with_suffix("B")),
         );
-        let formatter = MarkdownFormatter {
+        let formatter = MarkdownFormatter::new(&Params {
             show_success_rules: true,
             show_skipped_rules: true,
-        };
+        });
         let list = complete_checklist();
         let mut writter = BasicWriter::from(Vec::<u8>::new());
         formatter.format(&list, &config, &mut writter).unwrap();

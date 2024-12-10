@@ -44,20 +44,19 @@ impl super::Executor for CommandCheck {
             },
         )?;
 
+        let format_params = format::Params {
+            show_success_rules: self.show_success_rules,
+            show_skipped_rules: self.show_skipped_rules,
+        };
+
         match self.format {
             super::format::Format::Text => {
-                format::text::TextFormatter {
-                    show_success_rules: self.show_success_rules,
-                    show_skipped_rules: self.show_skipped_rules,
-                }
-                .format(&checklist, &config, stdout)?;
+                format::text::TextFormatter::new(&format_params)
+                    .format(&checklist, &config, stdout)?;
             }
             super::format::Format::Markdown => {
-                format::markdown::MarkdownFormatter {
-                    show_success_rules: self.show_success_rules,
-                    show_skipped_rules: self.show_skipped_rules,
-                }
-                .format(&checklist, &config, stdout)?;
+                format::markdown::MarkdownFormatter::new(&format_params)
+                    .format(&checklist, &config, stdout)?;
             }
         };
 

@@ -1,6 +1,9 @@
 use crate::{
-    entity::{check::MetricCheck, config::Config, metric::MetricHeader},
-    formatter::{metric::TextMetricHeader, percent::TextPercent},
+    entity::{
+        check::{MetricCheck, RuleCheck, StatusCount},
+        config::Config,
+    },
+    formatter::{metric::TextMetricHeader, percent::TextPercent, rule::TextRule},
 };
 use another_html_builder::{prelude::WriterExt, Body, Buffer};
 
@@ -12,13 +15,6 @@ fn text<W: WriterExt>(
     value: &'static str,
 ) -> impl FnOnce(Buffer<W, Body<'_>>) -> Buffer<W, Body<'_>> {
     |buf: Buffer<W, Body<'_>>| buf.text(value)
-}
-
-fn write_metric_header<'a, W: WriterExt>(
-    header: &MetricHeader,
-    buf: Buffer<W, Body<'a>>,
-) -> Buffer<W, Body<'a>> {
-    buf.text(&header.name)
 }
 
 fn write_thead<'a, W: WriterExt>(buf: Buffer<W, Body<'a>>) -> Buffer<W, Body<'a>> {
@@ -43,14 +39,45 @@ fn write_thead<'a, W: WriterExt>(buf: Buffer<W, Body<'a>>) -> Buffer<W, Body<'a>
     })
 }
 
+fn should_display_detailed(params: &super::Params, status: &StatusCount) -> bool {
+    status.failed > 0
+        || (status.neutral > 0 && params.show_skipped_rules)
+        || (status.success > 0 && params.show_success_rules)
+}
+
 pub(super) struct MetricCheckTable<'a> {
+    params: &'a super::Params,
     config: &'a Config,
     values: &'a [MetricCheck],
 }
 
 impl<'e> MetricCheckTable<'e> {
-    pub fn new(config: &'e Config, values: &'e [MetricCheck]) -> Self {
-        Self { config, values }
+    pub fn new(params: &'e super::Params, config: &'e Config, values: &'e [MetricCheck]) -> Self {
+        Self {
+            params,
+            config,
+            values,
+        }
+    }
+
+    fn write_rule_check<'a, W: WriterExt>(
+        &self,
+        buf: Buffer<W, Body<'a>>,
+        check: &RuleCheck,
+        formatter: &human_number::Formatter<'_>,
+    ) -> Buffer<W, Body<'a>> {
+        buf.cond(
+            check.status.is_failed()
+                || (self.params.show_skipped_rules && check.status.is_skip())
+                || (self.params.show_success_rules && check.status.is_success()),
+            |buf| {
+                buf.raw(check.status.emoji())
+                    .raw(" ")
+                    .raw(TextRule::new(formatter, &check.rule))
+                    .node("br")
+                    .close()
+            },
+        )
     }
 
     fn write_metric_check<'a, W: WriterExt>(
@@ -60,7 +87,7 @@ impl<'e> MetricCheckTable<'e> {
     ) -> Buffer<W, Body<'a>> {
         let formatter = self.config.formatter(&check.diff.header.name);
 
-        buf.node("tr").content(|buf| {
+        let buf = buf.node("tr").content(|buf| {
             buf.node("td")
                 .attr(("align", "center"))
                 .content(|buf| buf.raw(check.status.status().emoji()))
@@ -87,13 +114,48 @@ impl<'e> MetricCheckTable<'e> {
                     buf.optional(check.diff.comparison.delta(), |buf, delta| {
                         let buf = buf.raw(formatter.format(delta.absolute));
                         buf.optional(delta.relative, |buf, rel| {
-                            buf.raw(" (")
+                            buf.node("br")
+                                .close()
+                                .raw("(")
                                 .raw(TextPercent::new(rel).with_sign(true))
                                 .raw(")")
                         })
                     })
                 })
-        })
+        });
+
+        buf.cond(
+            should_display_detailed(&self.params, &check.status),
+            |buf| {
+                buf.node("tr").content(|buf| {
+                    buf.node("td")
+                        .content(empty)
+                        .node("td")
+                        .attr(("colspan", "4"))
+                        .content(|buf| {
+                            let buf = check.checks.iter().fold(buf, |buf, rule_check| {
+                                self.write_rule_check(buf, rule_check, &formatter)
+                            });
+                            check.subsets.iter().fold(buf, |buf, (title, subset)| {
+                                buf.cond(
+                                    should_display_detailed(&self.params, &subset.status),
+                                    |buf| {
+                                        let buf = buf
+                                            .node("i")
+                                            .content(|buf| buf.text(title))
+                                            .node("br")
+                                            .close();
+
+                                        subset.checks.iter().fold(buf, |buf, rule_check| {
+                                            self.write_rule_check(buf, rule_check, &formatter)
+                                        })
+                                    },
+                                )
+                            })
+                        })
+                })
+            },
+        )
     }
 
     pub fn write<'a, W: WriterExt>(&self, buf: Buffer<W, Body<'a>>) -> Buffer<W, Body<'a>> {

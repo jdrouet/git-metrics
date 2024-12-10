@@ -28,6 +28,18 @@ impl Status {
             Status::Failed => "⛔️",
         }
     }
+
+    pub const fn is_success(&self) -> bool {
+        matches!(self, Status::Success)
+    }
+
+    pub const fn is_skip(&self) -> bool {
+        matches!(self, Status::Skip)
+    }
+
+    pub const fn is_failed(&self) -> bool {
+        matches!(self, Status::Failed)
+    }
 }
 
 #[derive(Debug, Default, serde::Serialize)]

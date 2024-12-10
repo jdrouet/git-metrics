@@ -4,6 +4,12 @@ mod html;
 pub mod markdown;
 pub mod text;
 
+#[derive(Default)]
+pub(crate) struct Params {
+    pub show_success_rules: bool,
+    pub show_skipped_rules: bool,
+}
+
 impl Status {
     const fn big_label(&self) -> &'static str {
         match self {
