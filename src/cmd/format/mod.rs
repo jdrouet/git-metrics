@@ -2,6 +2,7 @@
 pub enum Format {
     #[default]
     Text,
+    Markdown,
 }
 
 pub mod text;

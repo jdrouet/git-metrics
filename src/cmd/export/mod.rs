@@ -19,7 +19,7 @@ enum ExportFormat {
 impl ExportFormat {
     fn execute<W: std::io::Write>(
         self,
-        output: &mut W,
+        output: W,
         config: Config,
         payload: &crate::exporter::Payload,
     ) -> Result<ExitCode, crate::service::Error> {
@@ -54,7 +54,7 @@ impl super::Executor for CommandExport {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        stdout: &mut Out,
+        stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
         let config = svc.open_config()?;

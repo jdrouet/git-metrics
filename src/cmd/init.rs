@@ -10,7 +10,7 @@ impl crate::cmd::Executor for CommandInit {
     fn execute<B: crate::backend::Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        _stdout: &mut Out,
+        _stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let root = backend.root_path()?;
         Config::write_sample(&root)?;
@@ -29,8 +29,8 @@ mod tests {
     #[test]
     fn should_do_nothing_for_now() {
         let backend = crate::backend::mock::MockBackend::default();
-        let mut stdout = BasicWriter::from(Vec::<u8>::new());
-        let cmd = CommandInit::parse_from(["_"]).execute(backend, &mut stdout);
+        let stdout = BasicWriter::from(Vec::<u8>::new());
+        let cmd = CommandInit::parse_from(["_"]).execute(backend, stdout);
         assert!(cmd.is_ok());
     }
 }

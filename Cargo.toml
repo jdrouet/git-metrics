@@ -29,24 +29,23 @@ impl-command = []
 impl-git2 = ["dep:git2", "dep:auth-git2"]
 
 [dependencies]
-auth-git2 = { version = "0.5.5", optional = true, features = ["log"] }
-clap = { version = "4.5.21", features = ["derive", "env"] }
-git2 = { version = "0.19.0", optional = true }
-human-number = { version = "0.1.3" }
-indexmap = { version = "2.7.0", features = ["serde"] }
-lcov = { version = "0.8.1", optional = true }
-nu-ansi-term = { version = "0.50.1" }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = { version = "1.0.133", features = [
-    "preserve_order",
-], optional = true }
-thiserror = { version = "2.0.4" }
-toml = { version = "0.8.19", features = ["preserve_order"] }
-tracing = { version = "0.1.41" }
-tracing-subscriber = { version = "0.3.19" }
+another-html-builder = "0.2"
+auth-git2 = { version = "0.5", optional = true, features = ["log"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+git2 = { version = "0.19", optional = true }
+human-number = { version = "0.1" }
+indexmap = { version = "2.7", features = ["serde"] }
+lcov = { version = "0.8", optional = true }
+nu-ansi-term = { version = "0.50" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"], optional = true }
+thiserror = { version = "2.0" }
+toml = { version = "0.8", features = ["preserve_order"] }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }
 
 [dev-dependencies]
-mockall = "0.13.1"
-similar-asserts = "1.6.0"
-tempfile = "3.14.0"
-test-case = "3.3.1"
+mockall = "0.13"
+similar-asserts = "1.6"
+tempfile = "3.14"
+test-case = "3.3"

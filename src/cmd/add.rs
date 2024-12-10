@@ -23,7 +23,7 @@ impl super::Executor for CommandAdd {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        _stdout: &mut Out,
+        _stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let metric = crate::entity::metric::Metric {
             header: crate::entity::metric::MetricHeader {

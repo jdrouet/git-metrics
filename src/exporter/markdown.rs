@@ -10,16 +10,6 @@ use crate::formatter::difference::LongTextComparison;
 use crate::formatter::metric::TextMetricTags;
 use crate::formatter::rule::TextRule;
 
-impl Status {
-    const fn emoji(&self) -> &str {
-        match self {
-            Status::Success => "✅",
-            Status::Skip => "🆗",
-            Status::Failed => "⛔️",
-        }
-    }
-}
-
 struct MetricCheckTitle<'a>(&'a MetricHeader);
 
 impl std::fmt::Display for MetricCheckTitle<'_> {
@@ -239,17 +229,13 @@ pub(crate) fn to_writer<W: std::io::Write>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        entity::{
-            check::{CheckList, MetricCheck, Status},
-            config::{Config, Rule},
-            difference::{Comparison, MetricDiff},
-            git::Commit,
-            log::LogEntry,
-            metric::{Metric, MetricHeader},
-        },
-        exporter::Payload,
-    };
+    use crate::entity::check::{CheckList, MetricCheck, Status};
+    use crate::entity::config::{Config, Rule};
+    use crate::entity::difference::{Comparison, MetricDiff};
+    use crate::entity::git::Commit;
+    use crate::entity::log::LogEntry;
+    use crate::entity::metric::{Metric, MetricHeader};
+    use crate::exporter::Payload;
 
     #[test]
     fn should_display_log_history() {
@@ -333,7 +319,7 @@ The current target failed the checklist ⛔️
 |:----------:|:----------:|:----------:|
 |          0 |          0 |          1 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 
@@ -375,7 +361,7 @@ The current target is successful ✅
 |:----------:|:----------:|:----------:|
 |          1 |          0 |          0 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 
@@ -439,7 +425,7 @@ The current target is successful ✅
 |:----------:|:----------:|:----------:|
 |          1 |          0 |          0 |
 
-### 🆗 `created`
+### ⏭️ `created`
 
 This metric didn't exist before and was created with the value 42.00.
 

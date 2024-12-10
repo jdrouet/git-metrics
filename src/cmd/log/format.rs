@@ -6,7 +6,7 @@ use human_number::Formatter;
 ///     metric_name{key="value"} 12.34
 ///     metric_name{key="other"} 23.45
 /// ```
-use crate::cmd::format::text::TextMetric;
+use crate::cmd::format::text::PrettyTextMetric;
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::config::Config;
 use crate::entity::git::Commit;
@@ -51,7 +51,7 @@ impl TextFormatter {
         stdout: &mut W,
     ) -> std::io::Result<()> {
         stdout.write_str(TAB)?;
-        stdout.write_element(TextMetric::new(formatter, item))?;
+        stdout.write_element(PrettyTextMetric::new(formatter, item))?;
         stdout.write_str("\n")?;
         Ok(())
     }
@@ -65,17 +65,17 @@ impl TextFormatter {
         &self,
         list: Vec<(Commit, MetricStack)>,
         config: &Config,
-        stdout: &mut W,
+        mut stdout: W,
     ) -> std::io::Result<()> {
         for (commit, metrics) in list {
             if metrics.is_empty() && self.filter_empty {
                 continue;
             }
 
-            self.format_commit(&commit, stdout)?;
+            self.format_commit(&commit, &mut stdout)?;
             for metric in metrics.into_metric_iter() {
                 let formatter = config.formatter(metric.header.name.as_str());
-                self.format_metric(&metric, &formatter, stdout)?;
+                self.format_metric(&metric, &formatter, &mut stdout)?;
             }
         }
         Ok(())

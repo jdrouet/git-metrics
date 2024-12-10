@@ -20,6 +20,28 @@ impl Default for Status {
     }
 }
 
+impl Status {
+    pub const fn emoji(&self) -> &str {
+        match self {
+            Status::Success => "✅",
+            Status::Skip => "⏭️",
+            Status::Failed => "⛔️",
+        }
+    }
+
+    pub const fn is_success(&self) -> bool {
+        matches!(self, Status::Success)
+    }
+
+    pub const fn is_skip(&self) -> bool {
+        matches!(self, Status::Skip)
+    }
+
+    pub const fn is_failed(&self) -> bool {
+        matches!(self, Status::Failed)
+    }
+}
+
 #[derive(Debug, Default, serde::Serialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub(crate) struct StatusCount {
