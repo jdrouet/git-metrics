@@ -1,6 +1,6 @@
 use human_number::Formatter;
 
-use crate::cmd::format::text::{TextMetricHeader, TAB};
+use crate::cmd::format::text::{PrettyTextMetricHeader, TAB};
 use crate::cmd::prelude::{PrettyDisplay, PrettyWriter};
 use crate::entity::check::{CheckList, MetricCheck, RuleCheck, Status};
 use crate::entity::config::Config;
@@ -86,7 +86,7 @@ impl<'a> TextFormatter<'a> {
     ) -> std::io::Result<()> {
         stdout.write_element(TextStatus::new(item.status.status()))?;
         stdout.write_str(" ")?;
-        stdout.write_element(TextMetricHeader::new(&item.diff.header))?;
+        stdout.write_element(PrettyTextMetricHeader::new(&item.diff.header))?;
         stdout.write_str(" ")?;
         stdout.write_element(ShortTextComparison::new(
             &numeric_formatter,

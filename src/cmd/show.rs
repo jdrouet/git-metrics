@@ -1,4 +1,4 @@
-use super::format::text::TextMetric;
+use super::format::text::PrettyTextMetric;
 use super::prelude::PrettyWriter;
 use crate::backend::Backend;
 use crate::service::Service;
@@ -30,7 +30,7 @@ impl super::Executor for CommandShow {
         })?;
         for metric in metrics.into_metric_iter() {
             let formatter = config.formatter(metric.header.name.as_str());
-            stdout.write_element(TextMetric::new(&formatter, &metric))?;
+            stdout.write_element(PrettyTextMetric::new(&formatter, &metric))?;
             stdout.write_str("\n")?;
         }
         Ok(ExitCode::Success)

@@ -31,7 +31,7 @@ impl super::Executor for CommandDiff {
     fn execute<B: Backend, Out: PrettyWriter>(
         self,
         backend: B,
-        mut stdout: Out,
+        stdout: Out,
     ) -> Result<ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
         let config = svc.open_config()?;
@@ -45,17 +45,15 @@ impl super::Executor for CommandDiff {
         } else {
             diff.remove_missing()
         };
+        let params = format::Params {
+            show_previous: self.show_previous,
+        };
         match self.format {
-            super::format::Format::Text => format::TextFormatter {
-                show_previous: self.show_previous,
+            super::format::Format::Text => {
+                format::text::TextFormatter(&params).format(&diff, &config, stdout)
             }
-            .format(&diff, &config, &mut stdout),
             super::format::Format::Markdown => {
-                tracing::warn!("markdown format not implemented, fallback to text formatter");
-                format::TextFormatter {
-                    show_previous: self.show_previous,
-                }
-                .format(&diff, &config, &mut stdout)
+                format::markdown::MarkdownFormatter(&params).format(&diff, &config, stdout)
             }
         }?;
         Ok(ExitCode::Success)
