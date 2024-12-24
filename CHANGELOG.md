@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/jdrouet/git-metrics/compare/v0.2.4...v0.2.5) - 2024-12-24
+
+### Other
+
+- *(deps)* bump serde_json from 1.0.133 to 1.0.134 (#133)
+- *(deps)* bump thiserror from 2.0.8 to 2.0.9 (#134)
+- *(deps)* bump thiserror from 2.0.6 to 2.0.8 (#132)
+- *(deps)* bump human-number from 0.1.3 to 0.1.4 (#131)
+- *(deps)* bump serde from 1.0.215 to 1.0.216 (#129)
+- display reports in markdown (#127)
+
 ## [0.2.4](https://github.com/jdrouet/git-metrics/compare/v0.2.3...v0.2.4) - 2024-12-10
 
 ### Added
