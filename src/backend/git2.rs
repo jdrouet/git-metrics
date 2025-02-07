@@ -327,6 +327,7 @@ impl Backend for Git2Backend {
     }
 
     fn pull(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
+        tracing::debug!("Attempting to pull from remote: {remote_name}");
         let config = self
             .repo
             .config()
@@ -336,21 +337,38 @@ impl Backend for Git2Backend {
             .find_remote(remote_name)
             .map_err(with_git2_error!("unable to find remote"))?;
 
+        tracing::debug!("Remote URL: {:?}", remote.url());
+
         let auth = self.authenticator();
         let mut remote_cb = git2::RemoteCallbacks::new();
         remote_cb.credentials(auth.credentials(&config));
+        remote_cb.transport(|remote| {
+            tracing::debug!("Transport URL: {}", remote.url());
+            Ok(git2::Transport::smart(remote))
+        });
 
         let mut fetch_opts = git2::FetchOptions::new();
         fetch_opts.remote_callbacks(remote_cb);
-        remote
-            .fetch(
-                &[format!("+{REMOTE_METRICS_REF}:{local_ref}",)],
-                Some(&mut fetch_opts),
-                None,
-            )
-            .map_err(with_git2_error!("unable to pull metrics"))?;
-
-        Ok(())
+        
+        match remote.fetch(
+            &[format!("+{REMOTE_METRICS_REF}:{local_ref}",)],
+            Some(&mut fetch_opts),
+            None,
+        ) {
+            Ok(_) => {
+                tracing::info!("Successfully pulled metrics from {remote_name}");
+                Ok(())
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Pull failed: code={}, klass={}, message={}",
+                    e.code(),
+                    e.klass(),
+                    e.message()
+                );
+                Err(with_git2_error!("unable to pull metrics")(e))
+            }
+        }
     }
 
     fn push(&self, remote_name: &str, local_ref: &NoteRef) -> Result<(), Self::Err> {
