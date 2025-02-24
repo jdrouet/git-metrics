@@ -379,7 +379,6 @@ impl Backend for Git2Backend {
                 Some(&mut push_opts),
             )
             .map_err(with_git2_error!("unable to push metrics"))
-            .map_err(Self::Err::from)
     }
 
     fn get_commits(&self, range: &str) -> Result<Vec<Commit>, Self::Err> {
