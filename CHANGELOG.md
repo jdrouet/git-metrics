@@ -6,6 +6,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/jdrouet/git-metrics/compare/v0.2.4...v0.2.5) - 2025-02-25
+
+### Fixed
+
+- apply clippy suggestion (#163)
+
+### Other
+
+- *(deps)* bump similar-asserts from 1.6.1 to 1.7.0 (#164)
+- *(deps)* bump clap from 4.5.30 to 4.5.31 (#165)
+- *(deps)* bump serde from 1.0.217 to 1.0.218 (#161)
+- *(deps)* bump tempfile from 3.16.0 to 3.17.1 (#159)
+- *(deps)* bump clap from 4.5.29 to 4.5.30 (#160)
+- *(deps)* bump clap from 4.5.28 to 4.5.29 (#157)
+- *(deps)* bump auth-git2 from 0.5.5 to 0.5.7 (#158)
+- *(deps)* bump toml from 0.8.19 to 0.8.20 (#151)
+- *(deps)* bump serde_json from 1.0.137 to 1.0.138 (#148)
+- *(deps)* bump similar-asserts from 1.6.0 to 1.6.1 (#144)
+- *(deps)* bump tempfile from 3.15.0 to 3.16.0 (#149)
+- *(deps)* bump clap from 4.5.26 to 4.5.28 (#150)
+- *(deps)* bump indexmap from 2.7.0 to 2.7.1 (#146)
+- *(deps)* bump serde_json from 1.0.135 to 1.0.137 (#147)
+- *(deps)* bump thiserror from 2.0.10 to 2.0.11 (#143)
+- *(deps)* bump thiserror from 2.0.9 to 2.0.10 (#140)
+- *(deps)* bump clap from 4.5.23 to 4.5.26 (#141)
+- *(deps)* bump serde_json from 1.0.134 to 1.0.135 (#139)
+- *(deps)* bump git2 from 0.19.0 to 0.20.0 (#137)
+- *(deps)* bump tempfile from 3.14.0 to 3.15.0 (#136)
+- *(deps)* bump serde from 1.0.216 to 1.0.217 (#135)
+- *(deps)* bump serde_json from 1.0.133 to 1.0.134 (#133)
+- *(deps)* bump thiserror from 2.0.8 to 2.0.9 (#134)
+- *(deps)* bump thiserror from 2.0.6 to 2.0.8 (#132)
+- *(deps)* bump human-number from 0.1.3 to 0.1.4 (#131)
+- *(deps)* bump serde from 1.0.215 to 1.0.216 (#129)
+- display reports in markdown (#127)
+
 ## [0.2.4](https://github.com/jdrouet/git-metrics/compare/v0.2.3...v0.2.4) - 2024-12-10
 
 ### Added
