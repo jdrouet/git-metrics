@@ -6,6 +6,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/jdrouet/git-metrics/compare/v0.2.4...v0.2.5) - 2025-04-06
+
+### Fixed
+
+- apply clippy suggestion ([#163](https://github.com/jdrouet/git-metrics/pull/163))
+
+### Other
+
+- *(deps)* bump indexmap from 2.8.0 to 2.9.0 ([#178](https://github.com/jdrouet/git-metrics/pull/178))
+- *(deps)* bump clap from 4.5.34 to 4.5.35 ([#177](https://github.com/jdrouet/git-metrics/pull/177))
+- *(deps)* bump serde from 1.0.218 to 1.0.219 ([#169](https://github.com/jdrouet/git-metrics/pull/169))
+- *(deps)* bump clap from 4.5.33 to 4.5.34 ([#176](https://github.com/jdrouet/git-metrics/pull/176))
+- *(deps)* bump indexmap from 2.7.1 to 2.8.0 ([#171](https://github.com/jdrouet/git-metrics/pull/171))
+- *(deps)* bump clap from 4.5.31 to 4.5.33 ([#175](https://github.com/jdrouet/git-metrics/pull/175))
+- *(deps)* bump tempfile from 3.19.0 to 3.19.1 ([#174](https://github.com/jdrouet/git-metrics/pull/174))
+- *(deps)* bump git2 from 0.20.0 to 0.20.1 ([#173](https://github.com/jdrouet/git-metrics/pull/173))
+- *(deps)* bump tempfile from 3.18.0 to 3.19.0 ([#172](https://github.com/jdrouet/git-metrics/pull/172))
+- *(deps)* bump tempfile from 3.17.1 to 3.18.0 ([#168](https://github.com/jdrouet/git-metrics/pull/168))
+- *(deps)* bump thiserror from 2.0.11 to 2.0.12 ([#166](https://github.com/jdrouet/git-metrics/pull/166))
+- *(deps)* bump serde_json from 1.0.138 to 1.0.140 ([#167](https://github.com/jdrouet/git-metrics/pull/167))
+- *(deps)* bump similar-asserts from 1.6.1 to 1.7.0 ([#164](https://github.com/jdrouet/git-metrics/pull/164))
+- *(deps)* bump clap from 4.5.30 to 4.5.31 ([#165](https://github.com/jdrouet/git-metrics/pull/165))
+- *(deps)* bump serde from 1.0.217 to 1.0.218 ([#161](https://github.com/jdrouet/git-metrics/pull/161))
+- *(deps)* bump tempfile from 3.16.0 to 3.17.1 ([#159](https://github.com/jdrouet/git-metrics/pull/159))
+- *(deps)* bump clap from 4.5.29 to 4.5.30 ([#160](https://github.com/jdrouet/git-metrics/pull/160))
+- *(deps)* bump clap from 4.5.28 to 4.5.29 ([#157](https://github.com/jdrouet/git-metrics/pull/157))
+- *(deps)* bump auth-git2 from 0.5.5 to 0.5.7 ([#158](https://github.com/jdrouet/git-metrics/pull/158))
+- *(deps)* bump toml from 0.8.19 to 0.8.20 ([#151](https://github.com/jdrouet/git-metrics/pull/151))
+- *(deps)* bump serde_json from 1.0.137 to 1.0.138 ([#148](https://github.com/jdrouet/git-metrics/pull/148))
+- *(deps)* bump similar-asserts from 1.6.0 to 1.6.1 ([#144](https://github.com/jdrouet/git-metrics/pull/144))
+- *(deps)* bump tempfile from 3.15.0 to 3.16.0 ([#149](https://github.com/jdrouet/git-metrics/pull/149))
+- *(deps)* bump clap from 4.5.26 to 4.5.28 ([#150](https://github.com/jdrouet/git-metrics/pull/150))
+- *(deps)* bump indexmap from 2.7.0 to 2.7.1 ([#146](https://github.com/jdrouet/git-metrics/pull/146))
+- *(deps)* bump serde_json from 1.0.135 to 1.0.137 ([#147](https://github.com/jdrouet/git-metrics/pull/147))
+- *(deps)* bump thiserror from 2.0.10 to 2.0.11 ([#143](https://github.com/jdrouet/git-metrics/pull/143))
+- *(deps)* bump thiserror from 2.0.9 to 2.0.10 ([#140](https://github.com/jdrouet/git-metrics/pull/140))
+- *(deps)* bump clap from 4.5.23 to 4.5.26 ([#141](https://github.com/jdrouet/git-metrics/pull/141))
+- *(deps)* bump serde_json from 1.0.134 to 1.0.135 ([#139](https://github.com/jdrouet/git-metrics/pull/139))
+- *(deps)* bump git2 from 0.19.0 to 0.20.0 ([#137](https://github.com/jdrouet/git-metrics/pull/137))
+- *(deps)* bump tempfile from 3.14.0 to 3.15.0 ([#136](https://github.com/jdrouet/git-metrics/pull/136))
+- *(deps)* bump serde from 1.0.216 to 1.0.217 ([#135](https://github.com/jdrouet/git-metrics/pull/135))
+- *(deps)* bump serde_json from 1.0.133 to 1.0.134 ([#133](https://github.com/jdrouet/git-metrics/pull/133))
+- *(deps)* bump thiserror from 2.0.8 to 2.0.9 ([#134](https://github.com/jdrouet/git-metrics/pull/134))
+- *(deps)* bump thiserror from 2.0.6 to 2.0.8 ([#132](https://github.com/jdrouet/git-metrics/pull/132))
+- *(deps)* bump human-number from 0.1.3 to 0.1.4 ([#131](https://github.com/jdrouet/git-metrics/pull/131))
+- *(deps)* bump serde from 1.0.215 to 1.0.216 ([#129](https://github.com/jdrouet/git-metrics/pull/129))
+- display reports in markdown ([#127](https://github.com/jdrouet/git-metrics/pull/127))
+
 ## [0.2.4](https://github.com/jdrouet/git-metrics/compare/v0.2.3...v0.2.4) - 2024-12-10
 
 ### Added
