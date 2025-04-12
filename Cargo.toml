@@ -3,7 +3,7 @@ name = "git-metrics"
 description = "A git extension to store metrics directly in git, using the notes."
 authors = ["Jeremie Drouet <jeremie.drouet@gmail.com>"]
 license = "MIT"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 repository = "https://github.com/jdrouet/git-metrics"
 
