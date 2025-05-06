@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/jdrouet/git-metrics/compare/v0.2.5...v0.2.6) - 2025-05-06
+
+### Other
+
+- update Cargo.lock dependencies
+
 ## [0.2.5](https://github.com/jdrouet/git-metrics/compare/v0.2.4...v0.2.5) - 2025-04-06
 
 ### Fixed
