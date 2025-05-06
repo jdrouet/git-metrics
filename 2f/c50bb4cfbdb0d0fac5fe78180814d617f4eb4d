@@ -1,6 +1,6 @@
 [[metrics]]
 name = "binary-size"
-value = 4206592.0
+value = 4213760.0
 
 [metrics.tags]
 "build.target" = "x86_64-pc-windows-msvc"
@@ -10,7 +10,7 @@ unit = "byte"
 
 [[metrics]]
 name = "binary-size"
-value = 3743232.0
+value = 3751936.0
 
 [metrics.tags]
 "build.target" = "aarch64-pc-windows-msvc"
@@ -20,7 +20,7 @@ unit = "byte"
 
 [[metrics]]
 name = "binary-size"
-value = 3343768.0
+value = 3344440.0
 
 [metrics.tags]
 "build.target" = "x86_64-apple-darwin"
@@ -30,7 +30,7 @@ unit = "byte"
 
 [[metrics]]
 name = "binary-size"
-value = 3343800.0
+value = 3344440.0
 
 [metrics.tags]
 "build.target" = "aarch64-apple-darwin"
