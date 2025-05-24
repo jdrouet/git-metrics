@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7](https://github.com/jdrouet/git-metrics/compare/v0.2.6...v0.2.7) - 2025-05-24
+
+### Other
+
+- *(deps)* bump auth-git2 from 0.5.7 to 0.5.8 ([#189](https://github.com/jdrouet/git-metrics/pull/189))
+- *(deps)* bump clap from 4.5.37 to 4.5.38 ([#187](https://github.com/jdrouet/git-metrics/pull/187))
+- *(deps)* bump tempfile from 3.19.1 to 3.20.0 ([#186](https://github.com/jdrouet/git-metrics/pull/186))
+
 ## [0.2.6](https://github.com/jdrouet/git-metrics/compare/v0.2.5...v0.2.6) - 2025-05-06
 
 ### Other
