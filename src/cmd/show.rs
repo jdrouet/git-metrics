@@ -21,9 +21,14 @@ impl super::Executor for CommandShow {
         self,
         backend: B,
         mut stdout: Out,
+        alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
-        let config = svc.open_config()?;
+        let config = if let Some(cfg) = alternative_config {
+            cfg
+        } else {
+            svc.open_config()?
+        };
         let metrics = svc.show(&crate::service::show::Options {
             remote: self.remote.as_str(),
             target: self.target.as_str(),
@@ -56,6 +61,7 @@ mod tests {
             false,
             &mut stdout,
             &mut stderr,
+            None,
         );
 
         assert!(code.is_success());
@@ -96,7 +102,7 @@ value = 1.0
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
-            .execute(repo, false, &mut stdout, &mut stderr);
+            .execute(repo, false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success(), "{:?}", String::from_utf8_lossy(&stderr));
         assert!(!stdout.is_empty());

@@ -11,6 +11,7 @@ impl crate::cmd::Executor for CommandInit {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         let root = backend.root_path()?;
         Config::write_sample(&root)?;
