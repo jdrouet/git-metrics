@@ -55,9 +55,14 @@ impl super::Executor for CommandExport {
         self,
         backend: B,
         stdout: Out,
+        alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         let svc = Service::new(backend);
-        let config = svc.open_config()?;
+        let config = if let Some(cfg) = alternative_config {
+            cfg
+        } else {
+            svc.open_config()?
+        };
 
         let checks = svc.check(
             &config,

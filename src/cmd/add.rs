@@ -24,6 +24,7 @@ impl super::Executor for CommandAdd {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         let metric = crate::entity::metric::Metric {
             header: crate::entity::metric::MetricHeader {
@@ -60,7 +61,7 @@ mod tests {
 
         let code = crate::Args::parse_from(["_", "add", "my-metric", "--tag", "foo: bar", "12.34"])
             .command
-            .execute(repo, false, &mut stdout, &mut stderr);
+            .execute(repo, false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
@@ -85,7 +86,7 @@ mod tests {
             "12.34",
         ])
         .command
-        .execute(repo.clone(), false, &mut stdout, &mut stderr);
+        .execute(repo.clone(), false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
@@ -116,7 +117,7 @@ yolo = "pouwet"
 
         let code = crate::Args::parse_from(["_", "add", "--target", "other", "my-metric", "12.34"])
             .command
-            .execute(repo.clone(), false, &mut stdout, &mut stderr);
+            .execute(repo.clone(), false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());
