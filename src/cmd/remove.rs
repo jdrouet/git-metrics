@@ -22,6 +22,7 @@ impl super::Executor for CommandRemove {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).remove(
             self.index,
@@ -49,7 +50,7 @@ mod tests {
 
         let code = crate::Args::parse_from(["_", "remove", "0"])
             .command
-            .execute(backend, false, &mut stdout, &mut stderr);
+            .execute(backend, false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success());
         assert!(stdout.is_empty());

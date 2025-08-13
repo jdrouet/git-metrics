@@ -17,6 +17,7 @@ impl super::Executor for CommandPull {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).pull(&crate::service::pull::Options {
             remote: self.remote.as_str(),

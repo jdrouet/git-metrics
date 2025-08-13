@@ -56,6 +56,13 @@ struct Args {
     #[clap(long, env = "CI")]
     ci: bool,
 
+    /// Alternative configuration file
+    ///
+    /// If not specified, git-metrics finds the configuration file from the root of the
+    /// repository.
+    #[clap(long)]
+    config: Option<PathBuf>,
+
     /// Disable the colors in the output text
     ///
     /// The color will only be enabled if we detect that your environment is compatible.
@@ -139,6 +146,21 @@ impl Args {
         stderr: &mut Err,
     ) -> ExitCode {
         let color = self.color_enabled();
+        let alternative_config = match self
+            .config
+            .as_ref()
+            .map(|path| entity::config::Config::from_path(path))
+            .transpose()
+            .map_err(crate::service::Error::from)
+        {
+            Err(error) => {
+                use crate::error::DetailedError;
+                error.write(stderr).expect("couldn't log error");
+                return ExitCode::Failure;
+            }
+            Ok(opt) => opt,
+        };
+
         match self.backend {
             #[cfg(feature = "impl-command")]
             Backend::Command => self.command.execute(
@@ -146,6 +168,7 @@ impl Args {
                 color,
                 stdout,
                 stderr,
+                alternative_config,
             ),
             #[cfg(feature = "impl-git2")]
             Backend::Git2 => self.command.execute(
@@ -155,6 +178,7 @@ impl Args {
                 color,
                 stdout,
                 stderr,
+                alternative_config,
             ),
         }
     }
