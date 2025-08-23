@@ -118,7 +118,7 @@ impl Git2Backend {
             })
     }
 
-    fn signature(&self) -> Result<git2::Signature, Error> {
+    fn signature(&self) -> Result<git2::Signature<'_>, Error> {
         tracing::trace!("fetching signature");
         self.repo.signature().map_err(|err| {
             tracing::error!("unable to get signature: {err:?}");
