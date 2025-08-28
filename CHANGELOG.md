@@ -1,4 +1,43 @@
 # Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.2.7](https://github.com/jdrouet/git-metrics/compare/v0.2.6...v0.2.7) - 2025-08-28
+
+### Fixed
+
+- clippy linter update
+
+### Other
+
+- *(deps)* bump clap from 4.5.45 to 4.5.46 ([#217](https://github.com/jdrouet/git-metrics/pull/217))
+- *(deps)* bump indexmap from 2.10.0 to 2.11.0 ([#216](https://github.com/jdrouet/git-metrics/pull/216))
+- *(deps)* bump actions/checkout from 4 to 5 ([#209](https://github.com/jdrouet/git-metrics/pull/209))
+- *(deps)* bump serde_json from 1.0.142 to 1.0.143 ([#214](https://github.com/jdrouet/git-metrics/pull/214))
+- *(deps)* bump tempfile from 3.20.0 to 3.21.0 ([#213](https://github.com/jdrouet/git-metrics/pull/213))
+- *(deps)* bump clap from 4.5.42 to 4.5.45 ([#210](https://github.com/jdrouet/git-metrics/pull/210))
+- *(deps)* bump toml from 0.9.4 to 0.9.5 ([#205](https://github.com/jdrouet/git-metrics/pull/205))
+- *(deps)* bump thiserror from 2.0.12 to 2.0.16 ([#215](https://github.com/jdrouet/git-metrics/pull/215))
+- *(deps)* bump amannn/action-semantic-pull-request from 5 to 6 ([#212](https://github.com/jdrouet/git-metrics/pull/212))
+- *(deps)* bump serde_json from 1.0.141 to 1.0.142 ([#203](https://github.com/jdrouet/git-metrics/pull/203))
+- *(deps)* bump toml from 0.9.0 to 0.9.4 ([#202](https://github.com/jdrouet/git-metrics/pull/202))
+- *(deps)* bump serde_json from 1.0.140 to 1.0.141 ([#199](https://github.com/jdrouet/git-metrics/pull/199))
+- *(deps)* bump clap from 4.5.41 to 4.5.42 ([#201](https://github.com/jdrouet/git-metrics/pull/201))
+- *(deps)* bump clap from 4.5.40 to 4.5.41 ([#196](https://github.com/jdrouet/git-metrics/pull/196))
+- *(deps)* bump indexmap from 2.9.0 to 2.10.0 ([#194](https://github.com/jdrouet/git-metrics/pull/194))
+- *(deps)* bump toml from 0.8.23 to 0.9.0 ([#195](https://github.com/jdrouet/git-metrics/pull/195))
+- *(deps)* bump clap from 4.5.39 to 4.5.40 ([#193](https://github.com/jdrouet/git-metrics/pull/193))
+- *(deps)* bump toml from 0.8.22 to 0.8.23 ([#192](https://github.com/jdrouet/git-metrics/pull/192))
+- *(deps)* bump clap from 4.5.38 to 4.5.39 ([#190](https://github.com/jdrouet/git-metrics/pull/190))
+- *(deps)* bump auth-git2 from 0.5.7 to 0.5.8 ([#189](https://github.com/jdrouet/git-metrics/pull/189))
+- *(deps)* bump clap from 4.5.37 to 4.5.38 ([#187](https://github.com/jdrouet/git-metrics/pull/187))
+- *(deps)* bump tempfile from 3.19.1 to 3.20.0 ([#186](https://github.com/jdrouet/git-metrics/pull/186))
+# Changelog
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
