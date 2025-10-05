@@ -14,7 +14,6 @@ pub(crate) use command::CommandBackend;
 pub(crate) use git2::Git2Backend;
 
 use crate::entity::git::Commit;
-use crate::entity::metric::Metric;
 
 const REMOTE_METRICS_REF: &str = "refs/notes/metrics";
 
@@ -63,11 +62,6 @@ impl std::fmt::Display for NoteRef {
             Self::RemoteMetrics { name } => write!(f, "refs/notes/metrics-remote-{name}"),
         }
     }
-}
-
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
-struct NoteContent {
-    metrics: Vec<Metric>,
 }
 
 #[derive(Debug)]

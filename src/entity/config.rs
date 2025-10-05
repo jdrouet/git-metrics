@@ -121,7 +121,7 @@ impl Unit {
 }
 
 impl Unit {
-    pub fn formater(&self) -> human_number::Formatter {
+    pub fn formater(&self) -> human_number::Formatter<'_> {
         let mut formatter = match self.scale {
             Some(UnitScale::SI) => human_number::Formatter::si(),
             Some(UnitScale::Binary) => human_number::Formatter::binary(),
@@ -231,7 +231,7 @@ impl Config {
         }
     }
 
-    pub(crate) fn formatter(&self, metric_name: &str) -> Formatter {
+    pub(crate) fn formatter(&self, metric_name: &str) -> Formatter<'_> {
         if let Some(config) = self.metrics.get(metric_name) {
             config.unit.formater()
         } else {
