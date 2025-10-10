@@ -28,6 +28,7 @@ trait Executor {
         self,
         backend: B,
         stdout: Out,
+        alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error>;
 }
 
@@ -58,20 +59,21 @@ impl Command {
         self,
         repo: Repo,
         stdout: Out,
+        alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         match self {
-            Self::Add(inner) => inner.execute(repo, stdout),
-            Self::Check(inner) => inner.execute(repo, stdout),
-            Self::Diff(inner) => inner.execute(repo, stdout),
-            Self::Export(inner) => inner.execute(repo, stdout),
-            Self::Init(inner) => inner.execute(repo, stdout),
+            Self::Add(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Check(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Diff(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Export(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Init(inner) => inner.execute(repo, stdout, alternative_config),
             #[cfg(feature = "importer")]
-            Self::Import(inner) => inner.execute(repo, stdout),
-            Self::Log(inner) => inner.execute(repo, stdout),
-            Self::Pull(inner) => inner.execute(repo, stdout),
-            Self::Push(inner) => inner.execute(repo, stdout),
-            Self::Remove(inner) => inner.execute(repo, stdout),
-            Self::Show(inner) => inner.execute(repo, stdout),
+            Self::Import(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Log(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Pull(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Push(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Remove(inner) => inner.execute(repo, stdout, alternative_config),
+            Self::Show(inner) => inner.execute(repo, stdout, alternative_config),
         }
     }
 
@@ -81,11 +83,12 @@ impl Command {
         color_enabled: bool,
         stdout: Out,
         stderr: Err,
+        alternative_config: Option<crate::entity::config::Config>,
     ) -> ExitCode {
         let result = if color_enabled {
-            self.execute_with(repo, ColoredWriter::from(stdout))
+            self.execute_with(repo, ColoredWriter::from(stdout), alternative_config)
         } else {
-            self.execute_with(repo, BasicWriter::from(stdout))
+            self.execute_with(repo, BasicWriter::from(stdout), alternative_config)
         };
 
         match result {
