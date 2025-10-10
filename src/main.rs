@@ -90,8 +90,8 @@ struct Args {
     backend: Backend,
 
     /// Enables verbosity
-    #[clap(short, long, action = clap::ArgAction::Count, env = "VERBOSITY")]
-    verbose: u8,
+    #[command(flatten)]
+    verbose: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
 
     #[command(subcommand)]
     command: cmd::Command,
@@ -123,14 +123,7 @@ impl Args {
     }
 
     fn log_level(&self) -> Option<tracing::Level> {
-        match self.verbose {
-            0 => None,
-            1 => Some(tracing::Level::ERROR),
-            2 => Some(tracing::Level::WARN),
-            3 => Some(tracing::Level::INFO),
-            4 => Some(tracing::Level::DEBUG),
-            _ => Some(tracing::Level::TRACE),
-        }
+        self.verbose.tracing_level()
     }
 
     fn execute<Out: std::io::Write, Err: std::io::Write>(
