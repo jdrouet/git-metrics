@@ -46,6 +46,7 @@ impl crate::cmd::Executor for CommandImport {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         let metrics = self.importer.import()?;
         if metrics.is_empty() {

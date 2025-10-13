@@ -17,6 +17,7 @@ impl super::Executor for CommandPush {
         self,
         backend: B,
         _stdout: Out,
+        _alternative_config: Option<crate::entity::config::Config>,
     ) -> Result<ExitCode, crate::service::Error> {
         Service::new(backend).push(&crate::service::push::Options {
             remote: self.remote.as_str(),
