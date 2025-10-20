@@ -75,7 +75,13 @@ impl TextFormatter {
             self.format_commit(&commit, &mut stdout)?;
             for metric in metrics.into_metric_iter() {
                 let formatter = config.formatter(metric.header.name.as_str());
-                self.format_metric(&metric, &formatter, &mut stdout)?;
+                if let Err(error) = self.format_metric(&metric, &formatter, &mut stdout) {
+                    if error.kind() == std::io::ErrorKind::BrokenPipe {
+                        return Ok(());
+                    }
+
+                    return Err(error);
+                }
             }
         }
         Ok(())
