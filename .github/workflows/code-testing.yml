@@ -75,7 +75,7 @@ jobs:
       - name: run tests and build lcov file
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: code-coverage
           path: lcov.info
