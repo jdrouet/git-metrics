@@ -21,7 +21,7 @@ jobs:
         run: cargo build --release --target aarch64-pc-windows-msvc
       - name: rename binary for arm64
         run: mv target/aarch64-pc-windows-msvc/release/git-metrics.exe ./git-metrics_win-aarch64.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: binary-windows
           path: git-metrics_win-*
@@ -45,7 +45,7 @@ jobs:
           cargo build --release --target aarch64-apple-darwin
           strip target/aarch64-apple-darwin/release/git-metrics
       - run: mv ./target/aarch64-apple-darwin/release/git-metrics ./git-metrics_darwin-aarch64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: binary-darwin
           path: git-metrics_darwin-*
@@ -70,7 +70,7 @@ jobs:
           outputs: type=local,dest=${{ github.workspace }}
           push: false
           target: binary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: binary-linux
           path: ./git-metrics_*
