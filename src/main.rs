@@ -89,9 +89,8 @@ struct Args {
     )]
     backend: Backend,
 
-    /// Enables verbosity
     #[command(flatten)]
-    verbose: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
+    verbose: clap_verbosity_flag::Verbosity<clap_verbosity_flag::OffLevel>,
 
     #[command(subcommand)]
     command: cmd::Command,
