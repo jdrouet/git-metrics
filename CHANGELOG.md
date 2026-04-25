@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replace hand-written verbosity parsing with `clap-verbosity-flag`. Adds a `-q`/`--quiet` flag. The `-v` count to log-level mapping is preserved (no flag = silent, `-v` = ERROR, `-vv` = WARN, `-vvv` = INFO, `-vvvv` = DEBUG, `-vvvvv` = TRACE).
+
+### Removed
+
+- Drop `VERBOSITY` environment variable support. Use `-v`/`-q` flags instead.
+
 ## [0.2.6](https://github.com/jdrouet/git-metrics/compare/v0.2.5...v0.2.6) - 2025-05-06
 
 ### Other
