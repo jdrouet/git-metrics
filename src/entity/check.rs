@@ -5,19 +5,13 @@ use super::config::{
 };
 use super::difference::{Comparison, Delta, MetricDiff};
 
-#[derive(Clone, Copy, Debug, serde::Serialize)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub(crate) enum Status {
     Success,
+    #[default]
     Skip,
     Failed,
-}
-
-#[cfg(test)]
-impl Default for Status {
-    fn default() -> Self {
-        Self::Skip
-    }
 }
 
 impl Status {
