@@ -56,6 +56,13 @@ struct Args {
     #[clap(long, env = "CI")]
     ci: bool,
 
+    /// Path to an alternative configuration file
+    ///
+    /// If not specified, git-metrics looks for `.git-metrics.toml` at the root of the
+    /// repository.
+    #[clap(global = true, long, env = "GIT_METRICS_CONFIG")]
+    config: Option<PathBuf>,
+
     /// Disable the colors in the output text
     ///
     /// The color will only be enabled if we detect that your environment is compatible.
@@ -138,6 +145,7 @@ impl Args {
                 color,
                 stdout,
                 stderr,
+                self.config,
             ),
             #[cfg(feature = "impl-git2")]
             Backend::Git2 => self.command.execute(
@@ -147,6 +155,7 @@ impl Args {
                 color,
                 stdout,
                 stderr,
+                self.config,
             ),
         }
     }

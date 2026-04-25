@@ -11,9 +11,14 @@ impl crate::cmd::Executor for CommandInit {
         self,
         backend: B,
         _stdout: Out,
+        config_override: Option<std::path::PathBuf>,
     ) -> Result<ExitCode, crate::service::Error> {
-        let root = backend.root_path()?;
-        Config::write_sample(&root)?;
+        if let Some(path) = config_override.as_deref() {
+            Config::write_sample_to(path)?;
+        } else {
+            let root = backend.root_path()?;
+            Config::write_sample(&root)?;
+        }
         Ok(ExitCode::Success)
     }
 }
@@ -30,7 +35,7 @@ mod tests {
     fn should_do_nothing_for_now() {
         let backend = crate::backend::mock::MockBackend::default();
         let stdout = BasicWriter::from(Vec::<u8>::new());
-        let cmd = CommandInit::parse_from(["_"]).execute(backend, stdout);
+        let cmd = CommandInit::parse_from(["_"]).execute(backend, stdout, None);
         assert!(cmd.is_ok());
     }
 }

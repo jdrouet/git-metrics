@@ -32,8 +32,9 @@ impl super::Executor for CommandDiff {
         self,
         backend: B,
         stdout: Out,
+        config_override: Option<std::path::PathBuf>,
     ) -> Result<ExitCode, crate::service::Error> {
-        let svc = Service::new(backend);
+        let svc = Service::new(backend).with_config_override(config_override);
         let config = svc.open_config()?;
         let opts = crate::service::diff::Options {
             remote: self.remote.as_str(),
