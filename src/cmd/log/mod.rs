@@ -34,11 +34,15 @@ impl super::Executor for CommandLog {
             remote: self.remote.as_str(),
             target: self.target.as_str(),
         })?;
-        format::TextFormatter {
+        match (format::TextFormatter {
             filter_empty: self.filter_empty,
+        })
+        .format(result, &config, stdout)
+        {
+            Ok(()) => Ok(ExitCode::Success),
+            Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => Ok(ExitCode::Success),
+            Err(error) => Err(error.into()),
         }
-        .format(result, &config, stdout)?;
-        Ok(ExitCode::Success)
     }
 }
 
