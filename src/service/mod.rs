@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::backend::{Backend, NoteRef};
 use crate::entity::config::Config;
 use crate::entity::metric::{Metric, MetricChange, MetricStack};
@@ -64,14 +66,26 @@ struct ChangeList {
 
 pub(crate) struct Service<B> {
     backend: B,
+    config_override: Option<PathBuf>,
 }
 
 impl<B: Backend> Service<B> {
     pub(crate) fn new(backend: B) -> Self {
-        Self { backend }
+        Self {
+            backend,
+            config_override: None,
+        }
+    }
+
+    pub(crate) fn with_config_override(mut self, path: Option<PathBuf>) -> Self {
+        self.config_override = path;
+        self
     }
 
     pub(crate) fn open_config(&self) -> Result<Config, Error> {
+        if let Some(path) = self.config_override.as_deref() {
+            return Config::from_path(path).map_err(Error::from);
+        }
         let root = self.backend.root_path()?;
         Config::from_root_path(&root).map_err(Error::from)
     }

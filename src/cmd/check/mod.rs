@@ -33,8 +33,9 @@ impl super::Executor for CommandCheck {
         self,
         backend: B,
         stdout: Out,
+        config_override: Option<std::path::PathBuf>,
     ) -> Result<crate::ExitCode, crate::service::Error> {
-        let svc = Service::new(backend);
+        let svc = Service::new(backend).with_config_override(config_override);
         let config = svc.open_config()?;
         let checklist = svc.check(
             &config,

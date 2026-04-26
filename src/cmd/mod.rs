@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::PathBuf;
 
 use prelude::{BasicWriter, ColoredWriter, PrettyWriter};
 
@@ -28,6 +29,7 @@ trait Executor {
         self,
         backend: B,
         stdout: Out,
+        config_override: Option<PathBuf>,
     ) -> Result<ExitCode, crate::service::Error>;
 }
 
@@ -58,20 +60,21 @@ impl Command {
         self,
         repo: Repo,
         stdout: Out,
+        config_override: Option<PathBuf>,
     ) -> Result<ExitCode, crate::service::Error> {
         match self {
-            Self::Add(inner) => inner.execute(repo, stdout),
-            Self::Check(inner) => inner.execute(repo, stdout),
-            Self::Diff(inner) => inner.execute(repo, stdout),
-            Self::Export(inner) => inner.execute(repo, stdout),
-            Self::Init(inner) => inner.execute(repo, stdout),
+            Self::Add(inner) => inner.execute(repo, stdout, config_override),
+            Self::Check(inner) => inner.execute(repo, stdout, config_override),
+            Self::Diff(inner) => inner.execute(repo, stdout, config_override),
+            Self::Export(inner) => inner.execute(repo, stdout, config_override),
+            Self::Init(inner) => inner.execute(repo, stdout, config_override),
             #[cfg(feature = "importer")]
-            Self::Import(inner) => inner.execute(repo, stdout),
-            Self::Log(inner) => inner.execute(repo, stdout),
-            Self::Pull(inner) => inner.execute(repo, stdout),
-            Self::Push(inner) => inner.execute(repo, stdout),
-            Self::Remove(inner) => inner.execute(repo, stdout),
-            Self::Show(inner) => inner.execute(repo, stdout),
+            Self::Import(inner) => inner.execute(repo, stdout, config_override),
+            Self::Log(inner) => inner.execute(repo, stdout, config_override),
+            Self::Pull(inner) => inner.execute(repo, stdout, config_override),
+            Self::Push(inner) => inner.execute(repo, stdout, config_override),
+            Self::Remove(inner) => inner.execute(repo, stdout, config_override),
+            Self::Show(inner) => inner.execute(repo, stdout, config_override),
         }
     }
 
@@ -81,11 +84,12 @@ impl Command {
         color_enabled: bool,
         stdout: Out,
         stderr: Err,
+        config_override: Option<PathBuf>,
     ) -> ExitCode {
         let result = if color_enabled {
-            self.execute_with(repo, ColoredWriter::from(stdout))
+            self.execute_with(repo, ColoredWriter::from(stdout), config_override)
         } else {
-            self.execute_with(repo, BasicWriter::from(stdout))
+            self.execute_with(repo, BasicWriter::from(stdout), config_override)
         };
 
         match result {

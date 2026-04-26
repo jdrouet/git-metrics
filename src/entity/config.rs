@@ -243,6 +243,10 @@ impl Config {
         let config_path = Self::config_path(root);
         std::fs::write(&config_path, sample())
     }
+
+    pub(crate) fn write_sample_to(path: &Path) -> std::io::Result<()> {
+        std::fs::write(path, sample())
+    }
 }
 
 impl FromStr for Config {

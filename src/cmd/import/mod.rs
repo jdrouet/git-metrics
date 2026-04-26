@@ -46,6 +46,7 @@ impl crate::cmd::Executor for CommandImport {
         self,
         backend: B,
         _stdout: Out,
+        _config_override: Option<std::path::PathBuf>,
     ) -> Result<ExitCode, crate::service::Error> {
         let metrics = self.importer.import()?;
         if metrics.is_empty() {

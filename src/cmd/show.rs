@@ -21,8 +21,9 @@ impl super::Executor for CommandShow {
         self,
         backend: B,
         mut stdout: Out,
+        config_override: Option<std::path::PathBuf>,
     ) -> Result<ExitCode, crate::service::Error> {
-        let svc = Service::new(backend);
+        let svc = Service::new(backend).with_config_override(config_override);
         let config = svc.open_config()?;
         let metrics = svc.show(&crate::service::show::Options {
             remote: self.remote.as_str(),
@@ -56,6 +57,7 @@ mod tests {
             false,
             &mut stdout,
             &mut stderr,
+            None,
         );
 
         assert!(code.is_success());
@@ -96,7 +98,7 @@ value = 1.0
 
         let code = crate::Args::parse_from(["_", "show", "--target", sha])
             .command
-            .execute(repo, false, &mut stdout, &mut stderr);
+            .execute(repo, false, &mut stdout, &mut stderr, None);
 
         assert!(code.is_success(), "{:?}", String::from_utf8_lossy(&stderr));
         assert!(!stdout.is_empty());
