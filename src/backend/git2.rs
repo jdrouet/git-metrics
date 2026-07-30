@@ -283,18 +283,15 @@ impl Backend for Git2Backend {
             return Ok(None);
         };
 
-        note.message()
-            .map(|msg| {
-                tracing::trace!("deserializing note content");
-                toml::from_str::<T>(msg).map(Some).map_err(|err| {
-                    tracing::error!("unable to deserialize metrics: {err:?}");
-                    Error::Deserialize { source: err }
-                })
-            })
-            .unwrap_or_else(|| {
-                tracing::debug!("no message found for note {:?}", note.id());
-                Ok(None)
-            })
+        let msg = note
+            .message()
+            .map_err(with_git2_error!("unable to read note message"))?;
+
+        tracing::trace!("deserializing note content");
+        toml::from_str::<T>(msg).map(Some).map_err(|err| {
+            tracing::error!("unable to deserialize metrics: {err:?}");
+            Error::Deserialize { source: err }
+        })
     }
 
     fn write_note<T: serde::Serialize>(
@@ -443,7 +440,11 @@ impl Backend for Git2Backend {
                 .repo
                 .find_commit(commit_id)
                 .map_err(with_git2_error!("unable to get commit"))?;
-            let summary = commit.summary().map(String::from).unwrap_or_default();
+            let summary = commit
+                .summary()
+                .map_err(with_git2_error!("unable to read commit summary"))?
+                .map(String::from)
+                .unwrap_or_default();
             result.push(Commit {
                 sha: commit_id.to_string(),
                 summary,
