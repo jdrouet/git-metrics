@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8](https://github.com/jdrouet/git-metrics/compare/v0.2.7...v0.2.8) - 2026-09-01
+
+### Other
+
+- *(deps)* bump indexmap from 2.14.0 to 2.14.1 ([#282](https://github.com/jdrouet/git-metrics/pull/282))
+- *(deps)* bump thiserror from 2.0.19 to 2.0.20 ([#281](https://github.com/jdrouet/git-metrics/pull/281))
+- *(deps)* bump clap from 4.6.5 to 4.6.6 ([#280](https://github.com/jdrouet/git-metrics/pull/280))
+- *(deps)* bump clap from 4.6.4 to 4.6.5 ([#279](https://github.com/jdrouet/git-metrics/pull/279))
+- *(deps)* update dependencies ([#278](https://github.com/jdrouet/git-metrics/pull/278))
+- *(deps)* bump clap from 4.6.1 to 4.6.2 ([#275](https://github.com/jdrouet/git-metrics/pull/275))
+- *(deps)* bump mockall from 0.14.0 to 0.15.0 ([#273](https://github.com/jdrouet/git-metrics/pull/273))
+- *(deps)* bump actions/cache from 5 to 6 ([#272](https://github.com/jdrouet/git-metrics/pull/272))
+- *(deps)* bump actions/checkout from 6 to 7 ([#270](https://github.com/jdrouet/git-metrics/pull/270))
+
 ## [0.2.7](https://github.com/jdrouet/git-metrics/compare/v0.2.6...v0.2.7) - 2026-04-26
 
 ### Added

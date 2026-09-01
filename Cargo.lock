@@ -293,7 +293,7 @@ dependencies = [
 
 [[package]]
 name = "git-metrics"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "another-html-builder",
  "auth-git2",
