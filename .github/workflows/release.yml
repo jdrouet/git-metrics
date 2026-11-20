@@ -55,7 +55,8 @@ jobs:
   publish:
     name: publish
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' }}
+    # In a reusable workflow, github.event_name is the caller's event (push), never workflow_call.
+    if: ${{ inputs.release_tag && (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main') }}
     needs:
       - execute-build
       - code-testing
