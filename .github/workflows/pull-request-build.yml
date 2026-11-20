@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/pull-request-build.yml"
       - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
       - "rust-toolchain.toml"
       - "**/Cargo.toml"
       - "**/Cargo.lock"
