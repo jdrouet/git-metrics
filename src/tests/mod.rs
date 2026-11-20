@@ -5,6 +5,7 @@ mod check_budget;
 mod config_override;
 mod conflict_different;
 mod display_diff;
+mod empty_repository;
 mod simple_use_case;
 
 fn init_logs() {

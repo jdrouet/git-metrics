@@ -26,6 +26,8 @@ pub(crate) enum Error {
     },
     #[error("{message}")]
     Race { message: &'static str },
+    #[error("your current branch does not have any commits yet")]
+    EmptyRepository,
     #[error("unable to deserialize metrics")]
     Deserialize {
         #[from]
@@ -112,10 +114,21 @@ impl Git2Backend {
         self.repo
             .revparse_single(target)
             .map(|rev| rev.id())
-            .map_err(|err| {
-                tracing::error!("unable to find revision id for target {target:?}: {err:?}");
-                Error::git2("unable to find revision id", err)
-            })
+            .map_err(|err| self.revparse_error("unable to find revision id", err))
+    }
+
+    /// Any revision lookup fails on an unborn branch, so report that instead of the revspec.
+    fn revparse_error(&self, message: &'static str, err: git2::Error) -> Error {
+        tracing::error!("{message}: {err:?}");
+        let unborn = self
+            .repo
+            .head()
+            .is_err_and(|head_err| head_err.code() == git2::ErrorCode::UnbornBranch);
+        if err.code() == git2::ErrorCode::NotFound && unborn {
+            Error::EmptyRepository
+        } else {
+            Error::git2(message, err)
+        }
     }
 
     fn signature(&self) -> Result<git2::Signature<'_>, Error> {
@@ -156,7 +169,7 @@ impl Backend for Git2Backend {
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_git2_error!("unable to parse commit range"))?;
+            .map_err(|err| self.revparse_error("unable to parse commit range", err))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
@@ -213,7 +226,7 @@ impl Backend for Git2Backend {
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_git2_error!("unable to parse commit range"))?;
+            .map_err(|err| self.revparse_error("unable to parse commit range", err))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let commit = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
@@ -389,7 +402,7 @@ impl Backend for Git2Backend {
         let revspec = self
             .repo
             .revparse(range.as_ref())
-            .map_err(with_git2_error!("unable to parse commit range"))?;
+            .map_err(|err| self.revparse_error("unable to parse commit range", err))?;
         if revspec.mode().contains(git2::RevparseMode::SINGLE) {
             let from = revspec.from().ok_or_else(|| {
                 tracing::error!("unable to get range beginning");
