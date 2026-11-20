@@ -6,6 +6,11 @@ on:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
 
+# Dependabot runs get a read-only token; the action reports findings as a check run.
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   security_audit:
     runs-on: ubuntu-latest
